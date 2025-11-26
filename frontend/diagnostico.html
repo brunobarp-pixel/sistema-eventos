@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🔍 Diagnóstico - Sistema de Eventos</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        .debug-box {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 15px;
+            font-family: monospace;
+            font-size: 13px;
+        }
+        .status-ok { color: #28a745; font-weight: bold; }
+        .status-warning { color: #ffc107; font-weight: bold; }
+        .status-error { color: #dc3545; font-weight: bold; }
+        pre { background: #fff; padding: 10px; border-radius: 4px; overflow-x: auto; }
+    </style>
+</head>
+<body>
+    <div class="container my-5">
+        <h1>🔍 Diagnóstico do Sistema</h1>
+        <p class="text-muted">Verificando configurações e dados...</p>
+
+        <div id="results"></div>
+
+        <button class="btn btn-primary" onclick="executarDiagnostico()">
+            🔄 Executar Diagnóstico Novamente
+        </button>
+    </div>
+
+    <script>
+        const API_URL = 'http://177.44.248.118:8000/api';
+        let usuario = null;
+
+        async function executarDiagnostico() {
+            const container = document.getElementById('results');
+            container.innerHTML = '<div class="spinner-border text-primary" role="status"></div>';
+
+            let html = '';
+
+            // ========== TESTE 1: Verificar Usuário Logado ==========
+            html += '<div class="debug-box">';
+            html += '<h5>1️⃣ Verificando Usuário Logado</h5>';
+            
+            const usuarioData = localStorage.getItem('usuario');
+            if (usuarioData) {
+                usuario = JSON.parse(usuarioData);
+                html += `<span class="status-ok">✅ Usuário logado:</span> ${usuario.nome} (ID: ${usuario.id})<br>`;
+                html += `<span class="status-ok">✅ Email:</span> ${usuario.email}`;
+            } else {
+                html += '<span class="status-error">❌ Nenhum usuário logado!</span><br>';
+                html += '<a href="login.html">👉 Faça login aqui</a>';
+                container.innerHTML = html;
+                return;
+            }
+            html += '</div>';
+
+            // ========== TESTE 2: Buscar Inscrições do Usuário ==========
+            html += '<div class="debug-box">';
+            html += '<h5>2️⃣ Buscando Inscrições do Usuário</h5>';
+            
+            try {
+                const response = await fetch(`${API_URL}/usuarios/${usuario.id}/inscricoes`);
+                const data = await response.json();
+
+                if (data.success && data.data) {
+                    html += `<span class="status-ok">✅ Total de inscrições:</span> ${data.data.length}<br><br>`;
+                    
+                    html += '<strong>📋 Detalhes das inscrições:</strong><br>';
+                    data.data.forEach((insc, index) => {
+                        html += `<br><strong>Inscrição ${index + 1}:</strong><br>`;
+                        html += `• ID: ${insc.id}<br>`;
+                        html += `• Evento: ${insc.evento?.titulo || 'N/A'}<br>`;
+                        html += `• Status: ${insc.status}<br>`;
+                        html += `• Possui presença: ${insc.possui_presenca ? '✅ SIM' : '❌ NÃO'}<br>`;
+                        html += `• Data inscrição: ${insc.data_inscricao}<br>`;
+                    });
+
+                    // Contar com presença
+                    const comPresenca = data.data.filter(i => i.possui_presenca).length;
+                    const semPresenca = data.data.length - comPresenca;
+
+                    html += `<br><strong>📊 Resumo:</strong><br>`;
+                    html += `• Com presença: <span class="status-ok">${comPresenca}</span><br>`;
+                    html += `• Sem presença: <span class="status-warning">${semPresenca}</span>`;
+
+                    if (comPresenca === 0) {
+                        html += '<br><br><span class="status-warning">⚠️ ATENÇÃO: Nenhuma inscrição tem presença registrada!</span><br>';
+                        html += 'Para emitir certificado, é necessário fazer check-in no evento.';
+                    }
+                } else {
+                    html += '<span class="status-error">❌ Nenhuma inscrição encontrada</span>';
+                }
+            } catch (error) {
+                html += `<span class="status-error">❌ Erro ao buscar inscrições: ${error.message}</span>`;
+            }
+            html += '</div>';
+
+            // ========== TESTE 3: Buscar Certificados Emitidos ==========
+            html += '<div class="debug-box">';
+            html += '<h5>3️⃣ Verificando Certificados Emitidos</h5>';
+            
+            try {
+                const response = await fetch(`${API_URL}/certificados/usuario/${usuario.id}`);
+                const data = await response.json();
+
+                if (data.success && data.data) {
+                    html += `<span class="status-ok">✅ Total de certificados:</span> ${data.data.length}<br><br>`;
+                    
+                    if (data.data.length > 0) {
+                        html += '<strong>🎓 Certificados emitidos:</strong><br>';
+                        data.data.forEach((cert, index) => {
+                            html += `<br><strong>Certificado ${index + 1}:</strong><br>`;
+                            html += `• Evento: ${cert.evento?.titulo || 'N/A'}<br>`;
+                            html += `• Código: ${cert.codigo_validacao}<br>`;
+                            html += `• Data emissão: ${cert.data_emissao}`;
+                        });
+                    }
+                } else {
+                    html += '<span class="status-warning">⚠️ Nenhum certificado emitido ainda</span>';
+                }
+            } catch (error) {
+                html += `<span class="status-error">❌ Erro ao buscar certificados: ${error.message}</span>`;
+            }
+            html += '</div>';
+
+            // ========== TESTE 4: Verificar Estrutura do Banco ==========
+            html += '<div class="debug-box">';
+            html += '<h5>4️⃣ Verificando Endpoints da API</h5>';
+            
+            const endpoints = [
+                { url: '/eventos', nome: 'Listar Eventos' },
+                { url: `/usuarios/${usuario.id}/inscricoes`, nome: 'Inscrições do Usuário' },
+                { url: `/certificados/usuario/${usuario.id}`, nome: 'Certificados do Usuário' }
+            ];
+
+            for (const endpoint of endpoints) {
+                try {
+                    const response = await fetch(`${API_URL}${endpoint.url}`);
+                    if (response.ok) {
+                        html += `<span class="status-ok">✅</span> ${endpoint.nome} (${endpoint.url})<br>`;
+                    } else {
+                        html += `<span class="status-error">❌</span> ${endpoint.nome} - Status ${response.status}<br>`;
+                    }
+                } catch (error) {
+                    html += `<span class="status-error">❌</span> ${endpoint.nome} - Erro: ${error.message}<br>`;
+                }
+            }
+            html += '</div>';
+
+            // ========== TESTE 5: Sugestões ==========
+            html += '<div class="debug-box">';
+            html += '<h5>5️⃣ Sugestões</h5>';
+            html += '<ul>';
+            html += '<li>✅ Para emitir certificado, é necessário: estar inscrito + ter presença registrada</li>';
+            html += '<li>✅ Certificados só aparecem para eventos com presença confirmada</li>';
+            html += '<li>✅ O check-in deve ser feito na página "offline.html" pelos atendentes</li>';
+            html += '<li>✅ Após o check-in, o evento aparecerá na lista para emissão de certificado</li>';
+            html += '</ul>';
+            html += '</div>';
+
+            container.innerHTML = html;
+        }
+
+        // Executar ao carregar
+        window.addEventListener('DOMContentLoaded', executarDiagnostico);
+    </script>
+</body>
+</html>

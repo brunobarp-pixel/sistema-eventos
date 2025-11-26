@@ -1,0 +1,527 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Minhas Inscrições - Sistema de Eventos</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+    <style>
+        .certificate-card {
+            transition: transform 0.3s;
+            border-left: 4px solid #667eea;
+        }
+
+        .certificate-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Navbar -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container">
+            <a class="navbar-brand" href="index.html">
+                <i class="bi bi-calendar-event"></i> Sistema de Eventos
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="index.html">Home</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="eventos.html">Eventos</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link active" href="inscricoes.html">Minhas Inscrições</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="certificados.html">Certificados</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link text-danger" href="#" onclick="logout()">
+                            <i class="bi bi-box-arrow-right"></i> Sair
+                        </a>
+                    </li>
+                </ul>
+                <span class="navbar-text ms-3" id="nomeUsuario"></span>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Header -->
+    <div class="bg-primary text-white py-5">
+        <div class="container">
+            <h1 class="display-4"><i class="bi bi-list-check"></i> Minhas Inscrições</h1>
+            <p class="lead">Gerencie suas inscrições e emita certificados</p>
+        </div>
+    </div>
+
+    <!-- Conteúdo -->
+    <div class="container my-5">
+        <!-- Alertas -->
+        <div id="alertContainer"></div>
+
+        <!-- Abas -->
+        <ul class="nav nav-tabs mb-4" id="inscricoesTab" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" id="minhas-tab" data-bs-toggle="tab" data-bs-target="#minhas">
+                    <i class="bi bi-list-check"></i> Minhas Inscrições
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="certificados-tab" data-bs-toggle="tab" data-bs-target="#certificados">
+                    <i class="bi bi-award"></i> Meus Certificados
+                </button>
+            </li>
+        </ul>
+
+        <!-- Conteúdo das Abas -->
+        <div class="tab-content" id="inscricoesTabContent">
+
+            <!-- Aba: Minhas Inscrições -->
+            <div class="tab-pane fade show active" id="minhas" role="tabpanel">
+                <div id="loadingInscricoes" class="text-center py-5">
+                    <div class="spinner-border text-primary" role="status"></div>
+                    <p class="mt-3">Carregando inscrições...</p>
+                </div>
+
+                <div id="inscricoesContainer" style="display: none;">
+                    <!-- Inscrições serão inseridas aqui -->
+                </div>
+            </div>
+
+            <!-- Aba: Certificados -->
+            <div class="tab-pane fade" id="certificados" role="tabpanel">
+                <div id="loadingCertificados" class="text-center py-5">
+                    <div class="spinner-border text-primary" role="status"></div>
+                    <p class="mt-3">Carregando certificados...</p>
+                </div>
+
+                <div id="certificadosContainer" style="display: none;">
+                    <!-- Certificados serão inseridos aqui -->
+                </div>
+
+                <div class="card mt-4">
+                    <div class="card-header bg-success text-white">
+                        <h5 class="mb-0"><i class="bi bi-award"></i> Emitir Novo Certificado</h5>
+                    </div>
+                    <div class="card-body">
+                        <p class="text-muted mb-4">
+                            Selecione um evento no qual você participou (com presença registrada) para emitir seu
+                            certificado.
+                        </p>
+
+                        <div class="mb-3">
+                            <label for="eventoSelectEmitir" class="form-label">Evento</label>
+                            <select class="form-select" id="eventoSelectEmitir">
+                                <option value="">Carregando eventos...</option>
+                            </select>
+                        </div>
+
+                        <button class="btn btn-success" onclick="emitirCertificado()">
+                            <i class="bi bi-award"></i> Emitir Certificado
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+	console.log('=== ARQUIVO CARREGADO - VERSÃO 3 ===');
+        const API_URL = 'http://177.44.248.118:8000/api';
+        let usuario = null;
+
+        // Verificar autenticação
+        document.addEventListener('DOMContentLoaded', function () {
+            const usuarioData = localStorage.getItem('usuario');
+
+            if (!usuarioData) {
+                window.location.href = 'login.html';
+                return;
+            }
+
+            usuario = JSON.parse(usuarioData);
+            document.getElementById('nomeUsuario').textContent = usuario.nome;
+
+            carregarInscricoes();
+            carregarEventosParaEmissao();
+            carregarCertificados();
+        });
+
+        // ==================== MINHAS INSCRIÇÕES ====================
+        async function carregarInscricoes() {
+            const loading = document.getElementById('loadingInscricoes');
+            const container = document.getElementById('inscricoesContainer');
+
+            loading.style.display = 'block';
+            container.style.display = 'none';
+
+        }
+
+        function exibirInscricoes(inscricoes) {
+            const loading = document.getElementById('loadingInscricoes');
+            const container = document.getElementById('inscricoesContainer');
+
+            loading.style.display = 'none';
+            container.style.display = 'block';
+            container.innerHTML = '';
+
+            if (inscricoes.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center py-5">
+                        <i class="bi bi-inbox" style="font-size: 4rem; color: #ccc;"></i>
+                        <h4 class="mt-3">Nenhuma inscrição encontrada</h4>
+                        <p class="text-muted">Faça sua primeira inscrição em um evento!</p>
+                        <a href="eventos.html" class="btn btn-primary mt-3">
+                            <i class="bi bi-calendar-event"></i> Ver Eventos Disponíveis
+                        </a>
+                    </div>
+                `;
+                return;
+            }
+
+            inscricoes.forEach(inscricao => {
+                const statusClass = inscricao.status === 'ativa' ? 'success' : 'secondary';
+                const dataInscricao = new Date(inscricao.data_inscricao).toLocaleDateString('pt-BR');
+                const dataEvento = new Date(inscricao.evento.data_inicio).toLocaleDateString('pt-BR');
+
+                let badgePresenca = '';
+                if (inscricao.possui_presenca) {
+                    badgePresenca = '<span class="badge bg-info ms-2"><i class="bi bi-check-circle"></i> Presença registrada</span>';
+                }
+
+                container.innerHTML += `
+                    <div class="card mb-3">
+                        <div class="card-body">
+                            <div class="row align-items-center">
+                                <div class="col-md-9">
+                                    <h5 class="card-title">
+                                        ${inscricao.evento.titulo}
+                                        <span class="badge bg-${statusClass} ms-2">${inscricao.status}</span>
+                                        ${badgePresenca}
+                                    </h5>
+                                    <p class="card-text text-muted mb-2">${inscricao.evento.local}</p>
+                                    <p class="mb-0">
+                                        <i class="bi bi-calendar-event"></i> Evento: ${dataEvento} |
+                                        <i class="bi bi-pencil-square"></i> Inscrito em: ${dataInscricao}
+                                    </p>
+                                    ${!inscricao.possui_presenca ? '<p class="text-muted mt-2 mb-0"><small><i class="bi bi-info-circle"></i> O check-in será feito pelos atendentes no dia do evento</small></p>' : ''}
+                                </div>
+                                <div class="col-md-3 text-end">
+                                    ${inscricao.status === 'ativa' && !inscricao.possui_presenca ? `
+                                        <button class="btn btn-outline-danger w-100" onclick="cancelarInscricao(${inscricao.id})">
+                                            <i class="bi bi-x-circle"></i> Cancelar
+                                        </button>
+                                    ` : ''}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        // ==================== CERTIFICADOS ====================
+        async function carregarCertificados() {
+            const loading = document.getElementById('loadingCertificados');
+            const container = document.getElementById('certificadosContainer');
+
+            loading.style.display = 'block';
+            container.style.display = 'none';
+
+            try {
+                const response = await fetch(`${API_URL}/certificados/usuario/${usuario.id}`);
+                const data = await response.json();
+
+                if (data.success) {
+                    exibirCertificados(data.data);
+                } else {
+                    exibirCertificados([]);
+                }
+            } catch (error) {
+                console.error('Erro:', error);
+                exibirCertificados([]);
+            }
+        }
+
+        function exibirCertificados(certificados) {
+            const loading = document.getElementById('loadingCertificados');
+            const container = document.getElementById('certificadosContainer');
+
+            loading.style.display = 'none';
+            container.style.display = 'block';
+            container.innerHTML = '';
+
+            if (certificados.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center py-5">
+                        <i class="bi bi-inbox" style="font-size: 4rem; color: #ccc;"></i>
+                        <h4 class="mt-3">Nenhum certificado emitido</h4>
+                        <p class="text-muted">Participe de eventos e emita seus certificados!</p>
+                    </div>
+                `;
+                return;
+            }
+
+            certificados.forEach(cert => {
+                const dataEmissao = new Date(cert.data_emissao).toLocaleDateString('pt-BR');
+
+                container.innerHTML += `
+                    <div class="card certificate-card mb-3">
+                        <div class="card-body">
+                            <div class="row align-items-center">
+                                <div class="col-md-8">
+                                    <h5 class="card-title">
+                                        <i class="bi bi-award text-warning"></i> ${cert.evento.titulo}
+                                    </h5>
+                                    <p class="mb-2">
+                                        <strong>Data de Emissão:</strong> ${dataEmissao}<br>
+                                        <strong>Código de Validação:</strong><br>
+                                        <code class="text-primary">${cert.codigo_validacao}</code>
+                                    </p>
+                                </div>
+                                <div class="col-md-4 text-end">
+                                    <button class="btn btn-outline-primary mb-2 w-100" onclick="baixarCertificadoPDF(${cert.id}, '${cert.evento.titulo}')">
+                                        <i class="bi bi-download"></i> Baixar PDF
+                                    </button>
+                                    <button class="btn btn-outline-secondary w-100" onclick="copiarCodigo('${cert.codigo_validacao}')">
+                                        <i class="bi bi-clipboard"></i> Copiar Código
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        async function carregarEventosParaEmissao() {
+            const select = document.getElementById('eventoSelectEmitir');
+
+            try {
+                const response = await fetch(`${API_URL}/usuarios/${usuario.id}/inscricoes`);
+                const data = await response.json();
+
+                if (data.success) {
+                    select.innerHTML = '<option value="">Selecione um evento</option>';
+
+                    const eventosComPresenca = data.data.filter(i => i.possui_presenca);
+
+                    if (eventosComPresenca.length === 0) {
+                        select.innerHTML = '<option value="">Nenhum evento disponível (é necessário ter presença registrada)</option>';
+                        return;
+                    }
+
+                    eventosComPresenca.forEach(inscricao => {
+                        select.innerHTML += `<option value="${inscricao.evento.id}">
+                            ${inscricao.evento.titulo} - ${new Date(inscricao.evento.data_inicio).toLocaleDateString('pt-BR')}
+                        </option>`;
+                    });
+                }
+            } catch (error) {
+                console.error('Erro:', error);
+                select.innerHTML = '<option value="">Erro ao carregar eventos</option>';
+            }
+        }
+
+        async function emitirCertificado() {
+            const eventoId = document.getElementById('eventoSelectEmitir').value;
+
+            if (!eventoId) {
+                mostrarAlerta('Selecione um evento!', 'warning');
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_URL}/certificados`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        usuario_id: usuario.id,
+                        evento_id: eventoId
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    mostrarAlerta('Certificado emitido com sucesso!', 'success');
+                    carregarCertificados();
+                    document.getElementById('eventoSelectEmitir').value = '';
+                } else {
+                    mostrarAlerta(data.message, 'danger');
+                }
+            } catch (error) {
+                console.error('Erro:', error);
+                mostrarAlerta('Erro ao emitir certificado', 'danger');
+            }
+        }
+
+        // Função auxiliar para converter data DD/MM/YYYY para YYYY-MM-DD
+        function converterDataParaISO(dataString) {
+            // Se a data já está no formato ISO (YYYY-MM-DD), retorna direto
+            if (dataString.includes('-') && dataString.indexOf('-') === 4) {
+                return dataString.split(' ')[0]; // Remove hora se tiver
+            }
+
+            // Se está no formato DD/MM/YYYY, converte
+            if (dataString.includes('/')) {
+                const partes = dataString.split(' ')[0].split('/'); // Remove hora e divide
+                if (partes.length === 3) {
+                    const [dia, mes, ano] = partes;
+                    return `${ano}-${mes.padStart(2, '0')}-${dia.padStart(2, '0')}`;
+                }
+            }
+
+            // Fallback: tenta usar como Date
+            const data = new Date(dataString);
+            if (!isNaN(data.getTime())) {
+                const ano = data.getFullYear();
+                const mes = String(data.getMonth() + 1).padStart(2, '0');
+                const dia = String(data.getDate()).padStart(2, '0');
+                return `${ano}-${mes}-${dia}`;
+            }
+
+            return dataString; // Retorna original se não conseguir converter
+        }
+
+        async function baixarCertificadoPDF(certificadoId, eventoTitulo) {
+            try {
+                mostrarAlerta('📥 Gerando certificado...', 'info');
+
+                // Buscar dados do certificado pelo CÓDIGO, não pelo ID
+                const certResponse = await fetch(`${API_URL}/certificados/usuario/${usuario.id}`);
+                const certData = await certResponse.json();
+
+                if (!certData.success || certData.data.length === 0) {
+                    throw new Error('Nenhum certificado encontrado');
+                }
+
+                // Encontrar o certificado específico
+                const cert = certData.data.find(c => c.id == certificadoId);
+
+                if (!cert) {
+                    throw new Error('Certificado não encontrado');
+                }
+
+                // Buscar validação para obter dados completos
+                const validResponse = await fetch(`${API_URL}/certificados/${cert.codigo_validacao}`);
+                const validData = await validResponse.json();
+
+                if (!validData.success) {
+                    throw new Error('Erro ao validar certificado');
+                }
+
+                const certCompleto = validData.data;
+
+                // Chamar Python para gerar PDF
+                const pdfResponse = await fetch('http://177.44.248.118:5000/gerar-certificado-pdf', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        nome_participante: certCompleto.participante.nome,
+                        evento_titulo: certCompleto.evento.titulo,
+                        evento_descricao: certCompleto.evento.descricao || '',
+                        data_inicio: converterDataParaISO(certCompleto.evento.data_inicio),
+                        data_fim: converterDataParaISO(certCompleto.evento.data_fim),
+                        local: certCompleto.evento.local,
+                        carga_horaria: certCompleto.evento.carga_horaria || null,
+                        codigo_validacao: certCompleto.codigo_validacao,
+                        data_emissao: certCompleto.data_emissao.replace(/\//g, '-') + ' 00:00:00'
+                    })
+                });
+
+                const pdfData = await pdfResponse.json();
+
+                if (pdfData.success && pdfData.pdf_path) {
+                    // Baixar o PDF gerado
+                    const downloadResponse = await fetch(`http://177.44.248.118:5000/download-pdf/${encodeURIComponent(pdfData.pdf_path)}`);
+
+                    if (!downloadResponse.ok) {
+                        throw new Error('Erro ao baixar PDF');
+                    }
+
+                    const blob = await downloadResponse.blob();
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.style.display = 'none';
+                    a.href = url;
+                    a.download = `Certificado_${eventoTitulo.replace(/\s+/g, '_')}.pdf`;
+                    document.body.appendChild(a);
+                    a.click();
+                    window.URL.revokeObjectURL(url);
+                    document.body.removeChild(a);
+
+                    mostrarAlerta('✅ Certificado baixado com sucesso!', 'success');
+                } else {
+                    throw new Error('Erro ao gerar PDF');
+                }
+
+            } catch (error) {
+                console.error('Erro ao baixar PDF:', error);
+                mostrarAlerta(`❌ ${error.message}`, 'danger');
+            }
+        }
+
+        function copiarCodigo(codigo) {
+            navigator.clipboard.writeText(codigo).then(() => {
+                mostrarAlerta('Código copiado!', 'success');
+            });
+        }
+
+        async function cancelarInscricao(inscricaoId) {
+            if (!confirm('Tem certeza que deseja cancelar esta inscrição?')) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_URL}/inscricoes/${inscricaoId}`, {
+                    method: 'DELETE'
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    mostrarAlerta(data.message, 'success');
+                    carregarInscricoes();
+                } else {
+                    mostrarAlerta(data.message, 'danger');
+                }
+            } catch (error) {
+                console.error('Erro:', error);
+                mostrarAlerta('Erro ao cancelar inscrição', 'danger');
+            }
+        }
+
+        function mostrarAlerta(mensagem, tipo) {
+            const container = document.getElementById('alertContainer');
+            container.innerHTML = `
+                <div class="alert alert-${tipo} alert-dismissible fade show">
+                    <i class="bi bi-${tipo === 'success' ? 'check-circle' : 'exclamation-triangle'}"></i> ${mensagem}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            `;
+
+            setTimeout(() => {
+                container.innerHTML = '';
+            }, 5000);
+        }
+
+        function logout() {
+            localStorage.removeItem('usuario');
+            localStorage.removeItem('token');
+            window.location.href = 'login.html';
+        }
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,748 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Check-in - Atendentes</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+    <style>
+        .status-online {
+            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+        }
+
+        .status-offline {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        }
+
+        .search-result {
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .search-result:hover {
+            background: #f8f9fa;
+            transform: translateX(5px);
+        }
+
+        .pending-badge {
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+
+            0%,
+            100% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0.5;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Navbar -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container">
+            <a class="navbar-brand" href="index.html">
+                <i class="bi bi-person-badge"></i> Check-in - Atendentes
+            </a>
+            <div class="ms-auto">
+                <span class="navbar-text text-white me-3" id="statusConexao">
+                    <i class="bi bi-wifi-off"></i> Offline
+                </span>
+                <a href="index.html" class="btn btn-outline-light btn-sm">
+                    <i class="bi bi-arrow-left"></i> Voltar
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Status Bar -->
+    <div id="statusBar" class="status-offline text-white py-2">
+        <div class="container">
+            <div class="row align-items-center">
+                <div class="col-md-8">
+                    <small><i class="bi bi-info-circle"></i> <span id="statusText">Sistema offline - Dados serão
+                            sincronizados depois</span></small>
+                </div>
+                <div class="col-md-4 text-end">
+                    <button class="btn btn-light btn-sm" onclick="verificarConexao()">
+                        <i class="bi bi-arrow-clockwise"></i> Verificar
+                    </button>
+                    <button class="btn btn-warning btn-sm" onclick="sincronizar()" id="btnSincronizar">
+                        <i class="bi bi-cloud-arrow-up"></i> Sincronizar
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="container my-4">
+        <!-- Estatísticas -->
+        <div class="row mb-4">
+            <div class="col-md-3">
+                <div class="card text-center border-primary">
+                    <div class="card-body">
+                        <i class="bi bi-people-fill text-primary" style="font-size: 2rem;"></i>
+                        <h3 class="mt-2" id="totalUsuarios">0</h3>
+                        <small class="text-muted">Usuários</small>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card text-center border-success">
+                    <div class="card-body">
+                        <i class="bi bi-pencil-square text-success" style="font-size: 2rem;"></i>
+                        <h3 class="mt-2" id="totalInscricoes">0</h3>
+                        <small class="text-muted">Inscrições</small>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card text-center border-info">
+                    <div class="card-body">
+                        <i class="bi bi-check-circle-fill text-info" style="font-size: 2rem;"></i>
+                        <h3 class="mt-2" id="totalPresencas">0</h3>
+                        <small class="text-muted">Presenças</small>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card text-center border-warning">
+                    <div class="card-body">
+                        <i class="bi bi-clock-history text-warning" style="font-size: 2rem;"></i>
+                        <h3 class="mt-2 pending-badge" id="totalPendentes">0</h3>
+                        <small class="text-muted">Pendentes</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Alertas -->
+        <div id="alertContainer"></div>
+
+        <!-- Abas -->
+        <ul class="nav nav-tabs mb-4" id="myTab" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" id="checkin-tab" data-bs-toggle="tab" data-bs-target="#checkin">
+                    <i class="bi bi-person-check"></i> Fazer Check-in
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="cadastro-tab" data-bs-toggle="tab" data-bs-target="#cadastro">
+                    <i class="bi bi-person-plus"></i> Cadastro Rápido
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="inscricao-tab" data-bs-toggle="tab" data-bs-target="#inscricao">
+                    <i class="bi bi-clipboard-plus"></i> Inscrever
+                </button>
+            </li>
+        </ul>
+
+        <!-- Conteúdo das Abas -->
+        <div class="tab-content">
+
+            <!-- ABA 1: CHECK-IN -->
+            <div class="tab-pane fade show active" id="checkin" role="tabpanel">
+                <div class="card">
+                    <div class="card-header bg-info text-white">
+                        <h5 class="mb-0"><i class="bi bi-person-check"></i> Registrar Presença</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Buscar Participante</label>
+                                <div class="input-group">
+                                    <span class="input-group-text"><i class="bi bi-search"></i></span>
+                                    <input type="text" class="form-control" id="buscaParticipante"
+                                        placeholder="Digite nome, email ou CPF..." onkeyup="buscarParticipante()">
+                                </div>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Evento</label>
+                                <select class="form-select" id="eventoCheckin">
+                                    <option value="">Carregando eventos...</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div id="resultadosBusca" style="display: none;" class="mb-3">
+                            <h6>Resultados da busca:</h6>
+                            <div id="listaResultados"></div>
+                        </div>
+
+                        <div id="inscricaoSelecionada" style="display: none;" class="alert alert-info">
+                            <h6><i class="bi bi-person"></i> Participante Selecionado</h6>
+                            <p class="mb-0" id="infoParticipante"></p>
+                            <button class="btn btn-info mt-2" onclick="confirmarCheckin()">
+                                <i class="bi bi-check-circle"></i> Confirmar Presença
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ABA 2: CADASTRO RÁPIDO -->
+            <div class="tab-pane fade" id="cadastro" role="tabpanel">
+                <div class="card">
+                    <div class="card-header bg-primary text-white">
+                        <h5 class="mb-0"><i class="bi bi-person-plus"></i> Cadastro Rápido na Portaria</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="alert alert-info">
+                            <i class="bi bi-info-circle"></i> Para participantes não cadastrados.
+                            Apenas <strong>nome e email</strong> são obrigatórios.
+                        </div>
+
+                        <form id="formCadastro">
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Nome Completo *</label>
+                                    <input type="text" class="form-control" id="cadastroNome" required>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">E-mail *</label>
+                                    <input type="email" class="form-control" id="cadastroEmail" required>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">CPF</label>
+                                    <input type="text" class="form-control" id="cadastroCpf" maxlength="14">
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Telefone</label>
+                                    <input type="text" class="form-control" id="cadastroTelefone" maxlength="15">
+                                </div>
+                            </div>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-person-check"></i> Cadastrar e Prosseguir
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ABA 3: INSCRIÇÃO -->
+            <div class="tab-pane fade" id="inscricao" role="tabpanel">
+                <div class="card">
+                    <div class="card-header bg-success text-white">
+                        <h5 class="mb-0"><i class="bi bi-clipboard-plus"></i> Inscrever Participante</h5>
+                    </div>
+                    <div class="card-body">
+                        <form id="formInscricao">
+                            <div class="mb-3">
+                                <label class="form-label">Participante</label>
+                                <select class="form-select" id="inscricaoUsuario" required>
+                                    <option value="">Carregando...</option>
+                                </select>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Evento</label>
+                                <select class="form-select" id="inscricaoEvento" required>
+                                    <option value="">Carregando...</option>
+                                </select>
+                            </div>
+                            <button type="submit" class="btn btn-success">
+                                <i class="bi bi-check"></i> Confirmar Inscrição
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        const OFFLINE_API = 'http://177.44.248.118:5000';
+        const LARAVEL_API = 'http://177.44.248.118:8000/api';
+        let modoOnline = false;
+        let todosUsuarios = [];
+        let todasInscricoes = [];
+        let inscricaoSelecionadaId = null;
+
+        // Inicializar
+        document.addEventListener('DOMContentLoaded', function () {
+            verificarConexao();
+            carregarDados();
+
+            document.getElementById('formCadastro').addEventListener('submit', cadastrarUsuario);
+            document.getElementById('formInscricao').addEventListener('submit', criarInscricao);
+
+            // Recarregar ao trocar de aba
+            document.querySelectorAll('button[data-bs-toggle="tab"]').forEach(btn => {
+                btn.addEventListener('shown.bs.tab', carregarDados);
+            });
+        });
+
+        // ==================== CONEXÃO ====================
+        async function verificarConexao() {
+            try {
+                const response = await fetch(`${LARAVEL_API}/status`, { timeout: 3000 });
+                if (response.ok) {
+                    modoOnline = true;
+                    document.getElementById('statusBar').className = 'status-online text-white py-2';
+                    document.getElementById('statusText').innerHTML = '✓ Sistema ONLINE - Conectado ao servidor';
+                    document.getElementById('statusConexao').innerHTML = '<i class="bi bi-wifi"></i> Online';
+                } else {
+                    throw new Error('Offline');
+                }
+            } catch (error) {
+                modoOnline = false;
+                document.getElementById('statusBar').className = 'status-offline text-white py-2';
+                document.getElementById('statusText').innerHTML = '○ Sistema OFFLINE - Dados serão sincronizados depois';
+                document.getElementById('statusConexao').innerHTML = '<i class="bi bi-wifi-off"></i> Offline';
+            }
+        }
+
+        // ==================== CARREGAR DADOS ====================
+        async function carregarDados() {
+            await carregarEstatisticas();
+            await carregarUsuarios();
+            await carregarEventos();
+            await carregarInscricoes();
+        }
+
+        async function carregarEstatisticas() {
+try {
+        const token = localStorage.getItem('token');
+        const resp = await fetch(`${OFFLINE_API}/dados-pendentes`, {
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            }
+        });
+        const data = await resp.json();
+
+                if (data.success) {
+                    document.getElementById('totalUsuarios').textContent = data.data.usuarios.length;
+                    document.getElementById('totalInscricoes').textContent = data.data.inscricoes.length;
+                    document.getElementById('totalPresencas').textContent = data.data.presencas.length;
+                    document.getElementById('totalPendentes').textContent = data.data.total_pendente;
+                }
+            } catch (error) {
+                console.error('Erro ao carregar estatísticas:', error);
+            }
+        }
+
+        async function carregarUsuarios() {
+            todosUsuarios = [];
+
+    const token = localStorage.getItem('token');
+
+            // Tentar do Laravel primeiro (se online)
+    if (modoOnline) {
+        try {
+            const resp = await fetch(`${LARAVEL_API}/usuarios`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+            const data = await resp.json();
+            if (data.success) {
+                todosUsuarios = todosUsuarios.concat(data.data);
+            }
+        } catch (error) {
+            console.log('Não foi possível buscar usuários do Laravel');
+        }
+    }
+
+  try {
+        const resp = await fetch(`${OFFLINE_API}/usuarios`, {
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            }
+        });
+        const data = await resp.json();
+
+        if (data.success) {
+            data.data.forEach(u => {
+                if (!todosUsuarios.find(tu => tu.email === u.email)) {
+                    todosUsuarios.push(u);
+                }
+            });
+        }
+    } catch (error) {
+        console.error('Erro ao buscar usuários offline:', error);
+    }
+
+    atualizarSelectUsuarios();
+}
+
+        function atualizarSelectUsuarios() {
+            const select = document.getElementById('inscricaoUsuario');
+            select.innerHTML = '<option value="">Selecione um participante</option>';
+
+            todosUsuarios.forEach(u => {
+                select.innerHTML += `<option value="${u.id}">${u.nome} - ${u.email}</option>`;
+            });
+        }
+
+        async function carregarEventos() {
+    const token = localStorage.getItem('token');
+
+            const selects = [
+                document.getElementById('eventoCheckin'),
+                document.getElementById('inscricaoEvento')
+            ];
+
+            selects.forEach(s => s.innerHTML = '<option value="">Carregando...</option>');
+
+ try {
+        const resp = await fetch(
+            modoOnline ? `${LARAVEL_API}/eventos` : `${OFFLINE_API}/eventos`,
+            {
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                }
+            }
+        );
+        const data = await resp.json();
+
+        if (data.success && data.data.length > 0) {
+            selects.forEach(s => {
+                s.innerHTML = '<option value="">Selecione um evento</option>';
+                data.data.forEach(e => {
+                    s.innerHTML += `<option value="${e.id}">${e.titulo}</option>`;
+                });
+            });
+        } else {
+            selects.forEach(s => {
+                s.innerHTML = '<option value="">Selecione</option>';
+                s.innerHTML += '<option value="1">Workshop de Desenvolvimento Web</option>';
+                s.innerHTML += '<option value="2">Palestra sobre IA</option>';
+            });
+        }
+    } catch (error) {
+        console.error('Erro ao carregar eventos:', error);
+    }
+}
+
+        async function carregarInscricoes() {
+
+            todasInscricoes = [];
+
+    const token = localStorage.getItem('token');
+
+    if (modoOnline) {
+        try {
+            const resp = await fetch(`${LARAVEL_API}/inscricoes`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+            const data = await resp.json();
+
+            if (data.success && data.data) {
+                todasInscricoes = data.data;
+            }
+        } catch (error) {
+            console.log('Não foi possível buscar inscrições do Laravel:', error);
+        }
+    }
+
+    // Offline
+    try {
+        const resp = await fetch(`${OFFLINE_API}/inscricoes`, {
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            }
+        });
+        const data = await resp.json();
+
+        if (data.success && data.data) {
+            data.data.forEach(inscOffline => {
+                const jaExiste = todasInscricoes.find(insc =>
+                    insc.usuario_id === inscOffline.usuario_id &&
+                    insc.evento_id === inscOffline.evento_id
+                );
+                if (!jaExiste) {
+                    todasInscricoes.push(inscOffline);
+                }
+            });
+        }
+    } catch (error) {
+        console.error('Erro ao buscar inscrições offline:', error);
+    }
+
+    console.log('Total de inscrições carregadas:', todasInscricoes.length);
+}
+        // ==================== BUSCA DE PARTICIPANTE ====================
+        function buscarParticipante() {
+            const termo = document.getElementById('buscaParticipante').value.toLowerCase().trim();
+            const resultado = document.getElementById('resultadosBusca');
+            const lista = document.getElementById('listaResultados');
+            const eventoId = document.getElementById('eventoCheckin').value;
+
+            if (termo.length < 2) {
+                resultado.style.display = 'none';
+                return;
+            }
+
+            if (!eventoId) {
+                lista.innerHTML = '<div class="alert alert-warning">⚠️ Selecione um evento primeiro</div>';
+                resultado.style.display = 'block';
+                return;
+            }
+
+            // Filtrar inscrições do evento selecionado
+            let inscricoesDoEvento = todasInscricoes.filter(insc =>
+                insc.evento_id == eventoId && insc.status === 'ativa'
+            );
+
+            // Buscar por nome, email ou CPF
+            const resultados = inscricoesDoEvento.filter(insc => {
+                const usuario = todosUsuarios.find(u => u.id === insc.usuario_id);
+                if (!usuario) return false;
+
+                const nome = (usuario.nome || '').toLowerCase();
+                const email = (usuario.email || '').toLowerCase();
+                const cpf = (usuario.cpf || '').toLowerCase().replace(/[^\d]/g, '');
+                const termoLimpo = termo.replace(/[^\d]/g, '');
+
+                return nome.includes(termo) ||
+                    email.includes(termo) ||
+                    (cpf && termoLimpo && cpf.includes(termoLimpo));
+            });
+
+            if (resultados.length === 0) {
+                lista.innerHTML = '<div class="alert alert-warning">⚠️ Nenhum participante encontrado neste evento</div>';
+                resultado.style.display = 'block';
+                return;
+            }
+
+            lista.innerHTML = '';
+            resultados.forEach(insc => {
+                const usuario = todosUsuarios.find(u => u.id === insc.usuario_id);
+
+                // Verificar se já tem presença
+                const temPresenca = insc.possui_presenca || insc.presenca;
+
+                lista.innerHTML += `
+            <div class="card search-result mb-2 ${temPresenca ? 'bg-light' : ''}" 
+                 onclick="${temPresenca ? '' : `selecionarInscricao(${insc.id})`}"
+                 style="${temPresenca ? 'cursor: not-allowed; opacity: 0.6;' : ''}">
+                <div class="card-body py-2">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <strong>${usuario.nome}</strong> - ${usuario.email}<br>
+                            <small class="text-muted">
+                                ${usuario.cpf ? 'CPF: ' + usuario.cpf : ''}
+                            </small>
+                        </div>
+                        ${temPresenca ? '<span class="badge bg-success">✓ Presença já registrada</span>' : ''}
+                    </div>
+                </div>
+            </div>
+        `;
+            });
+
+            resultado.style.display = 'block';
+        }
+
+        function selecionarInscricao(inscricaoId) {
+            const insc = todasInscricoes.find(i => i.id === inscricaoId);
+            const usuario = todosUsuarios.find(u => u.id === insc.usuario_id);
+
+            inscricaoSelecionadaId = inscricaoId;
+
+            document.getElementById('infoParticipante').innerHTML = `
+                <strong>Nome:</strong> ${usuario.nome}<br>
+                <strong>Email:</strong> ${usuario.email}<br>
+                <strong>Inscrição ID:</strong> ${inscricaoId}
+            `;
+
+            document.getElementById('inscricaoSelecionada').style.display = 'block';
+        }
+
+        // ==================== CHECK-IN ====================
+        async function confirmarCheckin() {
+            if (!inscricaoSelecionadaId) {
+                mostrarAlerta('Nenhuma inscrição selecionada!', 'warning');
+                return;
+            }
+
+            try {
+                const resp = await fetch(`${OFFLINE_API}/presencas`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ inscricao_id: inscricaoSelecionadaId })
+                });
+
+                const data = await resp.json();
+
+                if (data.success) {
+                    mostrarAlerta('✓ Presença registrada com sucesso!', 'success');
+                    document.getElementById('buscaParticipante').value = '';
+                    document.getElementById('resultadosBusca').style.display = 'none';
+                    document.getElementById('inscricaoSelecionada').style.display = 'none';
+                    inscricaoSelecionadaId = null;
+                    carregarEstatisticas();
+                } else {
+                    mostrarAlerta(data.message, 'danger');
+                }
+            } catch (error) {
+                mostrarAlerta('Erro ao registrar presença', 'danger');
+            }
+        }
+
+        // Na função cadastrarUsuario() do offline.html
+        async function cadastrarUsuario(e) {
+            e.preventDefault();
+
+            const dados = {
+                nome: document.getElementById('cadastroNome').value,
+                email: document.getElementById('cadastroEmail').value,
+                cpf: document.getElementById('cadastroCpf').value || null,
+                telefone: document.getElementById('cadastroTelefone').value || null
+            };
+
+            try {
+                const resp = await fetch(`${OFFLINE_API}/usuarios`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(dados)
+                });
+
+                const data = await resp.json();
+
+                if (data.success) {
+                    // 🆕 MOSTRAR SENHA PADRÃO
+                    mostrarAlerta(`✅ Usuário cadastrado!<br>
+                <strong>Email:</strong> ${dados.email}<br>
+                <strong>Senha padrão:</strong> senha123<br>
+                <small>O usuário pode fazer login com estes dados.</small>`, 'success');
+
+                    document.getElementById('formCadastro').reset();
+                    carregarDados();
+
+                    // Ir para aba de inscrição
+                    document.getElementById('inscricao-tab').click();
+                } else {
+                    mostrarAlerta(data.message, 'danger');
+                }
+            } catch (error) {
+                mostrarAlerta('Erro ao cadastrar', 'danger');
+            }
+        }
+
+        // ==================== INSCRIÇÃO ====================
+        async function criarInscricao(e) {
+            e.preventDefault();
+
+            const dados = {
+                usuario_id: parseInt(document.getElementById('inscricaoUsuario').value),
+                evento_id: parseInt(document.getElementById('inscricaoEvento').value)
+            };
+
+            try {
+                const resp = await fetch(`${OFFLINE_API}/inscricoes`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(dados)
+                });
+
+                const data = await resp.json();
+
+                if (data.success) {
+                    mostrarAlerta('✓ Inscrição realizada! Agora pode fazer o check-in.', 'success');
+                    document.getElementById('formInscricao').reset();
+                    carregarDados();
+
+                    // Ir para aba de check-in
+                    document.getElementById('checkin-tab').click();
+                } else {
+                    mostrarAlerta(data.message, 'danger');
+                }
+            } catch (error) {
+                mostrarAlerta('Erro ao criar inscrição', 'danger');
+            }
+        }
+
+        // ==================== SINCRONIZAR ====================
+        async function sincronizar() {
+            if (!modoOnline) {
+                mostrarAlerta('⚠️ Sistema offline! Conecte-se à internet primeiro.', 'warning');
+                return;
+            }
+
+            const btn = document.getElementById('btnSincronizar');
+            btn.disabled = true;
+            btn.innerHTML = '<i class="bi bi-hourglass-split"></i> Sincronizando...';
+
+            mostrarAlerta('🔄 Iniciando sincronização...', 'info');
+
+            try {
+                // Chamar endpoint de sincronização do Python
+                const resp = await fetch(`${OFFLINE_API}/sincronizar`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+
+                const data = await resp.json();
+
+                if (data.success) {
+                    let mensagem = `✅ Sincronização completa! ${data.total_sincronizados} registros sincronizados.`;
+
+                    if (data.erros && data.erros.length > 0) {
+                        mensagem += `\n⚠️ ${data.erros.length} erros encontrados.`;
+                        console.error('Erros de sincronização:', data.erros);
+                    }
+
+                    mostrarAlerta(mensagem, 'success');
+
+                    // Recarregar todos os dados
+                    await carregarDados();
+                } else {
+                    mostrarAlerta('❌ Erro na sincronização: ' + data.message, 'danger');
+                }
+            } catch (error) {
+                console.error('Erro ao sincronizar:', error);
+                mostrarAlerta('❌ Erro ao sincronizar: ' + error.message, 'danger');
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="bi bi-cloud-arrow-up"></i> Sincronizar';
+            }
+        }
+
+        // ==================== UTILITÁRIOS ====================
+        function mostrarAlerta(msg, tipo) {
+            const c = document.getElementById('alertContainer');
+            c.innerHTML = `
+                <div class="alert alert-${tipo} alert-dismissible fade show">
+                    ${msg}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            `;
+            setTimeout(() => c.innerHTML = '', 5000);
+        }
+
+        // Máscaras
+        document.getElementById('cadastroCpf')?.addEventListener('input', function (e) {
+            let v = e.target.value.replace(/\D/g, '');
+            v = v.replace(/(\d{3})(\d)/, '$1.$2');
+            v = v.replace(/(\d{3})(\d)/, '$1.$2');
+            v = v.replace(/(\d{3})(\d{1,2})$/, '$1-$2');
+            e.target.value = v;
+        });
+
+        document.getElementById('cadastroTelefone')?.addEventListener('input', function (e) {
+            let v = e.target.value.replace(/\D/g, '');
+            v = v.replace(/(\d{2})(\d)/, '($1) $2');
+            v = v.replace(/(\d{5})(\d)/, '$1-$2');
+            e.target.value = v;
+        });
+    </script>
+</body>
+
+</html>

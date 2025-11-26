@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Eventos Disponíveis</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+</head>
+<body>
+    <!-- Navbar -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container">
+            <a class="navbar-brand" href="index.html">
+                <i class="bi bi-calendar-event"></i> Sistema de Eventos
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="index.html">Home</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link active" href="eventos.html">Eventos</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="login.html">Login</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="cadastro.html">Cadastrar</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Header -->
+    <div class="bg-primary text-white py-5">
+        <div class="container">
+            <h1 class="display-4"><i class="bi bi-calendar-event"></i> Eventos Disponíveis</h1>
+            <p class="lead">Explore e inscreva-se nos eventos que mais lhe interessam</p>
+        </div>
+    </div>
+
+    <!-- Conteúdo -->
+    <div class="container my-5">
+        <!-- Filtros -->
+        <div class="row mb-4">
+            <div class="col-md-6">
+                <input type="text" class="form-control" id="searchInput" placeholder="Buscar eventos...">
+            </div>
+            <div class="col-md-3">
+                <select class="form-select" id="filterStatus">
+                    <option value="">Todos os status</option>
+                    <option value="ativo" selected>Ativos</option>
+                    <option value="encerrado">Encerrados</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <button class="btn btn-primary w-100" onclick="carregarEventos()">
+                    <i class="bi bi-arrow-clockwise"></i> Atualizar
+                </button>
+            </div>
+        </div>
+
+        <!-- Loading -->
+        <div id="loading" class="text-center py-5">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Carregando...</span>
+            </div>
+            <p class="mt-3">Carregando eventos...</p>
+        </div>
+
+        <!-- Lista de Eventos -->
+        <div id="eventosContainer" class="row" style="display: none;">
+            <!-- Os eventos serão inseridos aqui via JavaScript -->
+        </div>
+
+        <!-- Mensagem de erro -->
+        <div id="errorMessage" class="alert alert-danger" style="display: none;">
+            <i class="bi bi-exclamation-triangle"></i> Erro ao carregar eventos. Verifique se o servidor está rodando.
+        </div>
+    </div>
+
+    <!-- Modal Detalhes do Evento -->
+    <div class="modal fade" id="eventoModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="eventoModalLabel"></h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body" id="eventoModalBody">
+                    <!-- Detalhes serão inseridos aqui -->
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
+                    <button type="button" class="btn btn-primary" onclick="irParaInscricao()">
+                        <i class="bi bi-pencil-square"></i> Inscrever-se
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        const API_URL = 'http://177.44.248.118:8000/api';
+        let eventoSelecionado = null;
+
+        // Carregar eventos ao abrir a página
+        document.addEventListener('DOMContentLoaded', function() {
+            carregarEventos();
+        });
+
+        async function carregarEventos() {
+            const loading = document.getElementById('loading');
+            const container = document.getElementById('eventosContainer');
+            const errorMessage = document.getElementById('errorMessage');
+
+            loading.style.display = 'block';
+            container.style.display = 'none';
+            errorMessage.style.display = 'none';
+
+            try {
+                const response = await fetch(`${API_URL}/eventos`);
+                const data = await response.json();
+
+                if (data.success) {
+                    exibirEventos(data.data);
+                } else {
+                    throw new Error('Erro ao carregar eventos');
+                }
+            } catch (error) {
+                console.error('Erro:', error);
+                loading.style.display = 'none';
+                errorMessage.style.display = 'block';
+            }
+        }
+
+        function exibirEventos(eventos) {
+            const loading = document.getElementById('loading');
+            const container = document.getElementById('eventosContainer');
+
+            loading.style.display = 'none';
+            container.style.display = 'flex';
+            container.innerHTML = '';
+
+            if (eventos.length === 0) {
+                container.innerHTML = '<div class="col-12 text-center py-5"><p class="text-muted">Nenhum evento encontrado.</p></div>';
+                return;
+            }
+
+            eventos.forEach(evento => {
+                const dataInicio = new Date(evento.data_inicio).toLocaleDateString('pt-BR');
+                const dataFim = new Date(evento.data_fim).toLocaleDateString('pt-BR');
+                const vagasDisponiveis = evento.vagas - evento.total_inscritos;
+                const statusBadge = evento.status === 'ativo' ? 'success' : 'secondary';
+
+                const card = `
+                    <div class="col-md-6 col-lg-4 mb-4">
+                        <div class="card h-100 shadow-sm">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-start mb-3">
+                                    <h5 class="card-title">${evento.titulo}</h5>
+                                    <span class="badge bg-${statusBadge}">${evento.status}</span>
+                                </div>
+                                <p class="card-text text-muted">${evento.descricao.substring(0, 100)}...</p>
+                                <ul class="list-unstyled">
+                                    <li><i class="bi bi-calendar3"></i> ${dataInicio} - ${dataFim}</li>
+                                    <li><i class="bi bi-geo-alt"></i> ${evento.local}</li>
+                                    <li><i class="bi bi-people"></i> ${vagasDisponiveis} vagas disponíveis</li>
+                                </ul>
+                            </div>
+                            <div class="card-footer bg-white">
+                                <button class="btn btn-outline-primary w-100" onclick="verDetalhes(${evento.id})">
+                                    <i class="bi bi-eye"></i> Ver Detalhes
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                container.innerHTML += card;
+            });
+        }
+
+        async function verDetalhes(eventoId) {
+            try {
+                const response = await fetch(`${API_URL}/eventos/${eventoId}`);
+                const data = await response.json();
+
+                if (data.success) {
+                    eventoSelecionado = data.data;
+                    mostrarModal(data.data);
+                }
+            } catch (error) {
+                console.error('Erro:', error);
+                alert('Erro ao carregar detalhes do evento');
+            }
+        }
+
+        function mostrarModal(evento) {
+            const modal = new bootstrap.Modal(document.getElementById('eventoModal'));
+            const dataInicio = new Date(evento.data_inicio).toLocaleDateString('pt-BR', {
+                day: '2-digit', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit'
+            });
+            const dataFim = new Date(evento.data_fim).toLocaleDateString('pt-BR', {
+                day: '2-digit', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit'
+            });
+
+            document.getElementById('eventoModalLabel').textContent = evento.titulo;
+            document.getElementById('eventoModalBody').innerHTML = `
+                <div class="mb-3">
+                    <h6>Descrição</h6>
+                    <p>${evento.descricao}</p>
+                </div>
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <h6><i class="bi bi-calendar-event"></i> Início</h6>
+                        <p>${dataInicio}</p>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <h6><i class="bi bi-calendar-check"></i> Fim</h6>
+                        <p>${dataFim}</p>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <h6><i class="bi bi-geo-alt"></i> Local</h6>
+                        <p>${evento.local}</p>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <h6><i class="bi bi-people"></i> Vagas</h6>
+                        <p>${evento.vagas_disponiveis} de ${evento.vagas} disponíveis</p>
+                    </div>
+                </div>
+                <div class="alert alert-info">
+                    <i class="bi bi-info-circle"></i> Já possui ${evento.total_inscritos} pessoas inscritas neste evento!
+                </div>
+            `;
+
+            modal.show();
+        }
+
+        async function irParaInscricao() {
+            if (!eventoSelecionado) return;
+
+            // Verificar se está logado
+            const usuarioData = localStorage.getItem('usuario');
+            
+            if (!usuarioData) {
+                // Não está logado, salvar evento e redirecionar para login
+                localStorage.setItem('eventoParaInscricao', JSON.stringify(eventoSelecionado));
+                window.location.href = 'login.html?redirect=inscricao';
+                return;
+            }
+
+            // Está logado, fazer inscrição diretamente
+            const usuario = JSON.parse(usuarioData);
+            
+            try {
+                const response = await fetch(`${API_URL}/inscricoes`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        usuario_id: usuario.id,
+                        evento_id: eventoSelecionado.id
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    alert('✓ Inscrição realizada com sucesso! Você receberá um e-mail de confirmação.');
+                    
+                    // Fechar modal e redirecionar
+                    const modal = bootstrap.Modal.getInstance(document.getElementById('eventoModal'));
+                    modal.hide();
+                    
+                    setTimeout(() => {
+                        window.location.href = 'inscricoes.html';
+                    }, 1000);
+                } else {
+                    alert('Erro: ' + data.message);
+                }
+            } catch (error) {
+                console.error('Erro:', error);
+                alert('Erro ao realizar inscrição. Tente novamente.');
+            }
+        }
+    </script>
+</body>
+</html>
