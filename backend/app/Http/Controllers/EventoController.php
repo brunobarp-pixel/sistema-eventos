@@ -21,8 +21,8 @@ class EventoController extends Controller
             if ($request->has('status')) {
                 $query->where('status', $request->status);
             } else {
-                // Por padrão, mostrar apenas eventos abertos
-                $query->where('status', 'aberto');
+                // TEMPORÁRIO: Mostrar todos os eventos para debug
+                // $query->where('status', 'aberto');
             }
 
             // Ordenar por data de início
