@@ -261,13 +261,15 @@
     <script src="js/offline-manager.js"></script>
     <script>
         // Configuração do Offline Manager
-        const API_BASE_URL = 'http://localhost:8000/api'; // Ajuste conforme necessário
+        const API_BASE_URL = 'http://177.44.248.118:5000'; // Python API
+        const LARAVEL_API_URL = 'http://177.44.248.118:8000/api'; // Laravel API
         
+        // Variáveis globais
         let offlineManager;
-        let modoOnline = false;
-        let todosUsuarios = [];
-        let todasInscricoes = [];
-        let inscricaoSelecionadaId = null;
+        let statusOnline = false;
+        let listaUsuarios = [];
+        let listaInscricoes = [];
+        let inscricaoAtualId = null;
 
         // Inicializar com callbacks
         document.addEventListener('DOMContentLoaded', async function () {
@@ -276,12 +278,12 @@
                 apiBase: API_BASE_URL,
                 timeout: 5000,
                 onStatusChange: (online) => {
-                    modoOnline = online;
+                    statusOnline = online;
                     atualizarStatusBar();
                 },
                 onDataLoaded: (dados) => {
-                    todosUsuarios = dados.usuarios;
-                    todasInscricoes = dados.inscricoes;
+                    listaUsuarios = dados.usuarios;
+                    listaInscricoes = dados.inscricoes;
                     atualizarUIs();
                 },
                 onPresencaRegistrada: (presenca) => {
@@ -337,7 +339,7 @@
             const statusText = document.getElementById('statusText');
             const statusConexao = document.getElementById('statusConexao');
 
-            if (modoOnline) {
+            if (statusOnline) {
                 statusBar.className = 'status-online text-white py-2';
                 statusText.innerHTML = '✓ Sistema ONLINE - Dados em tempo real';
                 statusConexao.innerHTML = '<i class="bi bi-wifi"></i> Online';
@@ -468,7 +470,7 @@
                 <strong>Nome:</strong> ${usuario.nome}<br>
                 <strong>Email:</strong> ${usuario.email}<br>
                 <strong>Inscrição ID:</strong> ${inscricaoId}<br>
-                <small class="text-muted">Modo: ${modoOnline ? 'ONLINE' : 'OFFLINE'}</small>
+                <small class="text-muted">Modo: ${statusOnline ? 'ONLINE' : 'OFFLINE'}</small>
             `;
 
             document.getElementById('inscricaoSelecionada').style.display = 'block';
@@ -606,7 +608,7 @@
 
         // ==================== SINCRONIZAR ====================
         async function sincronizar() {
-            if (!modoOnline) {
+            if (!statusOnline) {
                 mostrarAlerta('⚠️ Sistema offline! Conecte-se à internet primeiro.', 'warning');
                 return;
             }
