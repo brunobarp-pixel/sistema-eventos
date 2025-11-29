@@ -237,25 +237,25 @@ const getHeaders = () => ({
                     <div class="card mb-3">
                         <div class="card-body">
                             <div class="row align-items-center">
-                                <div class="col-md-9">
+                                <div class="col-12">
                                     <h5 class="card-title">
                                         ${inscricao.evento.titulo}
                                         <span class="badge bg-${statusClass} ms-2">${inscricao.status}</span>
                                         ${badgePresenca}
                                     </h5>
                                     <p class="card-text text-muted mb-2">${inscricao.evento.local}</p>
-                                    <p class="mb-0">
+                                    <p class="mb-2">
                                         <i class="bi bi-calendar-event"></i> Evento: ${dataEvento} |
                                         <i class="bi bi-pencil-square"></i> Inscrito em: ${dataInscricao}
                                     </p>
-                                    ${!inscricao.possui_presenca ? '<p class="text-muted mt-2 mb-0"><small><i class="bi bi-info-circle"></i> O check-in será feito pelos atendentes no dia do evento</small></p>' : ''}
-                                </div>
-                                <div class="col-md-3 text-end">
-                                    ${!inscricao.possui_presenca ? `
-                                        <button class="btn btn-outline-danger w-100" onclick="cancelarInscricao(${inscricao.id})">
-                                            <i class="bi bi-x-circle"></i> Cancelar
+                                    ${!inscricao.possui_presenca ? '<p class="text-muted mt-2 mb-2"><small><i class="bi bi-info-circle"></i> O check-in será feito pelos atendentes no dia do evento</small></p>' : ''}
+                                    
+                                    <!-- Botão Cancelar -->
+                                    <div class="mt-3">
+                                        <button class="btn btn-outline-danger" onclick="cancelarInscricao(${inscricao.id})">
+                                            <i class="bi bi-x-circle"></i> Cancelar Inscrição
                                         </button>
-                                    ` : ''}
+                                    </div>
                                 </div>
                             </div>
                         </div>
