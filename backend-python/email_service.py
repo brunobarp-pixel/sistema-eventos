@@ -5,13 +5,13 @@ from dotenv import load_dotenv
 load_dotenv()
 
 
-MODO_TESTE = False  # True = salva arquivos localmente, False = envia e-mails de verdade
+MODO_TESTE = True  # True = usa MailHog, False = envia e-mails de verdade
 
-# Configurações de e-mail (apenas para modo produção)
-EMAIL_HOST = os.getenv('EMAIL_HOST', 'smtp.gmail.com')
-EMAIL_PORT = int(os.getenv('EMAIL_PORT', 587))
-EMAIL_USER = os.getenv('EMAIL_USER', 'seu_email@gmail.com')
-EMAIL_PASSWORD = os.getenv('EMAIL_PASSWORD', 'sua_senha_app')
+# Configurações de e-mail
+EMAIL_HOST = os.getenv('EMAIL_HOST', 'mailhog')  # MailHog container
+EMAIL_PORT = int(os.getenv('EMAIL_PORT', 1025))
+EMAIL_USER = os.getenv('EMAIL_USER', '')
+EMAIL_PASSWORD = os.getenv('EMAIL_PASSWORD', '')
 EMAIL_FROM = os.getenv('EMAIL_FROM', 'Sistema de Eventos <noreply@eventos.com>')
 
 # ==========================================
@@ -22,11 +22,39 @@ def enviar_email(destinatario, assunto, corpo_html):
     """Função genérica para enviar e-mail"""
     
     if MODO_TESTE:
-        # Modo teste: salvar localmente
-        return salvar_email_local(destinatario, assunto, corpo_html)
+        # Modo teste: enviar para MailHog
+        return enviar_email_mailhog(destinatario, assunto, corpo_html)
     else:
         # Modo produção: enviar de verdade
         return enviar_email_smtp(destinatario, assunto, corpo_html)
+
+
+def enviar_email_mailhog(destinatario, assunto, corpo_html):
+    """Envia e-mail via MailHog (modo teste)"""
+    try:
+        import smtplib
+        from email.mime.text import MIMEText
+        from email.mime.multipart import MIMEMultipart
+        
+        mensagem = MIMEMultipart('alternative')
+        mensagem['Subject'] = assunto
+        mensagem['From'] = EMAIL_FROM
+        mensagem['To'] = destinatario
+        
+        parte_html = MIMEText(corpo_html, 'html', 'utf-8')
+        mensagem.attach(parte_html)
+        
+        # MailHog não precisa de autenticação
+        with smtplib.SMTP(EMAIL_HOST, EMAIL_PORT) as servidor:
+            servidor.send_message(mensagem)
+        
+        print(f"✅ Email enviado para MailHog: {destinatario}")
+        return True
+        
+    except Exception as e:
+        print(f"❌ Erro ao enviar email para MailHog: {str(e)}")
+        # Fallback: salvar localmente se MailHog falhar
+        return salvar_email_local(destinatario, assunto, corpo_html)
 
 
 def enviar_email_smtp(destinatario, assunto, corpo_html):

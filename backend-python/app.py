@@ -28,7 +28,7 @@ CORS(app)
 
 # Configurações
 DATABASE = "data/eventos.db"
-LARAVEL_API = "http://177.44.248.118:8000/api"
+LARAVEL_API = "http://backend-laravel/api"
 
 # ==========================================
 # FUNÇÕES DO BANCO DE DADOS
