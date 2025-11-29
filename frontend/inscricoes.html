@@ -251,7 +251,7 @@ const getHeaders = () => ({
                                     ${!inscricao.possui_presenca ? '<p class="text-muted mt-2 mb-0"><small><i class="bi bi-info-circle"></i> O check-in será feito pelos atendentes no dia do evento</small></p>' : ''}
                                 </div>
                                 <div class="col-md-3 text-end">
-                                    ${inscricao.status === 'ativa' && !inscricao.possui_presenca ? `
+                                    ${(inscricao.status === 'ativa' || inscricao.status === 'confirmada') && !inscricao.possui_presenca ? `
                                         <button class="btn btn-outline-danger w-100" onclick="cancelarInscricao(${inscricao.id})">
                                             <i class="bi bi-x-circle"></i> Cancelar
                                         </button>
