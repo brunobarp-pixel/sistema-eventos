@@ -1,0 +1,19 @@
+{
+  "name": "sistema-eventos-frontend",
+  "version": "1.0.0",
+  "description": "Frontend do Sistema de Eventos",
+  "main": "index.html",
+  "scripts": {
+    "build": "echo 'Frontend build complete'",
+    "start": "echo 'Frontend started'"
+  },
+  "keywords": [
+    "eventos",
+    "presenca",
+    "offline"
+  ],
+  "author": "Sistema de Eventos",
+  "license": "MIT",
+  "dependencies": {},
+  "devDependencies": {}
+}
