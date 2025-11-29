@@ -103,6 +103,53 @@ class EventoController extends Controller
     }
 
     /**
+     * Listar inscritos de um evento
+     * GET /api/eventos/{id}/inscritos
+     */
+    public function listarInscritos(Request $request, $id)
+    {
+        try {
+            $evento = Evento::findOrFail($id);
+
+            // Buscar inscrições ativas com dados do usuário
+            $inscritos = $evento->inscricoes()
+                ->where('status', 'ativa')
+                ->with(['usuario'])
+                ->orderBy('data_inscricao', 'desc')
+                ->get();
+
+            $this->registrarLog($request, 'GET', '/api/eventos/' . $id . '/inscritos', 200);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Inscritos do evento recuperados com sucesso',
+                'data' => $inscritos->map(function($inscricao) {
+                    return [
+                        'inscricao_id' => $inscricao->id,
+                        'usuario_id' => $inscricao->usuario_id,
+                        'nome' => $inscricao->usuario->nome,
+                        'email' => $inscricao->usuario->email,
+                        'cpf' => $inscricao->usuario->cpf,
+                        'telefone' => $inscricao->usuario->telefone ?? null,
+                        'data_inscricao' => $inscricao->data_inscricao->format('Y-m-d H:i:s'),
+                        'status' => $inscricao->status,
+                        'tem_presenca' => $inscricao->presencas()->exists()
+                    ];
+                })
+            ], 200);
+
+        } catch (\Exception $e) {
+            $this->registrarLog($request, 'GET', '/api/eventos/' . $id . '/inscritos', 404);
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Erro ao buscar inscritos do evento',
+                'error' => $e->getMessage()
+            ], 404);
+        }
+    }
+
+    /**
      * Registrar log de acesso
      */
     private function registrarLog(Request $request, $metodo, $endpoint, $status, $usuarioId = null)

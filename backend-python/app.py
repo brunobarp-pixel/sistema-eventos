@@ -1116,6 +1116,217 @@ def controlar_sync_automatico(acao):
 # ==========================================
 
 
+@app.route("/sincronizar-eventos-completos", methods=["POST"])
+def sincronizar_eventos_completos():
+    """Sincroniza eventos com todos os inscritos para o SQLite"""
+    try:
+        if not laravel_auth.is_authenticated():
+            return jsonify({
+                "success": False,
+                "message": "Não autenticado no Laravel"
+            }), 401
+            
+        # Buscar eventos do Laravel
+        response = laravel_get("/eventos")
+        if not response or not response.get("success"):
+            return jsonify({
+                "success": False,
+                "message": "Erro ao buscar eventos do Laravel"
+            }), 500
+            
+        eventos = response.get("data", [])
+        conn = get_db()
+        cursor = conn.cursor()
+        
+        eventos_sincronizados = 0
+        inscritos_sincronizados = 0
+        
+        for evento in eventos:
+            evento_id = evento.get("id")
+            
+            # Salvar/atualizar evento no cache
+            cursor.execute("""
+                INSERT OR REPLACE INTO eventos_cache 
+                (id, titulo, descricao, data_inicio, data_fim, local, vagas, status, sincronizado_em)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+            """, (
+                evento_id,
+                evento.get("titulo"),
+                evento.get("descricao", ""),
+                evento.get("data_inicio"),
+                evento.get("data_fim"),
+                evento.get("local", ""),
+                evento.get("vagas", 0),
+                evento.get("status", "aberto")
+            ))
+            eventos_sincronizados += 1
+            
+            # Buscar inscritos do evento
+            response_inscritos = laravel_get(f"/eventos/{evento_id}/inscritos")
+            if response_inscritos and response_inscritos.get("success"):
+                inscritos = response_inscritos.get("data", [])
+                
+                for inscrito in inscritos:
+                    # Salvar usuário se não existir
+                    cursor.execute("""
+                        INSERT OR IGNORE INTO usuarios_offline 
+                        (id, nome, email, cpf, telefone, dados_completos, sincronizado)
+                        VALUES (?, ?, ?, ?, ?, 1, 1)
+                    """, (
+                        inscrito.get("usuario_id"),
+                        inscrito.get("nome"),
+                        inscrito.get("email"),
+                        inscrito.get("cpf", ""),
+                        inscrito.get("telefone", ""),
+                    ))
+                    
+                    # Salvar inscrição
+                    cursor.execute("""
+                        INSERT OR REPLACE INTO inscricoes_offline 
+                        (id, usuario_id, evento_id, status, sincronizado, created_at)
+                        VALUES (?, ?, ?, ?, 1, ?)
+                    """, (
+                        inscrito.get("inscricao_id"),
+                        inscrito.get("usuario_id"),
+                        evento_id,
+                        inscrito.get("status", "ativa"),
+                        inscrito.get("data_inscricao")
+                    ))
+                    
+                    # Se tem presença, salvar também
+                    if inscrito.get("tem_presenca"):
+                        cursor.execute("""
+                            INSERT OR IGNORE INTO presencas_offline 
+                            (inscricao_id, usuario_id, evento_id, sincronizado, created_at)
+                            VALUES (?, ?, ?, 1, CURRENT_TIMESTAMP)
+                        """, (
+                            inscrito.get("inscricao_id"),
+                            inscrito.get("usuario_id"),
+                            evento_id
+                        ))
+                    
+                    inscritos_sincronizados += 1
+        
+        conn.commit()
+        conn.close()
+        
+        return jsonify({
+            "success": True,
+            "message": "Eventos e inscritos sincronizados com sucesso",
+            "data": {
+                "eventos": eventos_sincronizados,
+                "inscritos": inscritos_sincronizados
+            }
+        })
+        
+    except Exception as e:
+        return jsonify({
+            "success": False,
+            "message": f"Erro ao sincronizar: {str(e)}"
+        }), 500
+
+
+@app.route("/gerar-certificado", methods=["POST"])
+def endpoint_gerar_certificado_automatico():
+    """Endpoint para gerar certificado automaticamente após marcar presença"""
+    try:
+        data = request.json
+        print(f"📋 Dados recebidos para gerar certificado: {data}")
+
+        inscricao_id = data.get("inscricao_id")
+        evento_id = data.get("evento_id") 
+        usuario_id = data.get("usuario_id")
+
+        if not all([inscricao_id, evento_id, usuario_id]):
+            return jsonify({
+                "success": False, 
+                "message": "inscricao_id, evento_id e usuario_id são obrigatórios"
+            }), 400
+
+        # Tentar buscar dados do Laravel primeiro
+        try:
+            if laravel_auth.is_authenticated():
+                # Buscar dados do usuário
+                response_user = laravel_get(f"/usuarios/{usuario_id}")
+                # Buscar dados do evento  
+                response_evento = laravel_get(f"/eventos/{evento_id}")
+                
+                if response_user and response_evento:
+                    usuario_data = response_user.get('data', {})
+                    evento_data = response_evento.get('data', {})
+                    
+                    # Gerar certificado usando dados do Laravel
+                    certificado_data = {
+                        "usuario_nome": usuario_data.get("nome"),
+                        "usuario_email": usuario_data.get("email"),
+                        "evento_nome": evento_data.get("titulo"),
+                        "evento_data": evento_data.get("data_inicio"),
+                        "evento_carga_horaria": evento_data.get("carga_horaria", "8"),
+                        "codigo_validacao": f"CERT{inscricao_id}{evento_id}{usuario_id}"
+                    }
+                    
+                    # Gerar PDF
+                    pdf_path = gerar_certificado_pdf(certificado_data)
+                    
+                    return jsonify({
+                        "success": True,
+                        "message": "Certificado gerado com sucesso",
+                        "data": {
+                            "pdf_path": pdf_path,
+                            "codigo_validacao": certificado_data["codigo_validacao"]
+                        }
+                    })
+        except Exception as e:
+            print(f"❌ Erro ao buscar dados do Laravel: {str(e)}")
+        
+        # Fallback: usar dados locais SQLite
+        conn = get_db()
+        cursor = conn.cursor()
+        
+        # Buscar usuário local
+        cursor.execute("SELECT nome, email FROM usuarios_offline WHERE id = ?", (usuario_id,))
+        user_row = cursor.fetchone()
+        
+        # Buscar evento cache
+        cursor.execute("SELECT titulo, data_inicio FROM eventos_cache WHERE id = ?", (evento_id,))
+        evento_row = cursor.fetchone()
+        
+        conn.close()
+        
+        if not user_row or not evento_row:
+            return jsonify({
+                "success": False,
+                "message": "Dados do usuário ou evento não encontrados localmente"
+            }), 404
+            
+        # Gerar certificado com dados locais
+        certificado_data = {
+            "usuario_nome": user_row[0],
+            "usuario_email": user_row[1], 
+            "evento_nome": evento_row[0],
+            "evento_data": evento_row[1],
+            "evento_carga_horaria": "8",  # Default
+            "codigo_validacao": f"CERT{inscricao_id}{evento_id}{usuario_id}"
+        }
+        
+        pdf_path = gerar_certificado_pdf(certificado_data)
+        
+        return jsonify({
+            "success": True,
+            "message": "Certificado gerado com dados locais",
+            "data": {
+                "pdf_path": pdf_path,
+                "codigo_validacao": certificado_data["codigo_validacao"]
+            }
+        })
+        
+    except Exception as e:
+        return jsonify({
+            "success": False,
+            "message": f"Erro ao gerar certificado: {str(e)}"
+        }), 500
+
+
 if __name__ == "__main__":
     # Criar pastas
     if not os.path.exists("data"):

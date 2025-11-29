@@ -15,8 +15,8 @@ class OfflineManager {
             USER_TOKEN: 'authToken'
         };
 
-        this.API_BASE = config.apiBase || 'http://localhost:8000/api';
-        this.OFFLINE_API = config.offlineApi || 'http://localhost:5000';
+        this.API_BASE = config.apiBase || 'http://backend-laravel/api';
+        this.OFFLINE_API = config.offlineApi || 'http://backend-python:5000';
         this.TIMEOUT = config.timeout || 5000;
 
         this.isOnline = false;
@@ -45,10 +45,10 @@ class OfflineManager {
         const statusAnterior = this.isOnline;
         
         try {
+            // Usar endpoint simples sem autenticação
             const response = await Promise.race([
-                fetch(`${this.API_BASE}/status`, { 
-                    method: 'GET',
-                    headers: { 'Authorization': `Bearer ${this.getToken()}` }
+                fetch(`${this.API_BASE.replace('/api', '')}/`, { 
+                    method: 'GET'
                 }),
                 new Promise((_, reject) => 
                     setTimeout(() => reject(new Error('Timeout')), this.TIMEOUT)
@@ -101,6 +101,17 @@ class OfflineManager {
                 this.buscarInscricoes(token),
                 this.buscarPresencas(token)
             ]);
+
+            // Sincronizar eventos completos com o Python SQLite
+            try {
+                await fetch(`${this.OFFLINE_API}/sincronizar-eventos-completos`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+                console.log('[OfflineManager] Eventos sincronizados com Python SQLite');
+            } catch (error) {
+                console.warn('[OfflineManager] Erro ao sincronizar com Python:', error);
+            }
 
             this.dados = {
                 usuarios,
@@ -451,7 +462,22 @@ class OfflineManager {
      * Obter token de autenticação
      */
     getToken() {
-        return localStorage.getItem(this.STORAGE_KEYS.USER_TOKEN);
+        // Tentar várias formas de obter o token
+        const possiveisTokens = [
+            localStorage.getItem(this.STORAGE_KEYS.USER_TOKEN),
+            localStorage.getItem('authToken'),
+            localStorage.getItem('token'),
+            sessionStorage.getItem('authToken'),
+            sessionStorage.getItem('token')
+        ];
+        
+        const token = possiveisTokens.find(t => t && t.length > 10);
+        
+        if (!token) {
+            console.warn('[OfflineManager] Nenhum token encontrado. Tentativas:', possiveisTokens);
+        }
+        
+        return token;
     }
 
     /**

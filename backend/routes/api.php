@@ -26,6 +26,7 @@ Route::post('/usuarios', [AuthController::class, 'cadastrar']);
 // Eventos (visualização pública)
 Route::get('/eventos', [EventoController::class, 'listar']);
 Route::get('/eventos/{id}', [EventoController::class, 'buscar']);
+Route::get('/eventos/{id}/inscritos', [EventoController::class, 'listarInscritos']);
 
 // Validação de Certificado (público)
 Route::get('/certificados/{codigo}', [CertificadoController::class, 'validar']);

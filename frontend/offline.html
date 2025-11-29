@@ -261,8 +261,8 @@
     <script src="js/offline-manager.js"></script>
     <script>
         // Configuração do Offline Manager
-        const API_BASE_URL = 'http://177.44.248.118:5000'; // Python API
-        const LARAVEL_API_URL = 'http://177.44.248.118:8000/api'; // Laravel API
+        const API_BASE_URL = 'http://177.44.248.118:8000/api'; // Laravel API 
+        const PYTHON_API_URL = 'http://177.44.248.118:5000'; // Python API
         
         // Variáveis globais
         let offlineManager;
@@ -276,6 +276,7 @@
             // Criar instância do OfflineManager
             offlineManager = new OfflineManager({
                 apiBase: API_BASE_URL,
+                offlineApi: PYTHON_API_URL,
                 timeout: 5000,
                 onStatusChange: (online) => {
                     statusOnline = online;
@@ -314,6 +315,11 @@
 
             // Carregar dados inicialmente
             await offlineManager.carregarTodosDados();
+
+            // Debug: verificar se os métodos existem
+            console.log('Métodos disponíveis no offlineManager:', Object.getOwnPropertyNames(Object.getPrototypeOf(offlineManager)));
+            console.log('sincronizarPresencas existe?', typeof offlineManager.sincronizarPresencas);
+            console.log('marcarPresencaOffline existe?', typeof offlineManager.marcarPresencaOffline);
 
             // Eventos dos formulários
             document.getElementById('formCadastro')?.addEventListener('submit', cadastrarUsuario);
