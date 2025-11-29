@@ -80,7 +80,7 @@ services:
              php artisan migrate --force &&
              php artisan key:generate &&
              php artisan storage:link &&
-             php artisan serve --host=0.0.0.0 --port=80"
+             apache2-foreground"
 
   # ==========================================
   # 3. BACKEND PYTHON - Serviço Complementar
