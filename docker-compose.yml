@@ -35,7 +35,7 @@ services:
       APP_NAME: "Sistema de Eventos"
       APP_ENV: production
       APP_DEBUG: "false"
-      APP_KEY: base64:${APP_KEY}
+      APP_KEY: "base64:sk_test_51234567890abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ=="
       APP_URL: http://177.44.248.118:8000
       
       DB_CONNECTION: mysql
@@ -71,13 +71,6 @@ services:
       - redis
     networks:
       - sistema-eventos-network
-    command: >
-      sh -c "composer install &&
-             php artisan migrate --force &&
-             php artisan key:generate &&
-             rm -f /app/public/storage &&
-             php artisan storage:link &&
-             apache2-foreground"
 
   # ==========================================
   # 3. BACKEND PYTHON - Serviço Complementar

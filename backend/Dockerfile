@@ -7,6 +7,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     wget \
     nano \
+    netcat-traditional \
     && rm -rf /var/lib/apt/lists/*
 
 # Instalar apenas extensões que não vêm por padrão
@@ -51,8 +52,15 @@ RUN cp .env.example .env && chmod 644 .env
 # Definir permissões
 RUN chmod -R 775 /app/storage /app/bootstrap/cache
 
+# Instalar dependências do Composer
+RUN composer install --no-dev --optimize-autoloader
+
 # Exposar porta
 EXPOSE 80
 
-# Iniciar Apache
-CMD ["apache2-foreground"]
+# Script de inicialização
+COPY docker-entrypoint.sh /usr/local/bin/
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh
+
+# Iniciar com script personalizado
+ENTRYPOINT ["docker-entrypoint.sh"]
