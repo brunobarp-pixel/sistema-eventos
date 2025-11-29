@@ -228,6 +228,15 @@ const getHeaders = () => ({
                 const dataInscricao = new Date(inscricao.data_inscricao).toLocaleDateString('pt-BR');
                 const dataEvento = new Date(inscricao.evento.data_inicio).toLocaleDateString('pt-BR');
 
+                // DEBUG: Logs para verificar valores
+                console.log('DEBUG Inscricao:', {
+                    id: inscricao.id,
+                    status: inscricao.status,
+                    possui_presenca: inscricao.possui_presenca,
+                    tipo_possui_presenca: typeof inscricao.possui_presenca,
+                    condicao_cancelar: (inscricao.status === 'ativa' || inscricao.status === 'confirmada') && !inscricao.possui_presenca
+                });
+
                 let badgePresenca = '';
                 if (inscricao.possui_presenca) {
                     badgePresenca = '<span class="badge bg-info ms-2"><i class="bi bi-check-circle"></i> Presença registrada</span>';
