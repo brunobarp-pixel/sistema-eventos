@@ -224,18 +224,9 @@ const getHeaders = () => ({
             }
 
             inscricoes.forEach(inscricao => {
-                const statusClass = inscricao.status === 'ativa' ? 'success' : 'secondary';
+                const statusClass = inscricao.status === 'confirmada' ? 'success' : 'secondary';
                 const dataInscricao = new Date(inscricao.data_inscricao).toLocaleDateString('pt-BR');
                 const dataEvento = new Date(inscricao.evento.data_inicio).toLocaleDateString('pt-BR');
-
-                // DEBUG: Logs para verificar valores
-                console.log('DEBUG Inscricao:', {
-                    id: inscricao.id,
-                    status: inscricao.status,
-                    possui_presenca: inscricao.possui_presenca,
-                    tipo_possui_presenca: typeof inscricao.possui_presenca,
-                    condicao_cancelar: (inscricao.status === 'ativa' || inscricao.status === 'confirmada') && !inscricao.possui_presenca
-                });
 
                 let badgePresenca = '';
                 if (inscricao.possui_presenca) {
@@ -260,7 +251,7 @@ const getHeaders = () => ({
                                     ${!inscricao.possui_presenca ? '<p class="text-muted mt-2 mb-0"><small><i class="bi bi-info-circle"></i> O check-in será feito pelos atendentes no dia do evento</small></p>' : ''}
                                 </div>
                                 <div class="col-md-3 text-end">
-                                    ${(inscricao.status === 'ativa' || inscricao.status === 'confirmada') && !inscricao.possui_presenca ? `
+                                    ${!inscricao.possui_presenca ? `
                                         <button class="btn btn-outline-danger w-100" onclick="cancelarInscricao(${inscricao.id})">
                                             <i class="bi bi-x-circle"></i> Cancelar
                                         </button>
