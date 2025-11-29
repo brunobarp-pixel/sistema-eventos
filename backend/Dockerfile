@@ -27,9 +27,9 @@ RUN curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local
 # Configurar Apache
 RUN echo '<VirtualHost *:80>' > /etc/apache2/sites-available/000-default.conf && \
     echo '    DocumentRoot /app/public' >> /etc/apache2/sites-available/000-default.conf && \
-    echo '    <Directory /app>' >> /etc/apache2/sites-available/000-default.conf && \
+    echo '    <Directory /app/public>' >> /etc/apache2/sites-available/000-default.conf && \
     echo '        AllowOverride All' >> /etc/apache2/sites-available/000-default.conf && \
-    echo '        Allow from all' >> /etc/apache2/sites-available/000-default.conf && \
+    echo '        Require all granted' >> /etc/apache2/sites-available/000-default.conf && \
     echo '    </Directory>' >> /etc/apache2/sites-available/000-default.conf && \
     echo '</VirtualHost>' >> /etc/apache2/sites-available/000-default.conf
 
