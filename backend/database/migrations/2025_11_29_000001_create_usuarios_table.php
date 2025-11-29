@@ -20,6 +20,7 @@ return new class extends Migration
             $table->string('senha');
             $table->string('avatar')->nullable();
             $table->text('bio')->nullable();
+            $table->boolean('dados_completos')->default(false);
             $table->enum('tipo', ['participante', 'palestrante', 'organizador'])->default('participante');
             $table->boolean('ativo')->default(true);
             $table->timestamp('email_verified_at')->nullable();
