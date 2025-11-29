@@ -245,29 +245,31 @@
         async function irParaInscricao() {
             if (!eventoSelecionado) return;
 
-            // Verificar se está logado
-            const usuarioData = localStorage.getItem('usuario');
-            
-            if (!usuarioData) {
-                // Não está logado, salvar evento e redirecionar para login
-                localStorage.setItem('eventoParaInscricao', JSON.stringify(eventoSelecionado));
-                window.location.href = 'login.html?redirect=inscricao';
-                return;
-            }
+  const usuarioData = localStorage.getItem('usuario');
+    const token = localStorage.getItem('token');
+    
+    if (!usuarioData || !token) {
+        // Não está logado, salvar evento e redirecionar para login
+        localStorage.setItem('eventoParaInscricao', JSON.stringify(eventoSelecionado));
+        window.location.href = 'login.html?redirect=inscricao';
+        return;
+    }
 
-            // Está logado, fazer inscrição diretamente
-            const usuario = JSON.parse(usuarioData);
-            
-            try {
-                const response = await fetch(`${API_URL}/inscricoes`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        usuario_id: usuario.id,
-                        evento_id: eventoSelecionado.id
-                    })
-                });
-
+    // Está logado, fazer inscrição diretamente
+    const usuario = JSON.parse(usuarioData);
+    
+    try {
+        const response = await fetch(`${API_URL}/inscricoes`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                usuario_id: usuario.id,
+                evento_id: eventoSelecionado.id
+            })
+        });
                 const data = await response.json();
 
                 if (data.success) {

@@ -1,6 +1,6 @@
 // Constante para a URL base da sua API
 // *IMPORTANTE: Altere esta URL se o seu backend estiver em um local diferente.*
-const API_BASE_URL = 'http://177.44.248.118:8000/api';
+const API_BASE_URL = 'http://localhost:8000/api'; 
 
 /**
  * Função principal para lidar com o envio do formulário de login.
@@ -25,7 +25,7 @@ function handleLoginSubmit(event) {
     };
     
     // 3. Fazer a chamada para a API
-    fetch(`${API_BASE_URL}/login-laravel`, {
+    fetch(`${API_BASE_URL}/login`, {
         method: 'POST', // Método POST para envio de credenciais
         headers: {
             'Content-Type': 'application/json' // Informa que estamos enviando JSON

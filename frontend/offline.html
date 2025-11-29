@@ -261,6 +261,8 @@
     <script>
         const OFFLINE_API = 'http://177.44.248.118:5000';
         const LARAVEL_API = 'http://177.44.248.118:8000/api';
+const LARAVEL_TOKEN = '70|VaI5IynnhSWh5OcaRzbL4mZq4WnXSjPDf003cqSE65c407fe';
+
         let modoOnline = false;
         let todosUsuarios = [];
         let todasInscricoes = [];
@@ -319,24 +321,23 @@ try {
         });
         const data = await resp.json();
 
-                if (data.success) {
-                    document.getElementById('totalUsuarios').textContent = data.data.usuarios.length;
-                    document.getElementById('totalInscricoes').textContent = data.data.inscricoes.length;
-                    document.getElementById('totalPresencas').textContent = data.data.presencas.length;
-                    document.getElementById('totalPendentes').textContent = data.data.total_pendente;
-                }
-            } catch (error) {
-                console.error('Erro ao carregar estatísticas:', error);
-            }
+        if (data.success) {
+            document.getElementById('totalUsuarios').textContent = data.data.usuarios.length;
+            document.getElementById('totalInscricoes').textContent = data.data.inscricoes.length;
+            document.getElementById('totalPresencas').textContent = data.data.presencas.length;
+            document.getElementById('totalPendentes').textContent = data.data.total_pendente;
         }
+    } catch (error) {
+        console.error('Erro ao carregar estatísticas:', error);
+    }
+}
 
         async function carregarUsuarios() {
             todosUsuarios = [];
 
     const token = localStorage.getItem('token');
 
-            // Tentar do Laravel primeiro (se online)
-    if (modoOnline) {
+if (modoOnline) {
         try {
             const resp = await fetch(`${LARAVEL_API}/usuarios`, {
                 headers: {
@@ -353,7 +354,8 @@ try {
         }
     }
 
-  try {
+    // Offline
+    try {
         const resp = await fetch(`${OFFLINE_API}/usuarios`, {
             headers: {
                 'Authorization': `Bearer ${token}`,
@@ -385,17 +387,17 @@ try {
             });
         }
 
-        async function carregarEventos() {
+async function carregarEventos() {
     const token = localStorage.getItem('token');
 
-            const selects = [
-                document.getElementById('eventoCheckin'),
-                document.getElementById('inscricaoEvento')
-            ];
+    const selects = [
+        document.getElementById('eventoCheckin'),
+        document.getElementById('inscricaoEvento')
+    ];
 
-            selects.forEach(s => s.innerHTML = '<option value="">Carregando...</option>');
+    selects.forEach(s => s.innerHTML = '<option value="">Carregando...</option>');
 
- try {
+    try {
         const resp = await fetch(
             modoOnline ? `${LARAVEL_API}/eventos` : `${OFFLINE_API}/eventos`,
             {
@@ -426,11 +428,12 @@ try {
     }
 }
 
-        async function carregarInscricoes() {
 
+        async function carregarInscricoes() {
             todasInscricoes = [];
 
     const token = localStorage.getItem('token');
+
 
     if (modoOnline) {
         try {
@@ -565,77 +568,49 @@ try {
             document.getElementById('inscricaoSelecionada').style.display = 'block';
         }
 
+
+
+
         // ==================== CHECK-IN ====================
-        async function confirmarCheckin() {
+ async function confirmarCheckin() {
             if (!inscricaoSelecionadaId) {
                 mostrarAlerta('Nenhuma inscrição selecionada!', 'warning');
                 return;
             }
 
-            try {
-                const resp = await fetch(`${OFFLINE_API}/presencas`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ inscricao_id: inscricaoSelecionadaId })
-                });
+        const token = modoOnline ? LARAVEL_TOKEN : localStorage.getItem('token');
+        const API_URL = modoOnline ? LARAVEL_API : OFFLINE_API;
+
+    console.log(' Modo:', modoOnline ? 'ONLINE' : 'OFFLINE');
+    console.log(' URL:', `${API_URL}/presencas`);
+    console.log(' Inscrição ID:', inscricaoSelecionadaId);
+
+    try {
+        const resp = await fetch(`${API_URL}/presencas`, {
+            method: 'POST',
+            headers: { 
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ inscricao_id: inscricaoSelecionadaId })
+        });
 
                 const data = await resp.json();
 
-                if (data.success) {
-                    mostrarAlerta('✓ Presença registrada com sucesso!', 'success');
-                    document.getElementById('buscaParticipante').value = '';
-                    document.getElementById('resultadosBusca').style.display = 'none';
-                    document.getElementById('inscricaoSelecionada').style.display = 'none';
-                    inscricaoSelecionadaId = null;
-                    carregarEstatisticas();
-                } else {
-                    mostrarAlerta(data.message, 'danger');
-                }
-            } catch (error) {
-                mostrarAlerta('Erro ao registrar presença', 'danger');
-            }
+if (data.success) {
+            mostrarAlerta('✓ Presença registrada com sucesso!', 'success');
+            document.getElementById('buscaParticipante').value = '';
+            document.getElementById('resultadosBusca').style.display = 'none';
+            document.getElementById('inscricaoSelecionada').style.display = 'none';
+            inscricaoSelecionadaId = null;
+            carregarEstatisticas();
+        } else {
+            mostrarAlerta(data.message, 'danger');
         }
-
-        // Na função cadastrarUsuario() do offline.html
-        async function cadastrarUsuario(e) {
-            e.preventDefault();
-
-            const dados = {
-                nome: document.getElementById('cadastroNome').value,
-                email: document.getElementById('cadastroEmail').value,
-                cpf: document.getElementById('cadastroCpf').value || null,
-                telefone: document.getElementById('cadastroTelefone').value || null
-            };
-
-            try {
-                const resp = await fetch(`${OFFLINE_API}/usuarios`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(dados)
-                });
-
-                const data = await resp.json();
-
-                if (data.success) {
-                    // 🆕 MOSTRAR SENHA PADRÃO
-                    mostrarAlerta(`✅ Usuário cadastrado!<br>
-                <strong>Email:</strong> ${dados.email}<br>
-                <strong>Senha padrão:</strong> senha123<br>
-                <small>O usuário pode fazer login com estes dados.</small>`, 'success');
-
-                    document.getElementById('formCadastro').reset();
-                    carregarDados();
-
-                    // Ir para aba de inscrição
-                    document.getElementById('inscricao-tab').click();
-                } else {
-                    mostrarAlerta(data.message, 'danger');
-                }
-            } catch (error) {
-                mostrarAlerta('Erro ao cadastrar', 'danger');
-            }
-        }
-
+    } catch (error) {
+        mostrarAlerta('Erro ao registrar presença', 'danger');
+    }
+}
         // ==================== INSCRIÇÃO ====================
         async function criarInscricao(e) {
             e.preventDefault();
