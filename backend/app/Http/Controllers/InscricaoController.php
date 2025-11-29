@@ -62,7 +62,7 @@ class InscricaoController extends Controller
                         ] : null,
                         'evento' => $inscricao->evento ? [
                             'id' => $inscricao->evento->id,
-                            'titulo' => $inscricao->evento->titulo,
+                            'titulo' => $inscricao->evento->nome,
                             'data_inicio' => $inscricao->evento->data_inicio->format('Y-m-d H:i:s'),
                             'data_fim' => $inscricao->evento->data_fim->format('Y-m-d H:i:s'),
                             'local' => $inscricao->evento->local
@@ -110,7 +110,7 @@ class InscricaoController extends Controller
                         'data_inscricao' => $inscricao->created_at->format('Y-m-d H:i:s'),
                         'evento' => [
                             'id' => $inscricao->evento->id,
-                            'titulo' => $inscricao->evento->titulo,
+                            'titulo' => $inscricao->evento->nome,
                             'data_inicio' => $inscricao->evento->data_inicio->format('Y-m-d H:i:s'),
                             'data_fim' => $inscricao->evento->data_fim->format('Y-m-d H:i:s'),
                             'local' => $inscricao->evento->local
@@ -240,7 +240,7 @@ class InscricaoController extends Controller
                     ],
                     'evento' => [
                         'id' => $evento->id,
-                        'titulo' => $evento->titulo,
+                        'titulo' => $evento->nome,
                         'data_inicio' => $evento->data_inicio->format('Y-m-d H:i:s')
                     ],
                     'status' => $inscricao->status,
@@ -277,7 +277,7 @@ class InscricaoController extends Controller
                 'data' => [
                     'id' => $inscricao->id,
                     'usuario' => ['id' => $inscricao->usuario->id, 'nome' => $inscricao->usuario->nome, 'email' => $inscricao->usuario->email],
-                    'evento' => ['id' => $inscricao->evento->id, 'titulo' => $inscricao->evento->titulo, 'data_inicio' => $inscricao->evento->data_inicio->format('Y-m-d H:i:s'), 'local' => $inscricao->evento->local],
+                    'evento' => ['id' => $inscricao->evento->id, 'titulo' => $inscricao->evento->nome, 'data_inicio' => $inscricao->evento->data_inicio->format('Y-m-d H:i:s'), 'local' => $inscricao->evento->local],
                     'status' => $inscricao->status,
                     'data_inscricao' => $inscricao->created_at->format('Y-m-d H:i:s'),
                     'possui_presenca' => $inscricao->presenca !== null,

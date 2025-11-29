@@ -15,12 +15,18 @@ class Inscricao extends Model
         'evento_id',
         'status',
         'data_inscricao',
-        'sincronizado'
+        'data_confirmacao',
+        'presencas',
+        'presente',
+        'data_presenca',
+        'observacoes'
     ];
 
     protected $casts = [
         'data_inscricao' => 'datetime',
-        'sincronizado' => 'boolean',
+        'data_confirmacao' => 'datetime',
+        'data_presenca' => 'datetime',
+        'presente' => 'boolean',
         'created_at' => 'datetime',
         'updated_at' => 'datetime'
     ];

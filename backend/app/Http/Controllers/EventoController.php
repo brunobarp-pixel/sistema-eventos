@@ -21,8 +21,8 @@ class EventoController extends Controller
             if ($request->has('status')) {
                 $query->where('status', $request->status);
             } else {
-                // Por padrão, mostrar apenas eventos ativos
-                $query->where('status', 'ativo');
+                // Por padrão, mostrar apenas eventos abertos
+                $query->where('status', 'aberto');
             }
 
             // Ordenar por data de início
@@ -36,7 +36,7 @@ class EventoController extends Controller
                 'data' => $eventos->map(function($evento) {
                     return [
                         'id' => $evento->id,
-                        'titulo' => $evento->titulo,
+                        'titulo' => $evento->nome,
                         'descricao' => $evento->descricao,
                         'data_inicio' => $evento->data_inicio->format('Y-m-d H:i:s'),
                         'data_fim' => $evento->data_fim->format('Y-m-d H:i:s'),
@@ -78,7 +78,7 @@ class EventoController extends Controller
                 'message' => 'Evento encontrado',
                 'data' => [
                     'id' => $evento->id,
-                    'titulo' => $evento->titulo,
+                    'titulo' => $evento->nome,
                     'descricao' => $evento->descricao,
                     'data_inicio' => $evento->data_inicio->format('Y-m-d H:i:s'),
                     'data_fim' => $evento->data_fim->format('Y-m-d H:i:s'),
@@ -86,7 +86,7 @@ class EventoController extends Controller
                     'vagas' => $evento->vagas,
                     'vagas_disponiveis' => max(0, $evento->vagas - $totalInscritos),
                     'status' => $evento->status,
-                    'carga_horaria' => $evento->carga_horaria,
+                    'carga_horaria' => $evento->carga_horaria ?? null,
                     'total_inscritos' => $totalInscritos
                 ]
             ], 200);

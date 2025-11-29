@@ -10,22 +10,28 @@ class Evento extends Model
     protected $table = 'eventos';
     
     protected $fillable = [
-        'titulo',
+        'nome',
         'descricao',
+        'conteudo',
         'data_inicio',
         'data_fim',
         'local',
+        'cidade',
+        'estado',
         'vagas',
-        'carga_horaria',  // 🆕 ADICIONADO
-        'template_certificado',
-        'status'
+        'vagas_ocupadas',
+        'imagem',
+        'status',
+        'ativo',
+        'organizador_id'
     ];
 
     protected $casts = [
         'data_inicio' => 'datetime',
         'data_fim' => 'datetime',
         'vagas' => 'integer',
-        'carga_horaria' => 'integer',  // 🆕 ADICIONADO
+        'vagas_ocupadas' => 'integer',
+        'ativo' => 'boolean',
         'created_at' => 'datetime',
         'updated_at' => 'datetime'
     ];
