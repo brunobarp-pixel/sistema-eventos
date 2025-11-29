@@ -75,6 +75,7 @@ services:
       sh -c "composer install &&
              php artisan migrate --force &&
              php artisan key:generate &&
+             rm -f /app/public/storage &&
              php artisan storage:link &&
              apache2-foreground"
 
