@@ -1,0 +1,189 @@
+version: '3.8'
+
+services:
+  # ==========================================
+  # 1. BANCO DE DADOS - MySQL
+  # ==========================================
+  database:
+    image: mysql:8.0
+    container_name: sistema-eventos-db
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: root_password_123
+      MYSQL_DATABASE: sistema_eventos
+      MYSQL_USER: eventos_user
+      MYSQL_PASSWORD: eventos_pass_123
+      TZ: 'America/Sao_Paulo'
+    ports:
+      - "3306:3306"
+    volumes:
+      - db_data:/var/lib/mysql
+      - ./backend/database/dump.sql:/docker-entrypoint-initdb.d/dump.sql
+    networks:
+      - sistema-eventos-network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      timeout: 20s
+      retries: 10
+
+  # ==========================================
+  # 2. BACKEND LARAVEL - API Principal
+  # ==========================================
+  backend-laravel:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: sistema-eventos-api
+    restart: always
+    environment:
+      APP_NAME: "Sistema de Eventos"
+      APP_ENV: production
+      APP_DEBUG: "false"
+      APP_KEY: base64:${APP_KEY}
+      APP_URL: http://177.44.248.118:8000
+      
+      DB_CONNECTION: mysql
+      DB_HOST: database
+      DB_PORT: 3306
+      DB_DATABASE: sistema_eventos
+      DB_USERNAME: eventos_user
+      DB_PASSWORD: eventos_pass_123
+      
+      CACHE_DRIVER: redis
+      QUEUE_CONNECTION: redis
+      SESSION_DRIVER: redis
+      
+      REDIS_HOST: redis
+      REDIS_PASSWORD: null
+      REDIS_PORT: 6379
+      
+      MAIL_MAILER: smtp
+      MAIL_HOST: mailhog
+      MAIL_PORT: 1025
+      MAIL_USERNAME: test
+      MAIL_PASSWORD: test
+      MAIL_ENCRYPTION: null
+      MAIL_FROM_ADDRESS: noreply@sistemaeventos.com
+      MAIL_FROM_NAME: "Sistema de Eventos"
+    ports:
+      - "8000:80"
+    volumes:
+      - ./backend:/app
+      - backend_storage:/app/storage
+    depends_on:
+      database:
+        condition: service_healthy
+    networks:
+      - sistema-eventos-network
+    command: >
+      sh -c "composer install &&
+             php artisan migrate --force &&
+             php artisan key:generate &&
+             php artisan storage:link &&
+             php artisan serve --host=0.0.0.0 --port=80"
+
+  # ==========================================
+  # 3. BACKEND PYTHON - Serviço Complementar
+  # ==========================================
+  backend-python:
+    build:
+      context: ./backend-python
+      dockerfile: Dockerfile
+    container_name: sistema-eventos-python
+    restart: always
+    environment:
+      FLASK_ENV: production
+      FLASK_APP: app.py
+      API_URL: http://backend-laravel:80
+      DB_HOST: database
+      DB_PORT: 3306
+      DB_USER: eventos_user
+      DB_PASSWORD: eventos_pass_123
+      DB_NAME: sistema_eventos
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./backend-python:/app
+      - python_data:/app/data
+    depends_on:
+      - database
+      - backend-laravel
+    networks:
+      - sistema-eventos-network
+    command: python app.py
+
+  # ==========================================
+  # 4. FRONTEND - Nginx + Vue.js
+  # ==========================================
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: sistema-eventos-web
+    restart: always
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./frontend:/app
+      - ./frontend/nginx.conf:/etc/nginx/nginx.conf
+      - frontend_cache:/var/cache/nginx
+      - ./certs:/etc/nginx/certs:ro
+    depends_on:
+      - backend-laravel
+      - backend-python
+    networks:
+      - sistema-eventos-network
+    environment:
+      API_URL: http://177.44.248.118:8000/api
+      PYTHON_API_URL: http://177.44.248.118:5000
+
+  # ==========================================
+  # Redis - Cache e Sessions
+  # ==========================================
+  redis:
+    image: redis:7-alpine
+    container_name: sistema-eventos-redis
+    restart: always
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - sistema-eventos-network
+    command: redis-server --appendonly yes
+
+  # ==========================================
+  # Mailhog - Email Testing
+  # ==========================================
+  mailhog:
+    image: mailhog/mailhog:latest
+    container_name: sistema-eventos-mailhog
+    restart: always
+    ports:
+      - "1025:1025"
+      - "8025:8025"
+    networks:
+      - sistema-eventos-network
+
+# ==========================================
+# Networks
+# ==========================================
+networks:
+  sistema-eventos-network:
+    driver: bridge
+
+# ==========================================
+# Volumes
+# ==========================================
+volumes:
+  db_data:
+    driver: local
+  backend_storage:
+    driver: local
+  python_data:
+    driver: local
+  redis_data:
+    driver: local
+  frontend_cache:
+    driver: local

@@ -258,228 +258,142 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="js/offline-manager.js"></script>
     <script>
-        const OFFLINE_API = 'http://177.44.248.118:5000';
-        const LARAVEL_API = 'http://177.44.248.118:8000/api';
-const LARAVEL_TOKEN = '70|VaI5IynnhSWh5OcaRzbL4mZq4WnXSjPDf003cqSE65c407fe';
+        // Configuração do Offline Manager
+        const API_BASE_URL = 'http://localhost:8000/api'; // Ajuste conforme necessário
+        
+        let offlineManager;
+        let modoOnline = false;
+        let todosUsuarios = [];
+        let todasInscricoes = [];
+        let inscricaoSelecionadaId = null;
 
         let modoOnline = false;
         let todosUsuarios = [];
         let todasInscricoes = [];
         let inscricaoSelecionadaId = null;
 
-        // Inicializar
-        document.addEventListener('DOMContentLoaded', function () {
-            verificarConexao();
-            carregarDados();
+        // Inicializar com callbacks
+        document.addEventListener('DOMContentLoaded', async function () {
+            // Criar instância do OfflineManager
+            offlineManager = new OfflineManager({
+                apiBase: API_BASE_URL,
+                timeout: 5000,
+                onStatusChange: (online) => {
+                    modoOnline = online;
+                    atualizarStatusBar();
+                },
+                onDataLoaded: (dados) => {
+                    todosUsuarios = dados.usuarios;
+                    todasInscricoes = dados.inscricoes;
+                    atualizarUIs();
+                },
+                onPresencaRegistrada: (presenca) => {
+                    console.log('✓ Presença registrada:', presenca);
+                    carregarEstatisticas();
+                },
+                onSyncStart: () => {
+                    const btn = document.getElementById('btnSincronizar');
+                    btn.disabled = true;
+                    btn.innerHTML = '<i class="bi bi-hourglass-split"></i> Sincronizando...';
+                },
+                onSyncEnd: (resultado) => {
+                    const btn = document.getElementById('btnSincronizar');
+                    btn.disabled = false;
+                    btn.innerHTML = '<i class="bi bi-cloud-arrow-up"></i> Sincronizar';
+                    mostrarAlerta(
+                        `✅ ${resultado.totalSincronizados} item(ns) sincronizado(s)!`,
+                        resultado.erros.length > 0 ? 'warning' : 'success'
+                    );
+                },
+                onSyncError: (erro) => {
+                    const btn = document.getElementById('btnSincronizar');
+                    btn.disabled = false;
+                    btn.innerHTML = '<i class="bi bi-cloud-arrow-up"></i> Sincronizar';
+                    mostrarAlerta(`❌ Erro na sincronização: ${erro.message}`, 'danger');
+                }
+            });
 
-            document.getElementById('formCadastro').addEventListener('submit', cadastrarUsuario);
-            document.getElementById('formInscricao').addEventListener('submit', criarInscricao);
+            // Carregar dados inicialmente
+            await offlineManager.carregarTodosDados();
+
+            // Eventos dos formulários
+            document.getElementById('formCadastro')?.addEventListener('submit', cadastrarUsuario);
+            document.getElementById('formInscricao')?.addEventListener('submit', criarInscricao);
 
             // Recarregar ao trocar de aba
             document.querySelectorAll('button[data-bs-toggle="tab"]').forEach(btn => {
-                btn.addEventListener('shown.bs.tab', carregarDados);
+                btn.addEventListener('shown.bs.tab', () => {
+                    carregarEstatisticas();
+                    atualizarSelectEventos();
+                });
             });
+
+            // Verificar conexão a cada 5 segundos
+            setInterval(() => {
+                offlineManager.verificarConexao();
+            }, 5000);
         });
 
-        // ==================== CONEXÃO ====================
-        async function verificarConexao() {
-            try {
-                const response = await fetch(`${LARAVEL_API}/status`, { timeout: 3000 });
-                if (response.ok) {
-                    modoOnline = true;
-                    document.getElementById('statusBar').className = 'status-online text-white py-2';
-                    document.getElementById('statusText').innerHTML = '✓ Sistema ONLINE - Conectado ao servidor';
-                    document.getElementById('statusConexao').innerHTML = '<i class="bi bi-wifi"></i> Online';
-                } else {
-                    throw new Error('Offline');
-                }
-            } catch (error) {
-                modoOnline = false;
-                document.getElementById('statusBar').className = 'status-offline text-white py-2';
-                document.getElementById('statusText').innerHTML = '○ Sistema OFFLINE - Dados serão sincronizados depois';
-                document.getElementById('statusConexao').innerHTML = '<i class="bi bi-wifi-off"></i> Offline';
+        // ==================== FUNÇÕES DE ATUALIZAÇÃO ====================
+        function atualizarStatusBar() {
+            const statusBar = document.getElementById('statusBar');
+            const statusText = document.getElementById('statusText');
+            const statusConexao = document.getElementById('statusConexao');
+
+            if (modoOnline) {
+                statusBar.className = 'status-online text-white py-2';
+                statusText.innerHTML = '✓ Sistema ONLINE - Dados em tempo real';
+                statusConexao.innerHTML = '<i class="bi bi-wifi"></i> Online';
+            } else {
+                statusBar.className = 'status-offline text-white py-2';
+                statusText.innerHTML = '○ Sistema OFFLINE - Dados em cache';
+                statusConexao.innerHTML = '<i class="bi bi-wifi-off"></i> Offline';
             }
+        }
+
+        function atualizarUIs() {
+            atualizarSelectUsuarios();
+            atualizarSelectEventos();
+            carregarEstatisticas();
         }
 
         // ==================== CARREGAR DADOS ====================
         async function carregarDados() {
-            await carregarEstatisticas();
-            await carregarUsuarios();
-            await carregarEventos();
-            await carregarInscricoes();
+            await offlineManager.carregarTodosDados();
         }
 
         async function carregarEstatisticas() {
-try {
-        const token = localStorage.getItem('token');
-        const resp = await fetch(`${OFFLINE_API}/dados-pendentes`, {
-            headers: {
-                'Authorization': `Bearer ${token}`,
-                'Content-Type': 'application/json'
-            }
-        });
-        const data = await resp.json();
-
-        if (data.success) {
-            document.getElementById('totalUsuarios').textContent = data.data.usuarios.length;
-            document.getElementById('totalInscricoes').textContent = data.data.inscricoes.length;
-            document.getElementById('totalPresencas').textContent = data.data.presencas.length;
-            document.getElementById('totalPendentes').textContent = data.data.total_pendente;
+            const stats = offlineManager.obterEstatisticas();
+            document.getElementById('totalUsuarios').textContent = stats.totalUsuarios;
+            document.getElementById('totalInscricoes').textContent = stats.totalInscricoes;
+            document.getElementById('totalPresencas').textContent = stats.totalPresencas;
+            document.getElementById('totalPendentes').textContent = stats.totalPendentes;
         }
-    } catch (error) {
-        console.error('Erro ao carregar estatísticas:', error);
-    }
-}
-
-        async function carregarUsuarios() {
-            todosUsuarios = [];
-
-    const token = localStorage.getItem('token');
-
-if (modoOnline) {
-        try {
-            const resp = await fetch(`${LARAVEL_API}/usuarios`, {
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json'
-                }
-            });
-            const data = await resp.json();
-            if (data.success) {
-                todosUsuarios = todosUsuarios.concat(data.data);
-            }
-        } catch (error) {
-            console.log('Não foi possível buscar usuários do Laravel');
-        }
-    }
-
-    // Offline
-    try {
-        const resp = await fetch(`${OFFLINE_API}/usuarios`, {
-            headers: {
-                'Authorization': `Bearer ${token}`,
-                'Content-Type': 'application/json'
-            }
-        });
-        const data = await resp.json();
-
-        if (data.success) {
-            data.data.forEach(u => {
-                if (!todosUsuarios.find(tu => tu.email === u.email)) {
-                    todosUsuarios.push(u);
-                }
-            });
-        }
-    } catch (error) {
-        console.error('Erro ao buscar usuários offline:', error);
-    }
-
-    atualizarSelectUsuarios();
-}
 
         function atualizarSelectUsuarios() {
             const select = document.getElementById('inscricaoUsuario');
             select.innerHTML = '<option value="">Selecione um participante</option>';
 
-            todosUsuarios.forEach(u => {
+            offlineManager.dados.usuarios.forEach(u => {
                 select.innerHTML += `<option value="${u.id}">${u.nome} - ${u.email}</option>`;
             });
         }
 
-async function carregarEventos() {
-    const token = localStorage.getItem('token');
+        function atualizarSelectEventos() {
+            const selects = [
+                document.getElementById('eventoCheckin'),
+                document.getElementById('inscricaoEvento')
+            ];
 
-    const selects = [
-        document.getElementById('eventoCheckin'),
-        document.getElementById('inscricaoEvento')
-    ];
-
-    selects.forEach(s => s.innerHTML = '<option value="">Carregando...</option>');
-
-    try {
-        const resp = await fetch(
-            modoOnline ? `${LARAVEL_API}/eventos` : `${OFFLINE_API}/eventos`,
-            {
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json'
-                }
-            }
-        );
-        const data = await resp.json();
-
-        if (data.success && data.data.length > 0) {
             selects.forEach(s => {
                 s.innerHTML = '<option value="">Selecione um evento</option>';
-                data.data.forEach(e => {
-                    s.innerHTML += `<option value="${e.id}">${e.titulo}</option>`;
+                offlineManager.dados.eventos.forEach(e => {
+                    s.innerHTML += `<option value="${e.id}">${e.titulo || e.name}</option>`;
                 });
             });
-        } else {
-            selects.forEach(s => {
-                s.innerHTML = '<option value="">Selecione</option>';
-                s.innerHTML += '<option value="1">Workshop de Desenvolvimento Web</option>';
-                s.innerHTML += '<option value="2">Palestra sobre IA</option>';
-            });
         }
-    } catch (error) {
-        console.error('Erro ao carregar eventos:', error);
-    }
-}
-
-
-        async function carregarInscricoes() {
-            todasInscricoes = [];
-
-    const token = localStorage.getItem('token');
-
-
-    if (modoOnline) {
-        try {
-            const resp = await fetch(`${LARAVEL_API}/inscricoes`, {
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json'
-                }
-            });
-            const data = await resp.json();
-
-            if (data.success && data.data) {
-                todasInscricoes = data.data;
-            }
-        } catch (error) {
-            console.log('Não foi possível buscar inscrições do Laravel:', error);
-        }
-    }
-
-    // Offline
-    try {
-        const resp = await fetch(`${OFFLINE_API}/inscricoes`, {
-            headers: {
-                'Authorization': `Bearer ${token}`,
-                'Content-Type': 'application/json'
-            }
-        });
-        const data = await resp.json();
-
-        if (data.success && data.data) {
-            data.data.forEach(inscOffline => {
-                const jaExiste = todasInscricoes.find(insc =>
-                    insc.usuario_id === inscOffline.usuario_id &&
-                    insc.evento_id === inscOffline.evento_id
-                );
-                if (!jaExiste) {
-                    todasInscricoes.push(inscOffline);
-                }
-            });
-        }
-    } catch (error) {
-        console.error('Erro ao buscar inscrições offline:', error);
-    }
-
-    console.log('Total de inscrições carregadas:', todasInscricoes.length);
-}
         // ==================== BUSCA DE PARTICIPANTE ====================
         function buscarParticipante() {
             const termo = document.getElementById('buscaParticipante').value.toLowerCase().trim();
@@ -499,13 +413,11 @@ async function carregarEventos() {
             }
 
             // Filtrar inscrições do evento selecionado
-            let inscricoesDoEvento = todasInscricoes.filter(insc =>
-                insc.evento_id == eventoId && insc.status === 'ativa'
-            );
+            const inscricoesDoEvento = offlineManager.obterInscricoesPorEvento(eventoId, true);
 
             // Buscar por nome, email ou CPF
             const resultados = inscricoesDoEvento.filter(insc => {
-                const usuario = todosUsuarios.find(u => u.id === insc.usuario_id);
+                const usuario = offlineManager.obterUsuario(insc.usuario_id);
                 if (!usuario) return false;
 
                 const nome = (usuario.nome || '').toLowerCase();
@@ -526,10 +438,8 @@ async function carregarEventos() {
 
             lista.innerHTML = '';
             resultados.forEach(insc => {
-                const usuario = todosUsuarios.find(u => u.id === insc.usuario_id);
-
-                // Verificar se já tem presença
-                const temPresenca = insc.possui_presenca || insc.presenca;
+                const usuario = offlineManager.obterUsuario(insc.usuario_id);
+                const temPresenca = offlineManager.temPresenca(insc.id);
 
                 lista.innerHTML += `
             <div class="card search-result mb-2 ${temPresenca ? 'bg-light' : ''}" 
@@ -543,7 +453,7 @@ async function carregarEventos() {
                                 ${usuario.cpf ? 'CPF: ' + usuario.cpf : ''}
                             </small>
                         </div>
-                        ${temPresenca ? '<span class="badge bg-success">✓ Presença já registrada</span>' : ''}
+                        ${temPresenca ? '<span class="badge bg-success">✓ Presença registrada</span>' : ''}
                     </div>
                 </div>
             </div>
@@ -554,93 +464,148 @@ async function carregarEventos() {
         }
 
         function selecionarInscricao(inscricaoId) {
-            const insc = todasInscricoes.find(i => i.id === inscricaoId);
-            const usuario = todosUsuarios.find(u => u.id === insc.usuario_id);
+            const insc = offlineManager.obterInscricao(inscricaoId);
+            const usuario = offlineManager.obterUsuario(insc.usuario_id);
 
             inscricaoSelecionadaId = inscricaoId;
 
             document.getElementById('infoParticipante').innerHTML = `
                 <strong>Nome:</strong> ${usuario.nome}<br>
                 <strong>Email:</strong> ${usuario.email}<br>
-                <strong>Inscrição ID:</strong> ${inscricaoId}
+                <strong>Inscrição ID:</strong> ${inscricaoId}<br>
+                <small class="text-muted">Modo: ${modoOnline ? 'ONLINE' : 'OFFLINE'}</small>
             `;
 
             document.getElementById('inscricaoSelecionada').style.display = 'block';
         }
 
-
-
-
         // ==================== CHECK-IN ====================
- async function confirmarCheckin() {
+        async function confirmarCheckin() {
             if (!inscricaoSelecionadaId) {
                 mostrarAlerta('Nenhuma inscrição selecionada!', 'warning');
                 return;
             }
 
-        const token = modoOnline ? LARAVEL_TOKEN : localStorage.getItem('token');
-        const API_URL = modoOnline ? LARAVEL_API : OFFLINE_API;
-
-    console.log(' Modo:', modoOnline ? 'ONLINE' : 'OFFLINE');
-    console.log(' URL:', `${API_URL}/presencas`);
-    console.log(' Inscrição ID:', inscricaoSelecionadaId);
-
-    try {
-        const resp = await fetch(`${API_URL}/presencas`, {
-            method: 'POST',
-            headers: { 
-                'Authorization': `Bearer ${token}`,
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ inscricao_id: inscricaoSelecionadaId })
-        });
-
-                const data = await resp.json();
-
-if (data.success) {
-            mostrarAlerta('✓ Presença registrada com sucesso!', 'success');
-            document.getElementById('buscaParticipante').value = '';
-            document.getElementById('resultadosBusca').style.display = 'none';
-            document.getElementById('inscricaoSelecionada').style.display = 'none';
-            inscricaoSelecionadaId = null;
-            carregarEstatisticas();
-        } else {
-            mostrarAlerta(data.message, 'danger');
+            const insc = offlineManager.obterInscricao(inscricaoSelecionadaId);
+            
+            try {
+                // Registrar presença através do OfflineManager
+                await offlineManager.registrarPresenca(inscricaoSelecionadaId, insc.evento_id);
+                
+                mostrarAlerta('✓ Presença registrada com sucesso!', 'success');
+                document.getElementById('buscaParticipante').value = '';
+                document.getElementById('resultadosBusca').style.display = 'none';
+                document.getElementById('inscricaoSelecionada').style.display = 'none';
+                inscricaoSelecionadaId = null;
+                
+                // Recarregar estatísticas
+                setTimeout(() => {
+                    document.getElementById('buscaParticipante').focus();
+                    carregarEstatisticas();
+                }, 1000);
+                
+            } catch (error) {
+                mostrarAlerta('Erro ao registrar presença: ' + error.message, 'danger');
+                console.error('Erro:', error);
+            }
         }
-    } catch (error) {
-        mostrarAlerta('Erro ao registrar presença', 'danger');
-    }
-}
+
+        // ==================== CADASTRO RÁPIDO ====================
+        async function cadastrarUsuario(e) {
+            e.preventDefault();
+
+            const dados = {
+                nome: document.getElementById('cadastroNome').value,
+                email: document.getElementById('cadastroEmail').value,
+                cpf: document.getElementById('cadastroCpf').value,
+                telefone: document.getElementById('cadastroTelefone').value,
+                password: 'senha_temporaria_123' // Senha temporária
+            };
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/usuarios`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${offlineManager.getToken()}`
+                    },
+                    body: JSON.stringify(dados)
+                });
+
+                if (!response.ok) {
+                    throw new Error('Erro ao cadastrar usuário');
+                }
+
+                const data = await response.json();
+                
+                // Adicionar aos dados locais
+                offlineManager.dados.usuarios.push(data.data);
+                offlineManager.salvarDadosNoStorage();
+                
+                mostrarAlerta('✓ Usuário cadastrado com sucesso!', 'success');
+                document.getElementById('formCadastro').reset();
+                
+                // Recarregar dados
+                setTimeout(() => {
+                    atualizarSelectUsuarios();
+                    document.getElementById('cadastro-tab').classList.remove('active');
+                    document.getElementById('inscricao-tab').classList.add('active');
+                }, 1000);
+                
+            } catch (error) {
+                mostrarAlerta('Erro ao cadastrar: ' + error.message, 'danger');
+                console.error('Erro:', error);
+            }
+        }
+
         // ==================== INSCRIÇÃO ====================
         async function criarInscricao(e) {
             e.preventDefault();
 
-            const dados = {
-                usuario_id: parseInt(document.getElementById('inscricaoUsuario').value),
-                evento_id: parseInt(document.getElementById('inscricaoEvento').value)
-            };
+            const usuarioId = parseInt(document.getElementById('inscricaoUsuario').value);
+            const eventoId = parseInt(document.getElementById('inscricaoEvento').value);
+
+            if (!usuarioId || !eventoId) {
+                mostrarAlerta('Selecione um participante e um evento!', 'warning');
+                return;
+            }
 
             try {
-                const resp = await fetch(`${OFFLINE_API}/inscricoes`, {
+                const response = await fetch(`${API_BASE_URL}/inscricoes`, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(dados)
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${offlineManager.getToken()}`
+                    },
+                    body: JSON.stringify({
+                        usuario_id: usuarioId,
+                        evento_id: eventoId,
+                        status: 'ativa'
+                    })
                 });
 
-                const data = await resp.json();
-
-                if (data.success) {
-                    mostrarAlerta('✓ Inscrição realizada! Agora pode fazer o check-in.', 'success');
-                    document.getElementById('formInscricao').reset();
-                    carregarDados();
-
-                    // Ir para aba de check-in
-                    document.getElementById('checkin-tab').click();
-                } else {
-                    mostrarAlerta(data.message, 'danger');
+                if (!response.ok) {
+                    throw new Error('Erro ao criar inscrição');
                 }
+
+                const data = await response.json();
+                
+                // Adicionar aos dados locais
+                offlineManager.dados.inscricoes.push(data.data);
+                offlineManager.salvarDadosNoStorage();
+                
+                mostrarAlerta('✓ Inscrição realizada! Agora pode fazer o check-in.', 'success');
+                document.getElementById('formInscricao').reset();
+                
+                // Ir para aba de check-in
+                setTimeout(() => {
+                    document.getElementById('checkin-tab').click();
+                    carregarEstatisticas();
+                }, 1000);
+                
             } catch (error) {
-                mostrarAlerta('Erro ao criar inscrição', 'danger');
+                mostrarAlerta('Erro ao criar inscrição: ' + error.message, 'danger');
+                console.error('Erro:', error);
             }
         }
 
@@ -651,71 +616,66 @@ if (data.success) {
                 return;
             }
 
-            const btn = document.getElementById('btnSincronizar');
-            btn.disabled = true;
-            btn.innerHTML = '<i class="bi bi-hourglass-split"></i> Sincronizando...';
-
-            mostrarAlerta('🔄 Iniciando sincronização...', 'info');
-
             try {
-                // Chamar endpoint de sincronização do Python
-                const resp = await fetch(`${OFFLINE_API}/sincronizar`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' }
-                });
+                const resultado = await offlineManager.sincronizarTodos();
+                
+                mostrarAlerta(
+                    `✅ Sincronização completa!\n${resultado.totalSincronizados} item(ns) sincronizado(s)`,
+                    resultado.erros.length > 0 ? 'warning' : 'success'
+                );
 
-                const data = await resp.json();
-
-                if (data.success) {
-                    let mensagem = `✅ Sincronização completa! ${data.total_sincronizados} registros sincronizados.`;
-
-                    if (data.erros && data.erros.length > 0) {
-                        mensagem += `\n⚠️ ${data.erros.length} erros encontrados.`;
-                        console.error('Erros de sincronização:', data.erros);
-                    }
-
-                    mostrarAlerta(mensagem, 'success');
-
-                    // Recarregar todos os dados
-                    await carregarDados();
-                } else {
-                    mostrarAlerta('❌ Erro na sincronização: ' + data.message, 'danger');
-                }
+                // Recarregar dados
+                await carregarDados();
+                
             } catch (error) {
-                console.error('Erro ao sincronizar:', error);
                 mostrarAlerta('❌ Erro ao sincronizar: ' + error.message, 'danger');
-            } finally {
-                btn.disabled = false;
-                btn.innerHTML = '<i class="bi bi-cloud-arrow-up"></i> Sincronizar';
             }
+        }
+
+        // ==================== VERIFICAR CONEXÃO ====================
+        async function verificarConexao() {
+            await offlineManager.verificarConexao();
         }
 
         // ==================== UTILITÁRIOS ====================
         function mostrarAlerta(msg, tipo) {
             const c = document.getElementById('alertContainer');
+            const alertId = 'alert_' + Date.now();
             c.innerHTML = `
-                <div class="alert alert-${tipo} alert-dismissible fade show">
-                    ${msg}
+                <div id="${alertId}" class="alert alert-${tipo} alert-dismissible fade show">
+                    ${msg.replace(/\n/g, '<br>')}
                     <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
                 </div>
             `;
-            setTimeout(() => c.innerHTML = '', 5000);
+            setTimeout(() => {
+                const alert = document.getElementById(alertId);
+                if (alert) alert.remove();
+            }, 5000);
         }
 
-        // Máscaras
-        document.getElementById('cadastroCpf')?.addEventListener('input', function (e) {
-            let v = e.target.value.replace(/\D/g, '');
-            v = v.replace(/(\d{3})(\d)/, '$1.$2');
-            v = v.replace(/(\d{3})(\d)/, '$1.$2');
-            v = v.replace(/(\d{3})(\d{1,2})$/, '$1-$2');
-            e.target.value = v;
-        });
+        // Máscaras de entrada
+        document.addEventListener('DOMContentLoaded', function() {
+            const inputCpf = document.getElementById('cadastroCpf');
+            const inputTelefone = document.getElementById('cadastroTelefone');
 
-        document.getElementById('cadastroTelefone')?.addEventListener('input', function (e) {
-            let v = e.target.value.replace(/\D/g, '');
-            v = v.replace(/(\d{2})(\d)/, '($1) $2');
-            v = v.replace(/(\d{5})(\d)/, '$1-$2');
-            e.target.value = v;
+            if (inputCpf) {
+                inputCpf.addEventListener('input', function (e) {
+                    let v = e.target.value.replace(/\D/g, '');
+                    v = v.replace(/(\d{3})(\d)/, '$1.$2');
+                    v = v.replace(/(\d{3})(\d)/, '$1.$2');
+                    v = v.replace(/(\d{3})(\d{1,2})$/, '$1-$2');
+                    e.target.value = v;
+                });
+            }
+
+            if (inputTelefone) {
+                inputTelefone.addEventListener('input', function (e) {
+                    let v = e.target.value.replace(/\D/g, '');
+                    v = v.replace(/(\d{2})(\d)/, '($1) $2');
+                    v = v.replace(/(\d{5})(\d)/, '$1-$2');
+                    e.target.value = v;
+                });
+            }
         });
     </script>
 </body>

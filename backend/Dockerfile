@@ -1,0 +1,61 @@
+FROM php:8.2-apache
+
+# Instalar extensões necessárias
+RUN apt-get update && apt-get install -y \
+    libpq-dev \
+    libzip-dev \
+    git \
+    curl \
+    wget \
+    nano \
+    && docker-php-ext-install \
+    pdo \
+    pdo_mysql \
+    zip \
+    bcmath \
+    ctype \
+    fileinfo \
+    json \
+    mbstring \
+    tokenizer \
+    xml
+
+# Instalar Redis extension
+RUN pecl install redis && docker-php-ext-enable redis
+
+# Habilitar mod_rewrite para Laravel
+RUN a2enmod rewrite
+
+# Instalar Composer
+RUN curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
+
+# Configurar Apache
+RUN echo '<VirtualHost *:80>' > /etc/apache2/sites-available/000-default.conf && \
+    echo '    DocumentRoot /app/public' >> /etc/apache2/sites-available/000-default.conf && \
+    echo '    <Directory /app>' >> /etc/apache2/sites-available/000-default.conf && \
+    echo '        AllowOverride All' >> /etc/apache2/sites-available/000-default.conf && \
+    echo '        Allow from all' >> /etc/apache2/sites-available/000-default.conf && \
+    echo '    </Directory>' >> /etc/apache2/sites-available/000-default.conf && \
+    echo '</VirtualHost>' >> /etc/apache2/sites-available/000-default.conf
+
+# Configurar PHP
+RUN echo 'memory_limit = 256M' >> /usr/local/etc/php/conf.d/laravel.ini && \
+    echo 'max_execution_time = 60' >> /usr/local/etc/php/conf.d/laravel.ini && \
+    echo 'upload_max_filesize = 100M' >> /usr/local/etc/php/conf.d/laravel.ini && \
+    echo 'post_max_size = 100M' >> /usr/local/etc/php/conf.d/laravel.ini
+
+# Definir diretório de trabalho
+WORKDIR /app
+
+# Copiar arquivos do projeto
+COPY . .
+
+# Definir permissões
+RUN chown -R www-data:www-data /app && \
+    chmod -R 775 /app/storage /app/bootstrap/cache
+
+# Exposar porta
+EXPOSE 80
+
+# Iniciar Apache
+CMD ["apache2-foreground"]
