@@ -45,6 +45,9 @@ WORKDIR /app
 # Copiar arquivos do projeto
 COPY . .
 
+# Copiar .env.example como .env se não existir
+RUN if [ ! -f .env ]; then cp .env.example .env; fi
+
 # Definir permissões
 RUN chown -R www-data:www-data /app && \
     chmod -R 775 /app/storage /app/bootstrap/cache
