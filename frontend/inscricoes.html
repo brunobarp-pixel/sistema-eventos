@@ -207,6 +207,12 @@ const getHeaders = () => ({
 
             loading.style.display = 'none';
             container.style.display = 'block';
+            
+            // DEBUG: Verificar dados recebidos
+            console.log('=== DEBUG exibirInscricoes ===');
+            console.log('Quantidade de inscrições:', inscricoes.length);
+            console.log('Dados completos:', inscricoes);
+            
             container.innerHTML = '';
 
             if (inscricoes.length === 0) {
@@ -221,6 +227,12 @@ const getHeaders = () => ({
                     </div>
                 `;
                 return;
+            }
+
+            // DEBUG: Adicionar alerta com dados da primeira inscrição
+            if (inscricoes.length > 0) {
+                const primeira = inscricoes[0];
+                alert(`DEBUG - Primeira inscrição:\nID: ${primeira.id}\nStatus: ${primeira.status}\nPossui presença: ${primeira.possui_presenca}\nEvento: ${primeira.evento.titulo}`);
             }
 
             inscricoes.forEach(inscricao => {
@@ -250,11 +262,12 @@ const getHeaders = () => ({
                                     </p>
                                     ${!inscricao.possui_presenca ? '<p class="text-muted mt-2 mb-2"><small><i class="bi bi-info-circle"></i> O check-in será feito pelos atendentes no dia do evento</small></p>' : ''}
                                     
-                                    <!-- Botão Cancelar -->
+                                    <!-- Botão Cancelar - SEMPRE VISÍVEL PARA TESTE -->
                                     <div class="mt-3">
                                         <button class="btn btn-outline-danger" onclick="cancelarInscricao(${inscricao.id})">
-                                            <i class="bi bi-x-circle"></i> Cancelar Inscrição
+                                            <i class="bi bi-x-circle"></i> Cancelar Inscrição (ID: ${inscricao.id})
                                         </button>
+                                        <p class="text-muted mt-1"><small>DEBUG: possui_presenca = ${inscricao.possui_presenca}</small></p>
                                     </div>
                                 </div>
                             </div>
