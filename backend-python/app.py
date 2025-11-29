@@ -28,6 +28,61 @@ sync_ativo = False
 sync_thread = None
 
 
+def popular_dados_exemplo():
+    """Popular dados de exemplo no MySQL se estiver vazio"""
+    try:
+        conn = get_mysql_connection()
+        if not conn:
+            print("❌ Não foi possível conectar ao MySQL para popular dados")
+            return
+            
+        cursor = conn.cursor()
+        
+        # Verificar se já tem eventos
+        cursor.execute("SELECT COUNT(*) FROM eventos")
+        count = cursor.fetchone()[0]
+        
+        if count == 0:
+            print("📋 Populando dados de exemplo no MySQL...")
+            
+            # Adicionar eventos de exemplo
+            eventos_exemplo = [
+                ("Workshop Laravel", "Introdução ao desenvolvimento com Laravel", 
+                 "2025-12-15 09:00:00", "2025-12-15 17:00:00", "Laboratório 1", 30, "aberto"),
+                ("Palestra Docker", "Containerização com Docker", 
+                 "2025-12-20 14:00:00", "2025-12-20 16:00:00", "Auditório", 50, "aberto"),
+                ("Curso JavaScript", "JavaScript moderno e frameworks", 
+                 "2026-01-10 08:00:00", "2026-01-12 18:00:00", "Sala 201", 25, "aberto"),
+                ("Workshop React", "Desenvolvimento Frontend com React", 
+                 "2025-12-01 14:00:00", "2025-12-01 18:00:00", "Laboratório 2", 20, "aberto"),
+                ("Palestra sobre IA", "Inteligência Artificial e Machine Learning", 
+                 "2025-12-15 09:00:00", "2025-12-15 12:00:00", "Auditório", 60, "aberto")
+            ]
+            
+            for evento in eventos_exemplo:
+                cursor.execute("""
+                    INSERT INTO eventos 
+                    (titulo, descricao, data_inicio, data_fim, local, vagas, status)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s)
+                """, evento)
+            
+            # Adicionar usuário de exemplo
+            cursor.execute("""
+                INSERT IGNORE INTO usuarios 
+                (nome, email, cpf, telefone, senha)
+                VALUES 
+                ('Usuário Teste', 'teste@exemplo.com', '12345678901', '(51)99999-9999', 'senha123')
+            """)
+            
+            conn.commit()
+            print("✅ Dados de exemplo populados no MySQL!")
+            
+        conn.close()
+        
+    except Exception as e:
+        print(f"❌ Erro ao popular dados de exemplo: {str(e)}")
+
+
 def get_mysql_connection():
     """Conectar ao MySQL"""
     try:
@@ -455,6 +510,10 @@ if __name__ == "__main__":
     if not os.path.exists("certificados_pdf"):
         os.makedirs("certificados_pdf")
         print("📁 Pasta 'certificados_pdf' criada!")
+
+    # Popular dados de exemplo se necessário
+    print("\n📋 Verificando dados de exemplo...")
+    popular_dados_exemplo()
 
     # Login automático no Laravel
     print("\n🔐 Tentando login automático no Laravel...")

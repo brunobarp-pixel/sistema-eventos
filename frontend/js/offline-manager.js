@@ -85,72 +85,40 @@ class OfflineManager {
                 return this.dados;
             }
 
-            // Se online, tentar carregar do servidor (sem exigir token)
-            console.log('[OfflineManager] Sistema online - carregando dados do servidor...');
+            // Se online, carregar eventos sem exigir autenticação
+            console.log('[OfflineManager] Sistema online - carregando eventos...');
             
-            try {
-                // Carregar dados básicos (sem autenticação)
-                const [eventos] = await Promise.all([
-                    this.carregarEventosSemAuth()
-                ]);
+            const eventos = await this.carregarEventosSemAuth();
+            
+            // Inicializar dados básicos
+            this.dados = {
+                usuarios: [],
+                eventos: eventos || [],
+                inscricoes: [],
+                presencas: [],
+                filaSincronizacao: this.dados.filaSincronizacao || [] // Manter fila existente
+            };
 
-                // Tentar carregar dados autenticados se tiver token
-                const token = this.getToken();
-                let usuarios = [];
-                let inscricoes = [];
-                let presencas = [];
-                
-                if (token) {
-                    console.log('[OfflineManager] Token encontrado - carregando dados autenticados');
-                    try {
-                        [usuarios, inscricoes, presencas] = await Promise.all([
-                            this.buscarUsuarios(token),
-                            this.buscarInscricoes(token), 
-                            this.buscarPresencas(token)
-                        ]);
-                    } catch (authError) {
-                        console.warn('[OfflineManager] Erro na autenticação, continuando sem dados de usuário:', authError);
-                    }
-                } else {
-                    console.warn('[OfflineManager] Sem token - carregando apenas eventos públicos');
-                }
-
-                this.dados = {
-                    usuarios,
-                    eventos,
-                    inscricoes,
-                    presencas,
-                    filaSincronizacao: this.dados.filaSincronizacao // Manter fila existente
-                };
-
-                // Sincronizar eventos completos com o Python SQLite
-                try {
-                    await fetch(`${this.OFFLINE_API}/sincronizar-eventos-completos`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' }
-                    });
-                    console.log('[OfflineManager] Eventos sincronizados com Python SQLite');
-                } catch (error) {
-                    console.warn('[OfflineManager] Erro ao sincronizar com Python:', error);
-                }
-
-                // Salvar no localStorage
-                this.salvarDadosNoStorage();
-
-                console.log('[OfflineManager] Dados carregados com sucesso', {
-                    usuarios: usuarios.length,
-                    eventos: eventos.length,
-                    inscricoes: inscricoes.length,
-                    presencas: presencas.length
-                });
-
-                this.callbacks.onDataLoaded(this.dados);
-                return this.dados;
-
-            } catch (error) {
-                console.error('[OfflineManager] Erro ao carregar dados do servidor:', error);
-                throw error;
+            // Tentar carregar dados do localStorage para complementar
+            const dadosLocal = this.carregarDadosDoStorage();
+            if (dadosLocal) {
+                this.dados.usuarios = dadosLocal.usuarios || [];
+                this.dados.inscricoes = dadosLocal.inscricoes || [];
+                this.dados.presencas = dadosLocal.presencas || [];
             }
+
+            // Salvar no localStorage
+            this.salvarDadosNoStorage();
+
+            console.log('[OfflineManager] Dados carregados com sucesso', {
+                usuarios: this.dados.usuarios.length,
+                eventos: this.dados.eventos.length,
+                inscricoes: this.dados.inscricoes.length,
+                presencas: this.dados.presencas.length
+            });
+
+            this.callbacks.onDataLoaded(this.dados);
+            return this.dados;
 
         } catch (error) {
             console.error('[OfflineManager] Erro ao carregar dados:', error);
@@ -244,19 +212,12 @@ class OfflineManager {
     /**
      * Buscar eventos do servidor
      */
-    async buscarEventos(token) {
-        try {
-            const response = await fetch(`${this.API_BASE}/eventos`, {
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
-
-            if (!response.ok) throw new Error('Erro ao buscar eventos');
-            const data = await response.json();
-            return data.data || [];
-        } catch (error) {
-            console.error('[OfflineManager] Erro ao buscar eventos:', error);
-            return this.dados.eventos;
-        }
+    /**
+     * Buscar eventos do servidor
+     */
+    async buscarEventos() {
+        console.log('[OfflineManager] Buscando eventos...');
+        return await this.carregarEventosSemAuth();
     }
 
     /**
@@ -855,6 +816,81 @@ class OfflineManager {
             console.error('[OfflineManager] Erro ao gerar certificado automático:', error);
             return false;
         }
+    }
+    
+    getEventosExemplo() {
+        return [
+            {
+                id: 1,
+                nome: "Workshop Laravel Offline",
+                titulo: "Workshop Laravel Offline", 
+                descricao: "Introdução ao desenvolvimento com Laravel",
+                data_inicio: "2025-12-15 09:00:00",
+                data_fim: "2025-12-15 17:00:00", 
+                local: "Laboratório 1",
+                vagas: 30,
+                status: "aberto",
+                total_inscritos: 5
+            },
+            {
+                id: 2,
+                nome: "Palestra Docker Offline",
+                titulo: "Palestra Docker Offline",
+                descricao: "Containerização com Docker",
+                data_inicio: "2025-12-20 14:00:00", 
+                data_fim: "2025-12-20 16:00:00",
+                local: "Auditório",
+                vagas: 50,
+                status: "aberto",
+                total_inscritos: 12
+            },
+            {
+                id: 3,
+                nome: "Curso JavaScript Offline",
+                titulo: "Curso JavaScript Offline",
+                descricao: "JavaScript moderno e frameworks",
+                data_inicio: "2026-01-10 08:00:00",
+                data_fim: "2026-01-12 18:00:00",
+                local: "Sala 201", 
+                vagas: 25,
+                status: "aberto",
+                total_inscritos: 8
+            }
+        ];
+    }
+    
+    /**
+     * Cria usuário de teste para funcionalidade offline
+     */
+    criarUsuarioTeste() {
+        const usuarioTeste = {
+            id: 999,
+            nome: "Usuário Offline",
+            email: "offline@teste.com",
+            cpf: "00000000000",
+            telefone: "(51)99999-9999",
+            criado_em: new Date().toISOString()
+        };
+        
+        // Salvar no localStorage
+        localStorage.setItem('usuario_offline_teste', JSON.stringify(usuarioTeste));
+        console.log('[OfflineManager] Usuário de teste criado:', usuarioTeste);
+        
+        return usuarioTeste;
+    }
+    
+    /**
+     * Obter usuário para operações offline
+     */
+    getUsuarioOffline() {
+        let usuario = JSON.parse(localStorage.getItem('usuario_offline_teste') || 'null');
+        
+        if (!usuario) {
+            console.log('[OfflineManager] Criando usuário de teste para modo offline');
+            usuario = this.criarUsuarioTeste();
+        }
+        
+        return usuario;
     }
 }
 
