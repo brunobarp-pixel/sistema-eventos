@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teste Offline System</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .teste { margin: 10px 0; padding: 10px; border: 1px solid #ccc; }
+        .sucesso { background-color: #d4edda; border-color: #c3e6cb; }
+        .erro { background-color: #f8d7da; border-color: #f5c6cb; }
+        pre { background-color: #f8f9fa; padding: 10px; overflow-x: auto; }
+    </style>
+</head>
+<body>
+    <h1>🧪 Teste do Sistema Offline</h1>
+    
+    <div id="resultados"></div>
+    
+    <script>
+        async function testarEndpoints() {
+            const resultados = document.getElementById('resultados');
+            
+            // Teste 1: Python eventos-offline
+            try {
+                console.log('🔍 Testando Python /eventos-offline...');
+                const response = await fetch('http://localhost:5000/eventos-offline');
+                const data = await response.json();
+                
+                resultados.innerHTML += `
+                    <div class="teste sucesso">
+                        <h3>✅ Python /eventos-offline</h3>
+                        <p>Status: ${response.status}</p>
+                        <p>Eventos encontrados: ${data.data ? data.data.length : 0}</p>
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
+                    </div>
+                `;
+            } catch (error) {
+                resultados.innerHTML += `
+                    <div class="teste erro">
+                        <h3>❌ Python /eventos-offline</h3>
+                        <p>Erro: ${error.message}</p>
+                    </div>
+                `;
+            }
+            
+            // Teste 2: Laravel eventos
+            try {
+                console.log('🔍 Testando Laravel /api/eventos...');
+                const response = await fetch('http://localhost:8000/api/eventos');
+                const data = await response.json();
+                
+                resultados.innerHTML += `
+                    <div class="teste sucesso">
+                        <h3>✅ Laravel /api/eventos</h3>
+                        <p>Status: ${response.status}</p>
+                        <p>Eventos encontrados: ${Array.isArray(data) ? data.length : (data.data ? data.data.length : 0)}</p>
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
+                    </div>
+                `;
+            } catch (error) {
+                resultados.innerHTML += `
+                    <div class="teste erro">
+                        <h3>❌ Laravel /api/eventos</h3>
+                        <p>Erro: ${error.message}</p>
+                    </div>
+                `;
+            }
+            
+            // Teste 3: Status dos containers
+            try {
+                console.log('🔍 Testando status Python...');
+                const response = await fetch('http://localhost:5000/status');
+                const data = await response.json();
+                
+                resultados.innerHTML += `
+                    <div class="teste sucesso">
+                        <h3>✅ Python /status</h3>
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
+                    </div>
+                `;
+            } catch (error) {
+                resultados.innerHTML += `
+                    <div class="teste erro">
+                        <h3>❌ Python /status</h3>
+                        <p>Erro: ${error.message}</p>
+                    </div>
+                `;
+            }
+        }
+        
+        // Executar testes quando a página carregar
+        window.onload = () => {
+            console.log('🚀 Iniciando testes...');
+            testarEndpoints();
+        };
+    </script>
+</body>
+</html>

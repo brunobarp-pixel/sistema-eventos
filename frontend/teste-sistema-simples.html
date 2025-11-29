@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>✅ Sistema Simplificado - Teste</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; background: #f5f5f5; }
+        .container { max-width: 800px; margin: 0 auto; }
+        .card { background: white; padding: 20px; margin: 10px 0; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .success { border-left: 4px solid #28a745; }
+        .error { border-left: 4px solid #dc3545; }
+        .info { border-left: 4px solid #17a2b8; }
+        pre { background: #f8f9fa; padding: 10px; border-radius: 4px; overflow-x: auto; }
+        button { padding: 10px 20px; margin: 5px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; }
+        button:hover { background: #0056b3; }
+        .loading { color: #6c757d; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎯 Sistema Offline Simplificado - Teste</h1>
+        <p>Testando a nova arquitetura <strong>MySQL + localStorage</strong> (sem SQLite)</p>
+        
+        <div class="card info">
+            <h3>📊 Status dos Serviços</h3>
+            <div id="status">
+                <div class="loading">🔄 Verificando...</div>
+            </div>
+        </div>
+        
+        <div class="card">
+            <h3>📋 Eventos Disponíveis</h3>
+            <button onclick="carregarEventos()">🔄 Carregar Eventos</button>
+            <div id="eventos">
+                <div class="loading">Clique para carregar...</div>
+            </div>
+        </div>
+        
+        <div class="card">
+            <h3>✋ Teste de Presença Offline</h3>
+            <button onclick="testarPresencaOffline()">📝 Marcar Presença Teste</button>
+            <div id="presencas">
+                <div class="loading">Clique para testar...</div>
+            </div>
+        </div>
+        
+        <div class="card">
+            <h3>💾 Cache localStorage</h3>
+            <button onclick="verificarCache()">🔍 Verificar Cache</button>
+            <button onclick="limparCache()">🗑️ Limpar Cache</button>
+            <div id="cache">
+                <div class="loading">Clique para verificar...</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // URLs das APIs
+        const API_LARAVEL = 'http://localhost:8000/api';
+        const API_PYTHON = 'http://localhost:5000';
+        
+        // Verificar status dos serviços
+        async function verificarStatus() {
+            const statusDiv = document.getElementById('status');
+            let html = '<h4>Verificação de Conectividade:</h4>';
+            
+            // Teste Laravel
+            try {
+                const response = await fetch(`${API_LARAVEL}/eventos`);
+                if (response.ok) {
+                    html += '<div class="success">✅ Laravel API: Conectado</div>';
+                } else {
+                    html += '<div class="error">❌ Laravel API: Erro ' + response.status + '</div>';
+                }
+            } catch (error) {
+                html += '<div class="error">❌ Laravel API: Desconectado</div>';
+            }
+            
+            // Teste Python
+            try {
+                const response = await fetch(`${API_PYTHON}/status`);
+                if (response.ok) {
+                    const data = await response.json();
+                    html += '<div class="success">✅ Python API: Conectado</div>';
+                    html += `<pre>${JSON.stringify(data, null, 2)}</pre>`;
+                } else {
+                    html += '<div class="error">❌ Python API: Erro ' + response.status + '</div>';
+                }
+            } catch (error) {
+                html += '<div class="error">❌ Python API: Desconectado</div>';
+            }
+            
+            statusDiv.innerHTML = html;
+        }
+        
+        // Carregar eventos
+        async function carregarEventos() {
+            const eventosDiv = document.getElementById('eventos');
+            eventosDiv.innerHTML = '<div class="loading">🔄 Carregando eventos...</div>';
+            
+            let eventos = null;
+            let fonte = '';
+            
+            // Tentar Laravel primeiro
+            try {
+                const response = await fetch(`${API_LARAVEL}/eventos`);
+                if (response.ok) {
+                    eventos = await response.json();
+                    fonte = 'Laravel';
+                }
+            } catch (error) {
+                console.log('Laravel falhou:', error);
+            }
+            
+            // Fallback Python
+            if (!eventos) {
+                try {
+                    const response = await fetch(`${API_PYTHON}/eventos`);
+                    if (response.ok) {
+                        const data = await response.json();
+                        eventos = data.data;
+                        fonte = 'Python MySQL';
+                    }
+                } catch (error) {
+                    console.log('Python falhou:', error);
+                }
+            }
+            
+            // Fallback localStorage
+            if (!eventos) {
+                const cached = localStorage.getItem('eventos_cache');
+                if (cached) {
+                    eventos = JSON.parse(cached);
+                    fonte = 'Cache localStorage';
+                }
+            }
+            
+            if (eventos && eventos.length > 0) {
+                // Salvar no cache
+                localStorage.setItem('eventos_cache', JSON.stringify(eventos));
+                
+                let html = `<div class="success">✅ ${eventos.length} eventos carregados de: <strong>${fonte}</strong></div>`;
+                html += '<div style="max-height: 300px; overflow-y: auto;">';
+                
+                eventos.forEach(evento => {
+                    html += `
+                        <div style="border: 1px solid #ddd; margin: 5px 0; padding: 10px; border-radius: 4px;">
+                            <strong>${evento.titulo || evento.nome}</strong><br>
+                            📅 ${evento.data_inicio}<br>
+                            📍 ${evento.local}<br>
+                            👥 ${evento.total_inscritos || 0} inscritos
+                        </div>
+                    `;
+                });
+                html += '</div>';
+                
+                eventosDiv.innerHTML = html;
+            } else {
+                eventosDiv.innerHTML = '<div class="error">❌ Nenhum evento encontrado</div>';
+            }
+        }
+        
+        // Testar presença offline
+        async function testarPresencaOffline() {
+            const presencasDiv = document.getElementById('presencas');
+            presencasDiv.innerHTML = '<div class="loading">🔄 Testando presença offline...</div>';
+            
+            // Dados de teste
+            const inscricaoTeste = {
+                inscricao_id: Date.now() % 1000, // ID simulado
+                evento_id: 1,
+                usuario_id: 1
+            };
+            
+            try {
+                // Tentar registrar no servidor
+                const response = await fetch(`${API_PYTHON}/presencas`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(inscricaoTeste)
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    presencasDiv.innerHTML = `
+                        <div class="success">✅ Presença registrada no servidor!</div>
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
+                    `;
+                } else {
+                    throw new Error('Servidor indisponível');
+                }
+                
+            } catch (error) {
+                // Salvar offline
+                let presencasOffline = JSON.parse(localStorage.getItem('presencas_offline') || '[]');
+                
+                const presencaOffline = {
+                    ...inscricaoTeste,
+                    id: `offline_${Date.now()}`,
+                    data_presenca: new Date().toISOString(),
+                    sincronizado: false
+                };
+                
+                presencasOffline.push(presencaOffline);
+                localStorage.setItem('presencas_offline', JSON.stringify(presencasOffline));
+                
+                presencasDiv.innerHTML = `
+                    <div class="info">📱 Presença salva offline (servidor indisponível)</div>
+                    <pre>${JSON.stringify(presencaOffline, null, 2)}</pre>
+                `;
+            }
+        }
+        
+        // Verificar cache
+        function verificarCache() {
+            const cacheDiv = document.getElementById('cache');
+            
+            const eventos = localStorage.getItem('eventos_cache');
+            const presencas = localStorage.getItem('presencas_offline');
+            const usuario = localStorage.getItem('usuario_logado');
+            
+            let html = '<h4>Conteúdo do localStorage:</h4>';
+            
+            if (eventos) {
+                const eventosData = JSON.parse(eventos);
+                html += `<div class="info">📋 eventos_cache: ${eventosData.length} eventos</div>`;
+            } else {
+                html += '<div>📋 eventos_cache: vazio</div>';
+            }
+            
+            if (presencas) {
+                const presencasData = JSON.parse(presencas);
+                html += `<div class="info">✋ presencas_offline: ${presencasData.length} presenças</div>`;
+            } else {
+                html += '<div>✋ presencas_offline: vazio</div>';
+            }
+            
+            if (usuario) {
+                html += '<div class="info">👤 usuario_logado: presente</div>';
+            } else {
+                html += '<div>👤 usuario_logado: vazio</div>';
+            }
+            
+            cacheDiv.innerHTML = html;
+        }
+        
+        // Limpar cache
+        function limparCache() {
+            localStorage.removeItem('eventos_cache');
+            localStorage.removeItem('presencas_offline'); 
+            localStorage.removeItem('usuario_logado');
+            
+            document.getElementById('cache').innerHTML = '<div class="success">✅ Cache limpo!</div>';
+        }
+        
+        // Executar verificações ao carregar
+        window.onload = () => {
+            verificarStatus();
+            verificarCache();
+        };
+    </script>
+</body>
+</html>
