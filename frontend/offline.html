@@ -486,20 +486,28 @@
             const insc = offlineManager.obterInscricao(inscricaoSelecionadaId);
             
             try {
-                // Registrar presença através do OfflineManager
-                await offlineManager.registrarPresenca(inscricaoSelecionadaId, insc.evento_id);
+                // Registrar presença usando o novo método offline
+                const sucesso = await offlineManager.marcarPresencaOffline(
+                    inscricaoSelecionadaId, 
+                    insc.evento_id, 
+                    insc.usuario_id
+                );
                 
-                mostrarAlerta('✓ Presença registrada com sucesso!', 'success');
-                document.getElementById('buscaParticipante').value = '';
-                document.getElementById('resultadosBusca').style.display = 'none';
-                document.getElementById('inscricaoSelecionada').style.display = 'none';
-                inscricaoSelecionadaId = null;
-                
-                // Recarregar estatísticas
-                setTimeout(() => {
-                    document.getElementById('buscaParticipante').focus();
-                    carregarEstatisticas();
-                }, 1000);
+                if (sucesso) {
+                    mostrarAlerta('✓ Presença registrada offline! Sincronize quando conectado.', 'success');
+                    document.getElementById('buscaParticipante').value = '';
+                    document.getElementById('resultadosBusca').style.display = 'none';
+                    document.getElementById('inscricaoSelecionada').style.display = 'none';
+                    inscricaoSelecionadaId = null;
+                    
+                    // Recarregar estatísticas
+                    setTimeout(() => {
+                        document.getElementById('buscaParticipante').focus();
+                        carregarEstatisticas();
+                    }, 1000);
+                } else {
+                    mostrarAlerta('⚠️ Presença já foi registrada para esta inscrição!', 'warning');
+                }
                 
             } catch (error) {
                 mostrarAlerta('Erro ao registrar presença: ' + error.message, 'danger');
@@ -614,12 +622,20 @@
             }
 
             try {
-                const resultado = await offlineManager.sincronizarTodos();
+                // Sincronizar especificamente as presenças offline
+                const resultado = await offlineManager.sincronizarPresencas();
                 
-                mostrarAlerta(
-                    `✅ Sincronização completa!\n${resultado.totalSincronizados} item(ns) sincronizado(s)`,
-                    resultado.erros.length > 0 ? 'warning' : 'success'
-                );
+                if (resultado.sucesso) {
+                    mostrarAlerta(
+                        `✅ Sincronização completa!\n${resultado.sincronizadas} presença(s) sincronizada(s)\n${resultado.sincronizadas} certificado(s) gerado(s)`,
+                        'success'
+                    );
+                } else {
+                    mostrarAlerta(
+                        `⚠️ Sincronização parcial!\n${resultado.sincronizadas} sucesso, ${resultado.erros} erro(s)`,
+                        'warning'
+                    );
+                }
 
                 // Recarregar dados
                 await carregarDados();

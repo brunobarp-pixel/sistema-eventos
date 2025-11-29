@@ -88,13 +88,16 @@ class OfflineManager {
             // Se online, carregar do servidor
             const token = this.getToken();
             if (!token) {
-                throw new Error('Token de autenticação não encontrado');
+                console.warn('[OfflineManager] Token não encontrado - tentando modo offline');
+                this.carregarDadosDoStorage();
+                this.callbacks.onDataLoaded(this.dados);
+                return this.dados;
             }
 
             // Carregar em paralelo
             const [usuarios, eventos, inscricoes, presencas] = await Promise.all([
                 this.buscarUsuarios(token),
-                this.buscarEventos(token),
+                this.carregarEventosCompletos(token), // Usar eventos completos com inscritos
                 this.buscarInscricoes(token),
                 this.buscarPresencas(token)
             ]);
@@ -161,6 +164,48 @@ class OfflineManager {
             return data.data || [];
         } catch (error) {
             console.error('[OfflineManager] Erro ao buscar eventos:', error);
+            return this.dados.eventos;
+        }
+    }
+
+    /**
+     * Carregar eventos com todos os inscritos para modo offline
+     */
+    async carregarEventosCompletos(token) {
+        try {
+            console.log('[OfflineManager] Carregando eventos completos com inscritos...');
+            
+            // Buscar eventos
+            const eventos = await this.buscarEventos(token);
+            
+            // Para cada evento, buscar os inscritos ativos
+            const eventosCompletos = await Promise.all(
+                eventos.map(async (evento) => {
+                    try {
+                        const response = await fetch(`${this.API_BASE}/eventos/${evento.id}/inscritos`, {
+                            headers: { 'Authorization': `Bearer ${token}` }
+                        });
+                        
+                        if (response.ok) {
+                            const data = await response.json();
+                            evento.inscritos = data.data || [];
+                        } else {
+                            evento.inscritos = [];
+                        }
+                        
+                        console.log(`[OfflineManager] Evento ${evento.nome}: ${evento.inscritos.length} inscritos`);
+                        return evento;
+                    } catch (error) {
+                        console.error(`[OfflineManager] Erro ao buscar inscritos do evento ${evento.id}:`, error);
+                        evento.inscritos = [];
+                        return evento;
+                    }
+                })
+            );
+
+            return eventosCompletos;
+        } catch (error) {
+            console.error('[OfflineManager] Erro ao carregar eventos completos:', error);
             return this.dados.eventos;
         }
     }
@@ -483,6 +528,210 @@ class OfflineManager {
             filaSincronizacao: []
         };
         console.log('[OfflineManager] Todos os dados foram limpos');
+    }
+
+    /**
+     * Marcar presença offline
+     */
+    async marcarPresencaOffline(inscricaoId, eventoId, usuarioId) {
+        try {
+            const agora = new Date().toISOString();
+            const presencaId = `offline_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+            
+            const novaPresenca = {
+                id: presencaId,
+                inscricao_id: inscricaoId,
+                evento_id: eventoId,
+                usuario_id: usuarioId,
+                data_presenca: agora,
+                sincronizado: false,
+                offline: true
+            };
+
+            // Verificar se já existe presença para esta inscrição
+            const presencaExistente = this.dados.presencas.find(p => p.inscricao_id === inscricaoId);
+            if (presencaExistente) {
+                console.warn('[OfflineManager] Presença já registrada para esta inscrição');
+                return false;
+            }
+
+            // Adicionar à lista local
+            this.dados.presencas.push(novaPresenca);
+
+            // Adicionar à fila de sincronização
+            this.adicionarFilaSincronizacao({
+                tipo: 'presenca',
+                dados: novaPresenca,
+                timestamp: agora
+            });
+
+            // Salvar no localStorage
+            this.salvarDadosNoStorage();
+
+            console.log('[OfflineManager] Presença marcada offline:', {
+                inscricaoId,
+                eventoId,
+                usuarioId,
+                presencaId
+            });
+
+            this.callbacks.onPresencaRegistrada({
+                presenca: novaPresenca,
+                offline: true
+            });
+
+            return true;
+        } catch (error) {
+            console.error('[OfflineManager] Erro ao marcar presença offline:', error);
+            return false;
+        }
+    }
+
+    /**
+     * Sincronizar todas as presenças offline
+     */
+    async sincronizarPresencas() {
+        if (!this.isOnline) {
+            console.warn('[OfflineManager] Não é possível sincronizar - sistema offline');
+            return { sucesso: false, erro: 'Sistema offline' };
+        }
+
+        const token = this.getToken();
+        if (!token) {
+            console.warn('[OfflineManager] Token não encontrado');
+            return { sucesso: false, erro: 'Token não encontrado' };
+        }
+
+        const presencasOffline = this.dados.filaSincronizacao.filter(item => 
+            item.tipo === 'presenca' && !item.dados.sincronizado
+        );
+
+        if (presencasOffline.length === 0) {
+            console.log('[OfflineManager] Nenhuma presença para sincronizar');
+            return { sucesso: true, sincronizadas: 0 };
+        }
+
+        console.log(`[OfflineManager] Sincronizando ${presencasOffline.length} presenças...`);
+        this.callbacks.onSyncStart();
+
+        let sucesso = 0;
+        let erros = 0;
+        const resultados = [];
+
+        for (const item of presencasOffline) {
+            const presenca = item.dados;
+            
+            try {
+                // Sincronizar presença
+                const response = await fetch(`${this.API_BASE}/presencas`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({
+                        inscricao_id: presenca.inscricao_id,
+                        data_presenca: presenca.data_presenca
+                    })
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    
+                    // Atualizar presença local
+                    const index = this.dados.presencas.findIndex(p => p.id === presenca.id);
+                    if (index !== -1) {
+                        this.dados.presencas[index] = {
+                            ...this.dados.presencas[index],
+                            id: data.data.id,
+                            sincronizado: true,
+                            offline: false
+                        };
+                    }
+
+                    // Gerar certificado automaticamente
+                    await this.gerarCertificadoAutomatico(presenca.inscricao_id, presenca.evento_id, presenca.usuario_id);
+
+                    resultados.push({
+                        presenca: presenca.id,
+                        sucesso: true,
+                        certificado: true
+                    });
+
+                    sucesso++;
+                } else {
+                    console.error(`[OfflineManager] Erro ao sincronizar presença ${presenca.id}:`, response.statusText);
+                    resultados.push({
+                        presenca: presenca.id,
+                        sucesso: false,
+                        erro: response.statusText
+                    });
+                    erros++;
+                }
+            } catch (error) {
+                console.error(`[OfflineManager] Erro ao sincronizar presença ${presenca.id}:`, error);
+                resultados.push({
+                    presenca: presenca.id,
+                    sucesso: false,
+                    erro: error.message
+                });
+                erros++;
+            }
+        }
+
+        // Remover itens sincronizados da fila
+        this.dados.filaSincronizacao = this.dados.filaSincronizacao.filter(item => 
+            !(item.tipo === 'presenca' && resultados.some(r => r.presenca === item.dados.id && r.sucesso))
+        );
+
+        // Salvar dados atualizados
+        this.salvarDadosNoStorage();
+
+        const resultado = {
+            sucesso: erros === 0,
+            sincronizadas: sucesso,
+            erros: erros,
+            total: presencasOffline.length,
+            detalhes: resultados
+        };
+
+        console.log('[OfflineManager] Sincronização concluída:', resultado);
+        this.callbacks.onSyncEnd(resultado);
+
+        return resultado;
+    }
+
+    /**
+     * Gerar certificado automaticamente após marcar presença
+     */
+    async gerarCertificadoAutomatico(inscricaoId, eventoId, usuarioId) {
+        try {
+            console.log(`[OfflineManager] Gerando certificado automático - Inscrição: ${inscricaoId}, Evento: ${eventoId}, Usuário: ${usuarioId}`);
+            
+            const response = await fetch(`${this.OFFLINE_API}/gerar-certificado`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    inscricao_id: inscricaoId,
+                    evento_id: eventoId,
+                    usuario_id: usuarioId
+                })
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                console.log('[OfflineManager] Certificado gerado com sucesso:', data);
+                return true;
+            } else {
+                console.error('[OfflineManager] Erro ao gerar certificado:', response.statusText);
+                return false;
+            }
+        } catch (error) {
+            console.error('[OfflineManager] Erro ao gerar certificado automático:', error);
+            return false;
+        }
     }
 }
 
