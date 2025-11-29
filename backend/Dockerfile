@@ -42,15 +42,14 @@ RUN echo 'memory_limit = 256M' >> /usr/local/etc/php/conf.d/laravel.ini && \
 # Definir diretório de trabalho
 WORKDIR /app
 
-# Copiar arquivos do projeto
-COPY . .
+# Copiar arquivos do projeto (incluindo ocultos)
+COPY --chown=www-data:www-data . .
 
-# Copiar .env.example como .env se não existir
-RUN if [ ! -f .env ]; then cp .env.example .env; fi
+# Copiar .env.example como .env
+RUN cp .env.example .env && chmod 644 .env
 
 # Definir permissões
-RUN chown -R www-data:www-data /app && \
-    chmod -R 775 /app/storage /app/bootstrap/cache
+RUN chmod -R 775 /app/storage /app/bootstrap/cache
 
 # Exposar porta
 EXPOSE 80
