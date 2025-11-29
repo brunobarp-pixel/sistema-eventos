@@ -1,14 +1,19 @@
 FROM php:8.2-apache
 
-# Instalar extensões necessárias
-RUN apt-get update && apt-get install -y \
+# Instalar dependências do sistema
+RUN apt-get update && apt-get install -y --no-install-recommends \
     libpq-dev \
     libzip-dev \
+    libssl-dev \
+    pkg-config \
     git \
     curl \
     wget \
     nano \
-    && docker-php-ext-install \
+    && rm -rf /var/lib/apt/lists/*
+
+# Instalar extensões PHP necessárias
+RUN docker-php-ext-install -j$(nproc) \
     pdo \
     pdo_mysql \
     zip \
