@@ -2,28 +2,18 @@ FROM php:8.2-apache
 
 # Instalar dependências do sistema
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    libpq-dev \
     libzip-dev \
-    libssl-dev \
-    pkg-config \
     git \
     curl \
     wget \
     nano \
     && rm -rf /var/lib/apt/lists/*
 
-# Instalar extensões PHP necessárias
+# Instalar apenas extensões que não vêm por padrão
 RUN docker-php-ext-install -j$(nproc) \
-    pdo \
     pdo_mysql \
     zip \
-    bcmath \
-    ctype \
-    fileinfo \
-    json \
-    mbstring \
-    tokenizer \
-    xml
+    bcmath
 
 # Instalar Redis extension
 RUN pecl install redis && docker-php-ext-enable redis
