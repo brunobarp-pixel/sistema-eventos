@@ -263,7 +263,19 @@ class CertificadoController extends Controller
     public function listarPorUsuario(Request $request, $usuarioId)
     {
         try {
-            $usuario = Usuario::findOrFail($usuarioId);
+            // DEBUG: Verificar se o usuário existe
+            $usuario = Usuario::find($usuarioId);
+            if (!$usuario) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Usuário não encontrado',
+                    'debug' => [
+                        'usuario_id' => $usuarioId,
+                        'total_usuarios' => Usuario::count(),
+                        'usuarios_existentes' => Usuario::pluck('id')->toArray()
+                    ]
+                ], 404);
+            }
 
             $certificados = Certificado::where('usuario_id', $usuarioId)
                 ->with('evento')
@@ -282,7 +294,7 @@ class CertificadoController extends Controller
                         'data_emissao' => $cert->data_emissao->format('Y-m-d H:i:s'),
                         'evento' => [
                             'id' => $cert->evento->id,
-                            'titulo' => $cert->evento->titulo,
+                            'titulo' => $cert->evento->nome,
                             'data_inicio' => $cert->evento->data_inicio->format('Y-m-d'),
                             'data_fim' => $cert->evento->data_fim->format('Y-m-d')
                         ],
@@ -293,12 +305,17 @@ class CertificadoController extends Controller
             ], 200);
 
         } catch (\Exception $e) {
-            $this->registrarLog($request, 'GET', '/api/certificados/usuario/' . $usuarioId, 404);
+            $this->registrarLog($request, 'GET', '/api/certificados/usuario/' . $usuarioId, 500);
             
             return response()->json([
                 'success' => false,
-                'message' => 'Usuário não encontrado'
-            ], 404);
+                'message' => 'Erro interno',
+                'debug' => [
+                    'error' => $e->getMessage(),
+                    'line' => $e->getLine(),
+                    'file' => basename($e->getFile())
+                ]
+            ], 500);
         }
     }
 
