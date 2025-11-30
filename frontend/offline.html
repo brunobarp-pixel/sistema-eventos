@@ -493,14 +493,18 @@
             
             try {
                 // Registrar presença usando o novo método offline
-                const sucesso = await offlineManager.marcarPresencaOffline(
+                const resultado = await offlineManager.marcarPresencaOffline(
                     inscricaoSelecionadaId, 
                     insc.evento_id, 
                     insc.usuario_id
                 );
                 
-                if (sucesso) {
-                    mostrarAlerta('✓ Presença registrada offline! Sincronize quando conectado.', 'success');
+                if (resultado.success) {
+                    const mensagem = resultado.servidor ? 
+                        '✅ Check-in realizado! Email enviado.' : 
+                        '✓ Presença registrada offline! Sincronize quando conectado.';
+                    
+                    mostrarAlerta(mensagem, 'success');
                     document.getElementById('buscaParticipante').value = '';
                     document.getElementById('resultadosBusca').style.display = 'none';
                     document.getElementById('inscricaoSelecionada').style.display = 'none';
