@@ -6,7 +6,7 @@ import mysql.connector
 from datetime import datetime, timedelta
 from flask import Flask, request, jsonify, send_file
 from flask_cors import CORS
-from email_service import enviar_email, enviar_email_inscricao, enviar_email_certificado        
+from email_service import enviar_email, enviar_email_inscricao, enviar_email_certificado, enviar_email_checkin, enviar_email_cancelamento        
 from gerador_pdf import gerar_certificado_pdf
 import laravel_auth_service
 
