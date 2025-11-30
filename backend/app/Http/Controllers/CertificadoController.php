@@ -152,7 +152,8 @@ class CertificadoController extends Controller
                 'inscricao_id' => $inscricao->id,
                 'codigo_validacao' => $codigoValidacao,
                 'arquivo_pdf' => null,
-                'enviado_email' => false
+                'enviado_email' => false,
+                'data_emissao' => now()
             ]);
 
             // Carregar dados
