@@ -102,7 +102,7 @@ class CertificadoController extends Controller
             // Verificar se o usuário participou do evento (tem inscrição e presença)
             $inscricao = Inscricao::where('usuario_id', $request->usuario_id)
                 ->where('evento_id', $request->evento_id)
-                ->where('status', 'ativa')
+                ->whereIn('status', ['ativa', 'confirmada'])
                 ->first();
 
             if (!$inscricao) {
