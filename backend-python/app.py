@@ -461,24 +461,24 @@ def presencas():
             conn.commit()
             presenca_id = cursor.lastrowid
             
-            # Gerar certificado automaticamente
-            try:
-                # Buscar dados para o certificado
-                cursor.execute("""
-                    SELECT u.nome, e.nome as titulo, e.data_inicio, e.data_fim
-                    FROM inscricoes i
-                    JOIN usuarios u ON i.usuario_id = u.id
-                    JOIN eventos e ON i.evento_id = e.id
-                    WHERE i.id = %s
-                """, (inscricao_id,))
+            # Buscar dados do usuário e evento para certificado e email
+            cursor.execute("""
+                SELECT u.nome, u.email, e.nome as titulo, e.data_inicio, e.data_fim
+                FROM inscricoes i
+                JOIN usuarios u ON i.usuario_id = u.id
+                JOIN eventos e ON i.evento_id = e.id
+                WHERE i.id = %s
+            """, (inscricao_id,))
+            
+            dados = cursor.fetchone()
+            if dados:
+                nome, email, evento_titulo, data_inicio, data_fim = dados
                 
-                cert_data = cursor.fetchone()
-                if cert_data:
-                    nome, evento, data_inicio, data_fim = cert_data
-                    
+                # Gerar certificado automaticamente
+                try:
                     certificado_path = gerar_certificado_pdf({
                         'nome_participante': nome,
-                        'evento_titulo': evento,
+                        'evento_titulo': evento_titulo,
                         'data_inicio': data_inicio,
                         'data_fim': data_fim,
                         'codigo_validacao': f'CERT_{inscricao_id}_{int(time.time())}',
@@ -494,8 +494,19 @@ def presencas():
                     
                     print(f"✅ Certificado gerado: {certificado_path}")
                     
-            except Exception as e:
-                print(f"⚠️ Erro ao gerar certificado: {str(e)}")
+                except Exception as e:
+                    print(f"⚠️ Erro ao gerar certificado: {str(e)}")
+                
+                # Enviar email de check-in
+                try:
+                    enviar_email_checkin(
+                        {"nome": nome, "email": email},
+                        {"nome": evento_titulo}
+                    )
+                    print(f"✅ Email de check-in enviado para {email}")
+                    
+                except Exception as e:
+                    print(f"⚠️ Erro ao enviar email de check-in: {str(e)}")
             
             return jsonify({
                 "success": True,
