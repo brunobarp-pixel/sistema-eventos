@@ -11,23 +11,33 @@ class Presenca extends Model
     
     protected $fillable = [
         'inscricao_id',
-        'data_presenca',
-        'sincronizado'
+        'evento_id',
+        'usuario_id',
+        'data_checkin',
+        'data_checkout',
+        'tipo_marcacao',
+        'observacoes'
     ];
 
     protected $casts = [
-        'data_presenca' => 'datetime',
-        'sincronizado' => 'boolean'
+        'data_checkin' => 'datetime',
+        'data_checkout' => 'datetime'
     ];
 
-    public $timestamps = false;
-    
-    // Adicionar created_at
-    const CREATED_AT = 'created_at';
-    const UPDATED_AT = null;
+    public $timestamps = true;
     
     public function inscricao(): BelongsTo
     {
         return $this->belongsTo(Inscricao::class, 'inscricao_id');
+    }
+
+    public function evento(): BelongsTo
+    {
+        return $this->belongsTo(Evento::class, 'evento_id');
+    }
+
+    public function usuario(): BelongsTo
+    {
+        return $this->belongsTo(Usuario::class, 'usuario_id');
     }
 }

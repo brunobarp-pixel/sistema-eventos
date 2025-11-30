@@ -103,7 +103,6 @@ class CertificadoController extends Controller
             $inscricao = Inscricao::where('usuario_id', $request->usuario_id)
                 ->where('evento_id', $request->evento_id)
                 ->where('status', 'ativa')
-                ->with('presenca')
                 ->first();
 
             if (!$inscricao) {
@@ -113,7 +112,13 @@ class CertificadoController extends Controller
                 ], 400);
             }
 
-            if (!$inscricao->presenca) {
+            // Verificar se existe presença registrada para esta inscrição
+            $presenca = \App\Models\Presenca::where('inscricao_id', $inscricao->id)
+                ->where('evento_id', $request->evento_id)
+                ->where('usuario_id', $request->usuario_id)
+                ->first();
+
+            if (!$presenca) {
                 return response()->json([
                     'success' => false,
                     'message' => 'É necessário ter presença registrada para emitir o certificado'
