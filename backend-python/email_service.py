@@ -114,7 +114,7 @@ def salvar_email_local(destinatario, assunto, corpo_html):
 
 def enviar_email_inscricao(usuario, evento):
     """Envia e-mail de confirmação de inscrição"""
-    assunto = f"Inscrição Confirmada - {evento['titulo']}"
+    assunto = f"Inscrição Confirmada - {evento['nome']}"
     
     corpo_html = f"""
     <!DOCTYPE html>
@@ -142,7 +142,7 @@ def enviar_email_inscricao(usuario, evento):
                 <p>Sua inscrição foi confirmada com sucesso no evento:</p>
                 
                 <div class="evento-info">
-                    <h2>{evento['titulo']}</h2>
+                    <h2>{evento['nome']}</h2>
                     <p><strong>📅 Data:</strong> {evento.get('data_inicio', 'A definir')}</p>
                     <p><strong>📍 Local:</strong> {evento.get('local', 'A definir')}</p>
                 </div>
@@ -167,7 +167,7 @@ def enviar_email_inscricao(usuario, evento):
 
 def enviar_email_certificado(usuario, evento, certificado):
     """Envia e-mail com certificado emitido E PDF anexado"""
-    assunto = f"🎓 Certificado Emitido - {evento['titulo']}"
+    assunto = f"🎓 Certificado Emitido - {evento['nome']}"
     
     corpo_html = f"""
     <!DOCTYPE html>
@@ -201,7 +201,7 @@ def enviar_email_certificado(usuario, evento, certificado):
                 <p>Parabéns! Seu certificado de participação foi emitido com sucesso.</p>
                 
                 <div class="cert-box">
-                    <h2>{evento['titulo']}</h2>
+                    <h2>{evento['nome']}</h2>
                     <p><strong>📅 Período:</strong> {evento['data_inicio']} a {evento['data_fim']}</p>
                     <p><strong>📍 Local:</strong> {evento['local']}</p>
                     <p><strong>📅 Data de Emissão:</strong> {certificado['data_emissao']}</p>
@@ -243,7 +243,7 @@ def enviar_email_certificado(usuario, evento, certificado):
         
         dados_pdf = {
             'nome_participante': usuario['nome'],
-            'evento_titulo': evento['titulo'],
+            'evento_titulo': evento['nome'],
             'evento_descricao': evento.get('descricao', ''),
             'data_inicio': evento['data_inicio'].split()[0] if ' ' in evento['data_inicio'] else evento['data_inicio'],
             'data_fim': evento['data_fim'].split()[0] if ' ' in evento['data_fim'] else evento['data_fim'],
@@ -275,7 +275,7 @@ def enviar_email_certificado(usuario, evento, certificado):
         if os.path.exists(pdf_path):
             with open(pdf_path, 'rb') as f:
                 pdf_anexo = MIMEApplication(f.read(), _subtype='pdf')
-                nome_arquivo = f"Certificado_{evento['titulo'].replace(' ', '_')}.pdf"
+                nome_arquivo = f"Certificado_{evento['nome'].replace(' ', '_')}.pdf"
                 pdf_anexo.add_header('Content-Disposition', 'attachment', filename=nome_arquivo)
                 mensagem.attach(pdf_anexo)
         
@@ -296,7 +296,7 @@ def enviar_email_certificado(usuario, evento, certificado):
 
 def enviar_email_cancelamento(usuario, evento):
     """Envia e-mail de confirmação de cancelamento"""
-    assunto = f"Inscrição Cancelada - {evento['titulo']}"
+    assunto = f"Inscrição Cancelada - {evento['nome']}"
     
     corpo_html = f"""
     <!DOCTYPE html>
@@ -320,7 +320,7 @@ def enviar_email_cancelamento(usuario, evento):
             <div class="content">
                 <p>Olá, <strong>{usuario['nome']}</strong>!</p>
                 
-                <p>Sua inscrição no evento <strong>{evento['titulo']}</strong> foi cancelada.</p>
+                <p>Sua inscrição no evento <strong>{evento['nome']}</strong> foi cancelada.</p>
                 
                 <p><strong>Dados do evento:</strong></p>
                 <ul>
@@ -346,7 +346,7 @@ def enviar_email_cancelamento(usuario, evento):
 
 def enviar_email_checkin(usuario, evento):
     """Envia e-mail de confirmação de presença (check-in)"""
-    assunto = f"Presença Confirmada - {evento['titulo']}"
+    assunto = f"Presença Confirmada - {evento['nome']}"
     
     corpo_html = f"""
     <!DOCTYPE html>
@@ -375,7 +375,7 @@ def enviar_email_checkin(usuario, evento):
                 <p>Sua presença foi registrada com sucesso no evento:</p>
                 
                 <div class="checkin-info">
-                    <h2>{evento['titulo']}</h2>
+                    <h2>{evento['nome']}</h2>
                     <p><strong>📅 Data:</strong> {evento.get('data_inicio', 'A definir')}</p>
                     <p><strong>📍 Local:</strong> {evento.get('local', 'A definir')}</p>
                     <p><strong>⏰ Check-in realizado em:</strong> {datetime.now().strftime('%d/%m/%Y às %H:%M')}</p>
