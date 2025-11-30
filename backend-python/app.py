@@ -282,7 +282,7 @@ def inscricoes():
                 FROM inscricoes i
                 JOIN usuarios u ON i.usuario_id = u.id  
                 JOIN eventos e ON i.evento_id = e.id
-                ORDER BY i.criado_em DESC
+                ORDER BY i.created_at DESC
             """)
             inscricoes = cursor.fetchall()
             return jsonify({
@@ -371,7 +371,7 @@ def presencas():
                 JOIN inscricoes i ON p.inscricao_id = i.id
                 JOIN usuarios u ON i.usuario_id = u.id
                 JOIN eventos e ON i.evento_id = e.id
-                ORDER BY p.criado_em DESC
+                ORDER BY p.created_at DESC
             """)
             presencas = cursor.fetchall()
             return jsonify({
