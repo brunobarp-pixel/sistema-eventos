@@ -46,9 +46,6 @@ WORKDIR /app
 # Copiar arquivos do projeto (incluindo ocultos)
 COPY --chown=www-data:www-data . .
 
-# Copiar .env.example como .env
-RUN cp .env.example .env && chmod 644 .env
-
 # Definir permissões
 RUN chmod -R 775 /app/storage /app/bootstrap/cache
 

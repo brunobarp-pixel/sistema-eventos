@@ -11,11 +11,14 @@ echo "Banco de dados disponível!"
 echo "Executando composer install..."
 composer install --no-dev --optimize-autoloader
 
+echo "Limpando cache..."
+php artisan config:clear
+php artisan cache:clear
+php artisan view:clear
+php artisan route:clear
+
 echo "Executando migrações..."
 php artisan migrate --force
-
-echo "Gerando chave da aplicação..."
-php artisan key:generate --force
 
 echo "Criando link para storage..."
 rm -f /app/public/storage
