@@ -9,7 +9,7 @@ use Illuminate\Support\Facades\Log;
 
 class EmailService
 {
-    private $pythonApiUrl = 'http://127.0.0.1:5000';
+    private $pythonApiUrl = 'http://sistema-eventos-python:5000';
 
     /**
      * Envia e-mail de inscrição
@@ -23,8 +23,8 @@ class EmailService
                     'email' => $usuario->email
                 ],
                 'evento' => [
-                    'titulo' => $evento->titulo,
-                    'data_inicio' => $evento->data_inicio->format('d/m/Y H:i'),
+                    'titulo' => $evento->nome,
+                    'data_inicio' => $evento->data_inicio ? $evento->data_inicio->format('d/m/Y H:i') : null,
                     'local' => $evento->local
                 ]
             ]);
@@ -48,8 +48,8 @@ class EmailService
                     'email' => $usuario->email
                 ],
                 'evento' => [
-                    'titulo' => $evento->titulo,
-                    'data_inicio' => $evento->data_inicio->format('d/m/Y H:i'),
+                    'titulo' => $evento->nome,
+                    'data_inicio' => $evento->data_inicio ? $evento->data_inicio->format('d/m/Y H:i') : null,
                     'local' => $evento->local
                 ]
             ]);
@@ -73,8 +73,8 @@ class EmailService
                     'email' => $usuario->email
                 ],
                 'evento' => [
-                    'titulo' => $evento->titulo,
-                    'data_inicio' => $evento->data_inicio->format('d/m/Y H:i'),
+                    'titulo' => $evento->nome,
+                    'data_inicio' => $evento->data_inicio ? $evento->data_inicio->format('d/m/Y H:i') : null,
                     'local' => $evento->local
                 ]
             ]);
@@ -95,9 +95,9 @@ class EmailService
                     'email' => $usuario->email
                 ],
                 'evento' => [
-                    'titulo' => $evento->titulo,
-                    'data_inicio' => $evento->data_inicio->format('d/m/Y'),
-                    'data_fim' => $evento->data_fim->format('d/m/Y'),
+                    'titulo' => $evento->nome,
+                    'data_inicio' => $evento->data_inicio ? $evento->data_inicio->format('d/m/Y') : null,
+                    'data_fim' => $evento->data_fim ? $evento->data_fim->format('d/m/Y') : null,
                     'local' => $evento->local
                 ],
                 'certificado' => $certificado

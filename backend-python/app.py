@@ -520,21 +520,74 @@ def enviar_email_inscricao():
     try:
         enviar_email_inscricao(
             {
-                "nome": data["nome"],
-                "email": data["email"]
+                "nome": data["usuario"]["nome"],
+                "email": data["usuario"]["email"]
             },
-            data["evento"]
+            data["evento"]["titulo"]
         )
         
         return jsonify({
             "success": True,
-            "message": "Email enviado com sucesso"
+            "message": "Email de inscrição enviado com sucesso"
         })
         
     except Exception as e:
         return jsonify({
             "success": False,
-            "message": f"Erro ao enviar email: {str(e)}"
+            "message": f"Erro ao enviar email de inscrição: {str(e)}"
+        }), 500
+
+
+@app.route("/enviar-email-checkin", methods=["POST"])
+def enviar_email_checkin():
+    """Enviar email de confirmação de check-in/presença"""
+    data = request.get_json()
+    
+    try:
+        # Usar a mesma função de email de inscrição para confirmação de presença
+        enviar_email_inscricao(
+            {
+                "nome": data["usuario"]["nome"],
+                "email": data["usuario"]["email"]
+            },
+            f"Presença confirmada no evento: {data['evento']['titulo']}"
+        )
+        
+        return jsonify({
+            "success": True,
+            "message": "Email de confirmação de presença enviado com sucesso"
+        })
+        
+    except Exception as e:
+        return jsonify({
+            "success": False,
+            "message": f"Erro ao enviar email de check-in: {str(e)}"
+        }), 500
+
+
+@app.route("/enviar-email-cancelamento", methods=["POST"])
+def enviar_email_cancelamento():
+    """Enviar email de cancelamento de inscrição"""
+    data = request.get_json()
+    
+    try:
+        enviar_email_inscricao(
+            {
+                "nome": data["usuario"]["nome"],
+                "email": data["usuario"]["email"]
+            },
+            f"Inscrição cancelada no evento: {data['evento']['titulo']}"
+        )
+        
+        return jsonify({
+            "success": True,
+            "message": "Email de cancelamento enviado com sucesso"
+        })
+        
+    except Exception as e:
+        return jsonify({
+            "success": False,
+            "message": f"Erro ao enviar email de cancelamento: {str(e)}"
         }), 500
 
 

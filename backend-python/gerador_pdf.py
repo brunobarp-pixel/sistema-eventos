@@ -108,8 +108,15 @@ def gerar_certificado_pdf(dados_certificado, output_path='certificados_pdf'):
     y_position = height - 13.5*cm
     
     # Período
-    data_inicio_fmt = datetime.strptime(dados_certificado['data_inicio'], '%Y-%m-%d').strftime('%d/%m/%Y')
-    data_fim_fmt = datetime.strptime(dados_certificado['data_fim'], '%Y-%m-%d').strftime('%d/%m/%Y')
+    if isinstance(dados_certificado['data_inicio'], str):
+        data_inicio_fmt = datetime.strptime(dados_certificado['data_inicio'], '%Y-%m-%d').strftime('%d/%m/%Y')
+    else:
+        data_inicio_fmt = dados_certificado['data_inicio'].strftime('%d/%m/%Y')
+        
+    if isinstance(dados_certificado['data_fim'], str):
+        data_fim_fmt = datetime.strptime(dados_certificado['data_fim'], '%Y-%m-%d').strftime('%d/%m/%Y')
+    else:
+        data_fim_fmt = dados_certificado['data_fim'].strftime('%d/%m/%Y')
     
     texto_periodo = f"Realizado no período de {data_inicio_fmt} a {data_fim_fmt}"
     pdf.drawCentredString(width/2, y_position, texto_periodo)
@@ -126,7 +133,10 @@ def gerar_certificado_pdf(dados_certificado, output_path='certificados_pdf'):
     # Data de emissão
     pdf.setFont("Helvetica", 10)
     pdf.setFillColor(HexColor('#666666'))
-    data_emissao_fmt = datetime.strptime(dados_certificado['data_emissao'], '%Y-%m-%d %H:%M:%S').strftime('%d/%m/%Y')
+    if isinstance(dados_certificado['data_emissao'], str):
+        data_emissao_fmt = datetime.strptime(dados_certificado['data_emissao'], '%Y-%m-%d %H:%M:%S').strftime('%d/%m/%Y')
+    else:
+        data_emissao_fmt = dados_certificado['data_emissao'].strftime('%d/%m/%Y')
     pdf.drawCentredString(width/2, 3*cm, f"Emitido em: {data_emissao_fmt}")
     
     # Código de validação
