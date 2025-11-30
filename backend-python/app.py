@@ -411,11 +411,25 @@ def presencas():
                 }), 400
                 
             inscricao_id = data.get("inscricao_id")
+            evento_id = data.get("evento_id")
+            usuario_id = data.get("usuario_id")
             
             if not inscricao_id:
                 return jsonify({
                     "success": False,
                     "message": "inscricao_id é obrigatório"
+                }), 400
+                
+            if not evento_id:
+                return jsonify({
+                    "success": False,
+                    "message": "evento_id é obrigatório"
+                }), 400
+                
+            if not usuario_id:
+                return jsonify({
+                    "success": False,
+                    "message": "usuario_id é obrigatório"
                 }), 400
                 
             cursor = conn.cursor()
@@ -440,9 +454,9 @@ def presencas():
                 
             # Registrar presença
             cursor.execute("""
-                INSERT INTO presencas (inscricao_id)
-                VALUES (%s)
-            """, (inscricao_id,))
+                INSERT INTO presencas (inscricao_id, evento_id, usuario_id, data_checkin)
+                VALUES (%s, %s, %s, NOW())
+            """, (inscricao_id, evento_id, usuario_id))
             
             conn.commit()
             presenca_id = cursor.lastrowid
