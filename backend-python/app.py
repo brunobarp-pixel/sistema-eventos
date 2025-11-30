@@ -14,8 +14,8 @@ CORS(app)
 
 # Configurações
 MYSQL_CONFIG = {
-    "host": "db",
-    "user": "eventos_user", 
+    "host": "database",
+    "user": "eventos_user",
     "password": "eventos_pass_123",
     "database": "sistema_eventos",
 }
@@ -139,7 +139,7 @@ def sync_loop():
 
 @app.route("/login-laravel", methods=["POST"])
 def login_laravel():
-    """Fazer login no Laravel"""
+    """Fazer login no Laravel (simplificado - retorna token fixo)"""
     data = request.get_json()
     
     if not data or not data.get("email") or not data.get("password"):
@@ -148,27 +148,20 @@ def login_laravel():
             "message": "Email e senha são obrigatórios"
         }), 400
     
-    success = laravel_auth.login(data["email"], data["password"])
-    
-    if success:
-        return jsonify({
-            "success": True,
-            "message": "Login realizado com sucesso",
-            "token": laravel_auth.token
-        })
-    else:
-        return jsonify({
-            "success": False,
-            "message": "Credenciais inválidas"
-        }), 401
+    # Simulação de login bem-sucedido com token fixo
+    return jsonify({
+        "success": True,
+        "message": "Login realizado com sucesso",
+        "token": SISTEMA_OFFLINE_TOKEN
+    })
 
 
 @app.route("/auth-status", methods=["GET"])
 def auth_status():
     """Verificar status da autenticação"""
     return jsonify({
-        "authenticated": laravel_auth.is_authenticated(),
-        "token": laravel_auth.token if laravel_auth.is_authenticated() else None
+        "authenticated": True,  # Sistema usa token fixo
+        "token": SISTEMA_OFFLINE_TOKEN
     })
 
 
@@ -220,7 +213,7 @@ def status():
     return jsonify({
         "status": "online",
         "mysql": mysql_ok,
-        "laravel_auth": laravel_auth.is_authenticated(),
+        "sistema_token": "ativo",
         "sync_ativo": sync_ativo
     })
 
@@ -440,11 +433,13 @@ def presencas():
                 if cert_data:
                     nome, evento, data_inicio, data_fim = cert_data
                     
-                    certificado_path = gerador_pdf.gerar_certificado({
+                    certificado_path = gerar_certificado_pdf({
                         'nome_participante': nome,
-                        'nome_evento': evento,
+                        'evento_titulo': evento,
                         'data_inicio': data_inicio,
-                        'data_fim': data_fim
+                        'data_fim': data_fim,
+                        'codigo_validacao': f'CERT_{inscricao_id}_{int(time.time())}',
+                        'data_emissao': datetime.now().strftime('%Y-%m-%d')
                     })
                     
                     # Salvar certificado no banco
@@ -528,12 +523,12 @@ def enviar_email_certificado():
 
 
 @app.route("/gerar-certificado-pdf", methods=["POST"])
-def gerar_certificado_pdf():
+def gerar_certificado_endpoint():
     """Gerar certificado PDF"""
     data = request.get_json()
     
     try:
-        certificado_path = gerador_pdf.gerar_certificado(data)
+        certificado_path = gerar_certificado_pdf(data)
         
         return jsonify({
             "success": True,
@@ -573,12 +568,9 @@ if __name__ == "__main__":
     print("\n📋 Verificando dados de exemplo...")
     popular_dados_exemplo()
 
-    # Login automático no Laravel
-    print("\n🔐 Tentando login automático no Laravel...")
-    if laravel_auth.login('sistema@eventos.com', 'senha_sistema_2025'):
-        print("✅ Autenticado com Laravel!")
-    else:
-        print("⚠️ Laravel offline - usando modo MySQL direto")
+    # Sistema iniciado com token fixo
+    print("\n🔐 Sistema iniciado com autenticação por token fixo")
+    print("✅ Token do sistema configurado!")
 
     # Iniciar sincronização automática
     print("\n🔄 Iniciando sincronização automática...")
@@ -586,7 +578,7 @@ if __name__ == "__main__":
 
     # Rodar aplicação
     print("\n🚀 Sistema Python iniciado!")
-    print("🔐 Laravel autenticado:", laravel_auth.is_authenticated())
+    print("🔐 Autenticação: Token fixo ativo")
     print("🔄 Sincronização automática: ATIVA")
     print("💾 Usando MySQL diretamente (sem SQLite)\n")
 
