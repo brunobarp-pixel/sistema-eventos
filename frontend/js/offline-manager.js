@@ -5,8 +5,8 @@
  */
 class OfflineManager {
     constructor(config = {}) {
-        this.API_BASE = config.apiBase || 'http://localhost:8000/api';
-        this.OFFLINE_API = config.offlineApi || 'http://localhost:5000';
+        this.API_BASE = config.apiBase || 'http://177.44.248.118:8000/api';
+        this.OFFLINE_API = config.offlineApi || 'http://177.44.248.118:5000';
         this.timeout = config.timeout || 5000;
         
         // Callbacks
@@ -383,7 +383,6 @@ class OfflineManager {
         
         try {
             // Tentar registrar no servidor primeiro
-
             console.log(this.OFFLINE_API);  
             const response = await fetch(`${this.OFFLINE_API}/presencas`, {
                 method: 'POST',
