@@ -513,7 +513,7 @@ def presencas():
 
 
 @app.route("/enviar-email-inscricao", methods=["POST"])
-def enviar_email_inscricao():
+def endpoint_enviar_email_inscricao():
     """Enviar email de confirmação de inscrição"""
     data = request.get_json()
     
@@ -523,7 +523,7 @@ def enviar_email_inscricao():
                 "nome": data["usuario"]["nome"],
                 "email": data["usuario"]["email"]
             },
-            data["evento"]["titulo"]
+            data["evento"]
         )
         
         return jsonify({
@@ -539,19 +539,24 @@ def enviar_email_inscricao():
 
 
 @app.route("/enviar-email-checkin", methods=["POST"])
-def enviar_email_checkin():
+def endpoint_enviar_email_checkin():
     """Enviar email de confirmação de check-in/presença"""
     data = request.get_json()
     
     try:
-        # Usar a mesma função de email de inscrição para confirmação de presença
-        enviar_email_inscricao(
-            {
-                "nome": data["usuario"]["nome"],
-                "email": data["usuario"]["email"]
-            },
-            f"Presença confirmada no evento: {data['evento']['titulo']}"
-        )
+        # Criar email personalizado para check-in
+        usuario = {
+            "nome": data["usuario"]["nome"],
+            "email": data["usuario"]["email"]
+        }
+        
+        evento_checkin = {
+            "titulo": f"Presença confirmada - {data['evento']['titulo']}",
+            "data_inicio": data["evento"].get("data_inicio"),
+            "local": data["evento"].get("local")
+        }
+        
+        enviar_email_inscricao(usuario, evento_checkin)
         
         return jsonify({
             "success": True,
@@ -566,18 +571,23 @@ def enviar_email_checkin():
 
 
 @app.route("/enviar-email-cancelamento", methods=["POST"])
-def enviar_email_cancelamento():
+def endpoint_enviar_email_cancelamento():
     """Enviar email de cancelamento de inscrição"""
     data = request.get_json()
     
     try:
-        enviar_email_inscricao(
-            {
-                "nome": data["usuario"]["nome"],
-                "email": data["usuario"]["email"]
-            },
-            f"Inscrição cancelada no evento: {data['evento']['titulo']}"
-        )
+        usuario = {
+            "nome": data["usuario"]["nome"],
+            "email": data["usuario"]["email"]
+        }
+        
+        evento_cancelamento = {
+            "titulo": f"Inscrição cancelada - {data['evento']['titulo']}",
+            "data_inicio": data["evento"].get("data_inicio"),
+            "local": data["evento"].get("local")
+        }
+        
+        enviar_email_inscricao(usuario, evento_cancelamento)
         
         return jsonify({
             "success": True,
