@@ -408,9 +408,18 @@ const getHeaders = () => {
             }
 
             try {
+                const token = localStorage.getItem('token');
+                if (!token) {
+                    mostrarAlerta('Você precisa estar logado para emitir certificados!', 'warning');
+                    return;
+                }
+
                 const response = await fetch(`${API_URL}/certificados`, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { 
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json' 
+                    },
                     body: JSON.stringify({
                         usuario_id: usuario.id,
                         evento_id: eventoId

@@ -175,15 +175,15 @@ class CertificadoController extends Controller
                 'data' => [
                     'id' => $certificado->id,
                     'codigo_validacao' => $certificado->codigo_validacao,
-                    'data_emissao' => $certificado->data_emissao->format('Y-m-d H:i:s'),
+                    'data_emissao' => $certificado->data_emissao ? $certificado->data_emissao->format('Y-m-d H:i:s') : null,
                     'usuario' => [
                         'nome' => $certificado->usuario->nome,
                         'email' => $certificado->usuario->email
                     ],
                     'evento' => [
                         'titulo' => $certificado->evento->titulo,
-                        'data_inicio' => $certificado->evento->data_inicio->format('Y-m-d H:i:s'),
-                        'data_fim' => $certificado->evento->data_fim->format('Y-m-d H:i:s')
+                        'data_inicio' => $certificado->evento->data_inicio ? $certificado->evento->data_inicio->format('Y-m-d H:i:s') : null,
+                        'data_fim' => $certificado->evento->data_fim ? $certificado->evento->data_fim->format('Y-m-d H:i:s') : null
                     ],
                     'url_validacao' => url('/api/certificados/' . $certificado->codigo_validacao),
                     'url_pdf' => url('/api/certificados/' . $certificado->id . '/pdf')
@@ -230,7 +230,7 @@ class CertificadoController extends Controller
                 'valido' => true,
                 'data' => [
                     'codigo_validacao' => $certificado->codigo_validacao,
-                    'data_emissao' => $certificado->data_emissao->format('d/m/Y H:i:s'),
+                    'data_emissao' => $certificado->data_emissao ? $certificado->data_emissao->format('d/m/Y H:i:s') : null,
                     'participante' => [
                         'nome' => $certificado->usuario->nome,
                         'cpf' => $certificado->usuario->cpf ? substr($certificado->usuario->cpf, 0, 3) . '.***.***.***' : null
@@ -238,8 +238,8 @@ class CertificadoController extends Controller
                     'evento' => [
                         'titulo' => $certificado->evento->titulo,
                         'descricao' => $certificado->evento->descricao,
-                        'data_inicio' => $certificado->evento->data_inicio->format('d/m/Y'),
-                        'data_fim' => $certificado->evento->data_fim->format('d/m/Y'),
+                        'data_inicio' => $certificado->evento->data_inicio ? $certificado->evento->data_inicio->format('d/m/Y') : null,
+                        'data_fim' => $certificado->evento->data_fim ? $certificado->evento->data_fim->format('d/m/Y') : null,
                         'local' => $certificado->evento->local
                     ]
                 ]
