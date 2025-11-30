@@ -380,7 +380,20 @@ def presencas():
             })
             
         elif request.method == "POST":
-            data = request.get_json()
+            print(f"[DEBUG] Recebendo POST para /presencas")
+            print(f"[DEBUG] Content-Type: {request.content_type}")
+            print(f"[DEBUG] Headers: {dict(request.headers)}")
+            
+            try:
+                data = request.get_json(force=True)  # force=True para ignorar Content-Type
+                print(f"[DEBUG] Data recebido: {data}")
+            except Exception as e:
+                print(f"[DEBUG] Erro ao fazer parse do JSON: {e}")
+                return jsonify({
+                    "success": False,
+                    "message": f"Erro ao fazer parse do JSON: {str(e)}"
+                }), 400
+                
             inscricao_id = data.get("inscricao_id")
             
             if not inscricao_id:
