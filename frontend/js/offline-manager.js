@@ -383,6 +383,8 @@ class OfflineManager {
         
         try {
             // Tentar registrar no servidor primeiro
+
+            console.log(this.OFFLINE_API);  
             const response = await fetch(`${this.OFFLINE_API}/presencas`, {
                 method: 'POST',
                 headers: {
