@@ -5,7 +5,7 @@ import mysql.connector
 from datetime import datetime, timedelta
 from flask import Flask, request, jsonify, send_file
 from flask_cors import CORS
-from email_service import EmailService
+from email_service import enviar_email, enviar_email_inscricao, enviar_email_certificado
 from gerador_pdf import GeradorPDF
 from laravel_auth_service import LaravelAuthService
 
@@ -24,7 +24,6 @@ MYSQL_CONFIG = {
 SISTEMA_OFFLINE_TOKEN = "sistema_offline_token_2025_abcdef123456"
 
 # Instâncias globais
-email_service = EmailService()
 gerador_pdf = GeradorPDF()
 laravel_auth = LaravelAuthService()
 sync_ativo = False
@@ -483,9 +482,11 @@ def enviar_email_inscricao():
     data = request.get_json()
     
     try:
-        email_service.enviar_email_inscricao(
-            data["email"],
-            data["nome"],
+        enviar_email_inscricao(
+            {
+                "nome": data["nome"],
+                "email": data["email"]
+            },
             data["evento"]
         )
         
@@ -507,9 +508,11 @@ def enviar_email_certificado():
     data = request.get_json()
     
     try:
-        email_service.enviar_email_certificado(
-            data["email"],
-            data["nome"],
+        enviar_email_certificado(
+            {
+                "nome": data["nome"],
+                "email": data["email"]
+            },
             data["evento"],
             data.get("certificado_path")
         )

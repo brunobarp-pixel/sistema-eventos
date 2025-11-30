@@ -113,12 +113,11 @@ services:
     restart: always
     ports:
       - "8080:80"
-      - "8443:443"
+      - "3000:80"
     volumes:
       - ./frontend:/app
       - ./frontend/nginx.conf:/etc/nginx/nginx.conf
       - frontend_cache:/var/cache/nginx
-      - ./certs:/etc/nginx/certs:ro
     depends_on:
       - backend-laravel
       - backend-python
