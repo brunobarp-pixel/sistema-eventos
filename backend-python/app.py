@@ -20,6 +20,9 @@ MYSQL_CONFIG = {
     "database": "sistema_eventos",
 }
 
+# Token fixo para o sistema offline
+SISTEMA_OFFLINE_TOKEN = "sistema_offline_token_2025_abcdef123456"
+
 # Instâncias globais
 email_service = EmailService()
 gerador_pdf = GeradorPDF()
@@ -66,11 +69,12 @@ def popular_dados_exemplo():
                     VALUES (%s, %s, %s, %s, %s, %s, %s)
                 """, evento)
             
-            # Adicionar usuário de exemplo
+            # Adicionar usuário do sistema permanente
             cursor.execute("""
                 INSERT IGNORE INTO usuarios 
                 (nome, email, cpf, telefone, senha)
                 VALUES 
+                ('Sistema Offline', 'sistema.offline@eventos.com', '00000000000', '(00)00000-0000', 'sistema_offline_2025'),
                 ('Usuário Teste', 'teste@exemplo.com', '12345678901', '(51)99999-9999', 'senha123')
             """)
             
@@ -81,6 +85,19 @@ def popular_dados_exemplo():
         
     except Exception as e:
         print(f"❌ Erro ao popular dados de exemplo: {str(e)}")
+
+
+def validar_token_sistema(request):
+    """Validar se o request tem o token do sistema válido"""
+    auth_header = request.headers.get('Authorization')
+    if not auth_header:
+        return False
+        
+    try:
+        token = auth_header.replace('Bearer ', '')
+        return token == SISTEMA_OFFLINE_TOKEN
+    except:
+        return False
 
 
 def get_mysql_connection():
@@ -156,6 +173,46 @@ def auth_status():
         "authenticated": laravel_auth.is_authenticated(),
         "token": laravel_auth.token if laravel_auth.is_authenticated() else None
     })
+
+
+@app.route("/sistema-token", methods=["GET"])
+def sistema_token():
+    """Obter token fixo do sistema para autenticação offline"""
+    return jsonify({
+        "success": True,
+        "token": SISTEMA_OFFLINE_TOKEN,
+        "usuario": {
+            "id": 1,
+            "nome": "Sistema Offline",
+            "email": "sistema.offline@eventos.com",
+            "tipo": "sistema"
+        },
+        "message": "Token do sistema obtido com sucesso"
+    })
+
+
+@app.route("/validar-token", methods=["POST"])
+def validar_token():
+    """Validar se o token é válido"""
+    data = request.get_json()
+    token = data.get('token') if data else None
+    
+    if token == SISTEMA_OFFLINE_TOKEN:
+        return jsonify({
+            "success": True,
+            "valid": True,
+            "usuario": {
+                "id": 1,
+                "nome": "Sistema Offline",
+                "email": "sistema.offline@eventos.com"
+            }
+        })
+    else:
+        return jsonify({
+            "success": False,
+            "valid": False,
+            "message": "Token inválido"
+        }), 401
 
 
 @app.route("/status", methods=["GET"])

@@ -35,10 +35,66 @@ class OfflineManager {
             EVENTOS: 'offline_eventos', 
             INSCRICOES: 'offline_inscricoes',
             PRESENCAS: 'offline_presencas',
-            FILA_SINCRONIZACAO: 'offline_fila_sync'
+            FILA_SINCRONIZACAO: 'offline_fila_sync',
+            SISTEMA_TOKEN: 'sistema_offline_token'
         };
         
+        // Token fixo do sistema para autenticação
+        this.SISTEMA_TOKEN = null;
+        
         console.log('[OfflineManager] Inicializado em modo simplificado');
+    }
+    
+    /**
+     * Obter token do sistema para autenticação
+     */
+    async obterTokenSistema() {
+        try {
+            // Verificar se já tem token armazenado
+            const tokenArmazenado = localStorage.getItem(this.STORAGE_KEYS.SISTEMA_TOKEN);
+            if (tokenArmazenado) {
+                this.SISTEMA_TOKEN = tokenArmazenado;
+                console.log('[OfflineManager] 🔑 Token do sistema recuperado do localStorage');
+                return tokenArmazenado;
+            }
+            
+            // Obter novo token do servidor Python
+            console.log('[OfflineManager] 🔑 Obtendo token do sistema...');
+            const response = await fetch(`${this.OFFLINE_API}/sistema-token`);
+            
+            if (response.ok) {
+                const data = await response.json();
+                this.SISTEMA_TOKEN = data.token;
+                
+                // Armazenar token
+                localStorage.setItem(this.STORAGE_KEYS.SISTEMA_TOKEN, data.token);
+                
+                console.log('[OfflineManager] ✅ Token do sistema obtido:', data.usuario.nome);
+                return data.token;
+            } else {
+                console.warn('[OfflineManager] ⚠️ Falha ao obter token do sistema');
+                return null;
+            }
+            
+        } catch (error) {
+            console.error('[OfflineManager] ❌ Erro ao obter token do sistema:', error);
+            return null;
+        }
+    }
+    
+    /**
+     * Obter headers com autenticação
+     */
+    getAuthHeaders() {
+        const headers = {
+            'Content-Type': 'application/json'
+        };
+        
+        if (this.SISTEMA_TOKEN) {
+            headers['Authorization'] = `Bearer ${this.SISTEMA_TOKEN}`;
+        }
+        
+        return headers;
     }
     
     /**
@@ -77,6 +133,9 @@ class OfflineManager {
         console.log('[OfflineManager] 🔄 Carregando dados...');
         
         try {
+            // Obter token do sistema primeiro
+            await this.obterTokenSistema();
+            
             // Verificar conexão
             await this.verificarConexao();
             
@@ -86,12 +145,39 @@ class OfflineManager {
             // Carregar dados do localStorage
             const dadosLocal = this.carregarDadosDoStorage();
             
+            // Se temos token, tentar carregar dados autenticados
+            let usuarios = [];
+            let inscricoes = [];
+            let presencas = [];
+            
+            if (this.SISTEMA_TOKEN && this.isOnline) {
+                try {
+                    console.log('[OfflineManager] 🔑 Carregando dados com token do sistema...');
+                    [usuarios, inscricoes, presencas] = await Promise.all([
+                        this.buscarUsuarios(),
+                        this.buscarInscricoes(), 
+                        this.buscarPresencas()
+                    ]);
+                } catch (authError) {
+                    console.warn('[OfflineManager] ⚠️ Erro ao carregar dados autenticados:', authError);
+                    // Usar dados do localStorage como fallback
+                    usuarios = dadosLocal.usuarios || [];
+                    inscricoes = dadosLocal.inscricoes || [];
+                    presencas = dadosLocal.presencas || [];
+                }
+            } else {
+                console.log('[OfflineManager] 💾 Usando dados do localStorage...');
+                usuarios = dadosLocal.usuarios || [];
+                inscricoes = dadosLocal.inscricoes || [];
+                presencas = dadosLocal.presencas || [];
+            }
+            
             // Combinar dados
             this.dados = {
-                usuarios: dadosLocal.usuarios || [],
+                usuarios,
                 eventos: eventos.length > 0 ? eventos : dadosLocal.eventos || this.getEventosExemplo(),
-                inscricoes: dadosLocal.inscricoes || [],
-                presencas: dadosLocal.presencas || [],
+                inscricoes,
+                presencas,
                 filaSincronizacao: dadosLocal.filaSincronizacao || []
             };
             
@@ -102,7 +188,8 @@ class OfflineManager {
                 usuarios: this.dados.usuarios.length,
                 eventos: this.dados.eventos.length,
                 inscricoes: this.dados.inscricoes.length,
-                presencas: this.dados.presencas.length
+                presencas: this.dados.presencas.length,
+                token: this.SISTEMA_TOKEN ? '✅' : '❌'
             });
             
             this.callbacks.onDataLoaded(this.dados);
@@ -122,6 +209,66 @@ class OfflineManager {
             this.callbacks.onDataLoaded(this.dados);
             return this.dados;
         }
+    }
+    
+    /**
+     * Buscar usuários com autenticação
+     */
+    async buscarUsuarios() {
+        try {
+            const response = await fetch(`${this.OFFLINE_API}/usuarios`, {
+                headers: this.getAuthHeaders()
+            });
+            
+            if (response.ok) {
+                const data = await response.json();
+                console.log('[OfflineManager] 👥 Usuários carregados:', data.data?.length || 0);
+                return data.data || [];
+            }
+        } catch (error) {
+            console.warn('[OfflineManager] Erro ao buscar usuários:', error);
+        }
+        return [];
+    }
+    
+    /**
+     * Buscar inscrições com autenticação
+     */
+    async buscarInscricoes() {
+        try {
+            const response = await fetch(`${this.OFFLINE_API}/inscricoes`, {
+                headers: this.getAuthHeaders()
+            });
+            
+            if (response.ok) {
+                const data = await response.json();
+                console.log('[OfflineManager] 📝 Inscrições carregadas:', data.data?.length || 0);
+                return data.data || [];
+            }
+        } catch (error) {
+            console.warn('[OfflineManager] Erro ao buscar inscrições:', error);
+        }
+        return [];
+    }
+    
+    /**
+     * Buscar presenças com autenticação
+     */
+    async buscarPresencas() {
+        try {
+            const response = await fetch(`${this.OFFLINE_API}/presencas`, {
+                headers: this.getAuthHeaders()
+            });
+            
+            if (response.ok) {
+                const data = await response.json();
+                console.log('[OfflineManager] ✋ Presenças carregadas:', data.data?.length || 0);
+                return data.data || [];
+            }
+        } catch (error) {
+            console.warn('[OfflineManager] Erro ao buscar presenças:', error);
+        }
+        return [];
     }
     
     /**
