@@ -393,7 +393,7 @@
             selects.forEach(s => {
                 s.innerHTML = '<option value="">Selecione um evento</option>';
                 offlineManager.dados.eventos.forEach(e => {
-                    s.innerHTML += `<option value="${e.id}">${e.titulo || e.name}</option>`;
+                    s.innerHTML += `<option value="${e.id}">${e.nome || e.titulo || e.name}</option>`;
                 });
             });
         }

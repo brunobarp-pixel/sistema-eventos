@@ -617,6 +617,28 @@ class OfflineManager {
             ['confirmada', 'presente'].includes(inscricao.status)
         );
     }
+
+    /**
+     * Obter usuário por ID
+     */
+    obterUsuario(usuarioId) {
+        if (!this.dados.usuarios) return null;
+        
+        return this.dados.usuarios.find(usuario => 
+            usuario.id === parseInt(usuarioId)
+        );
+    }
+
+    /**
+     * Verificar se já existe presença para uma inscrição
+     */
+    temPresenca(inscricaoId) {
+        if (!this.dados.presencas) return false;
+        
+        return this.dados.presencas.some(presenca => 
+            presenca.inscricao_id === parseInt(inscricaoId)
+        );
+    }
 }
 
 // Exportar para uso global
