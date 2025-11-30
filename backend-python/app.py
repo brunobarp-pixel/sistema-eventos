@@ -6,8 +6,8 @@ from datetime import datetime, timedelta
 from flask import Flask, request, jsonify, send_file
 from flask_cors import CORS
 from email_service import enviar_email, enviar_email_inscricao, enviar_email_certificado
-from gerador_pdf import GeradorPDF
-from laravel_auth_service import LaravelAuthService
+from gerador_pdf import gerar_certificado_pdf
+import laravel_auth_service
 
 app = Flask(__name__)
 CORS(app)
@@ -24,8 +24,6 @@ MYSQL_CONFIG = {
 SISTEMA_OFFLINE_TOKEN = "sistema_offline_token_2025_abcdef123456"
 
 # Instâncias globais
-gerador_pdf = GeradorPDF()
-laravel_auth = LaravelAuthService()
 sync_ativo = False
 sync_thread = None
 
