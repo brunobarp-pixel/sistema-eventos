@@ -278,7 +278,7 @@ def inscricoes():
         if request.method == "GET":
             cursor = conn.cursor(dictionary=True)
             cursor.execute("""
-                SELECT i.*, u.nome as usuario_nome, e.titulo as evento_titulo
+                SELECT i.*, u.nome as usuario_nome, e.nome as evento_titulo
                 FROM inscricoes i
                 JOIN usuarios u ON i.usuario_id = u.id  
                 JOIN eventos e ON i.evento_id = e.id
@@ -366,7 +366,7 @@ def presencas():
         if request.method == "GET":
             cursor = conn.cursor(dictionary=True)
             cursor.execute("""
-                SELECT p.*, u.nome as usuario_nome, e.titulo as evento_titulo
+                SELECT p.*, u.nome as usuario_nome, e.nome as evento_titulo
                 FROM presencas p
                 JOIN inscricoes i ON p.inscricao_id = i.id
                 JOIN usuarios u ON i.usuario_id = u.id
@@ -422,7 +422,7 @@ def presencas():
             try:
                 # Buscar dados para o certificado
                 cursor.execute("""
-                    SELECT u.nome, e.titulo, e.data_inicio, e.data_fim
+                    SELECT u.nome, e.nome as titulo, e.data_inicio, e.data_fim
                     FROM inscricoes i
                     JOIN usuarios u ON i.usuario_id = u.id
                     JOIN eventos e ON i.evento_id = e.id
