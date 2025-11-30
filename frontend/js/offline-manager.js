@@ -591,6 +591,20 @@ class OfflineManager {
             }
         ];
     }
+
+    /**
+     * Obter estatísticas dos dados carregados
+     */
+    obterEstatisticas() {
+        return {
+            usuarios: this.dados.usuarios?.length || 0,
+            eventos: this.dados.eventos?.length || 0,
+            inscricoes: this.dados.inscricoes?.length || 0,
+            presencas: this.dados.presencas?.length || 0,
+            pendentes: this.dados.filaSincronizacao?.length || 0,
+            token: this.SISTEMA_TOKEN ? '✅' : '❌'
+        };
+    }
 }
 
 // Exportar para uso global
