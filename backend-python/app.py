@@ -555,23 +555,17 @@ def endpoint_enviar_email_checkin():
     data = request.get_json()
     
     try:
-        # Criar email personalizado para check-in
-        usuario = {
-            "nome": data["usuario"]["nome"],
-            "email": data["usuario"]["email"]
-        }
-        
-        evento_checkin = {
-            "titulo": f"Presença confirmada - {data['evento']['titulo']}",
-            "data_inicio": data["evento"].get("data_inicio"),
-            "local": data["evento"].get("local")
-        }
-        
-        enviar_email_inscricao(usuario, evento_checkin)
+        enviar_email_checkin(
+            {
+                "nome": data["usuario"]["nome"],
+                "email": data["usuario"]["email"]
+            },
+            data["evento"]
+        )
         
         return jsonify({
             "success": True,
-            "message": "Email de confirmação de presença enviado com sucesso"
+            "message": "Email de check-in enviado com sucesso"
         })
         
     except Exception as e:
@@ -593,12 +587,10 @@ def endpoint_enviar_email_cancelamento():
         }
         
         evento_cancelamento = {
-            "titulo": f"Inscrição cancelada - {data['evento']['titulo']}",
-            "data_inicio": data["evento"].get("data_inicio"),
-            "local": data["evento"].get("local")
+            "nome": data["evento"]["nome"]
         }
         
-        enviar_email_inscricao(usuario, evento_cancelamento)
+        enviar_email_cancelamento(usuario, evento_cancelamento)
         
         return jsonify({
             "success": True,
