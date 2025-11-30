@@ -605,6 +605,18 @@ class OfflineManager {
             token: this.SISTEMA_TOKEN ? '✅' : '❌'
         };
     }
+
+    /**
+     * Obter inscrições por evento
+     */
+    obterInscricoesPorEvento(eventoId) {
+        if (!this.dados.inscricoes) return [];
+        
+        return this.dados.inscricoes.filter(inscricao => 
+            inscricao.evento_id == eventoId && 
+            ['confirmada', 'presente'].includes(inscricao.status)
+        );
+    }
 }
 
 // Exportar para uso global
