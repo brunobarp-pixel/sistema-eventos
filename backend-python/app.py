@@ -1,18 +1,20 @@
 import os
+import sys
 import threading
 import time
 import mysql.connector
 from datetime import datetime, timedelta
 from flask import Flask, request, jsonify, send_file
 from flask_cors import CORS
-from email_service import enviar_email, enviar_email_inscricao, enviar_email_certificado
+from email_service import enviar_email, enviar_email_inscricao, enviar_email_certificado        
 from gerador_pdf import gerar_certificado_pdf
 import laravel_auth_service
 
 app = Flask(__name__)
 CORS(app)
 
-# Configurações
+# Forçar flush do stdout para debug
+sys.stdout = os.fdopen(sys.stdout.fileno(), 'w', 1)# Configurações
 MYSQL_CONFIG = {
     "host": "database",
     "user": "eventos_user",
@@ -383,10 +385,24 @@ def presencas():
             print(f"[DEBUG] Recebendo POST para /presencas")
             print(f"[DEBUG] Content-Type: {request.content_type}")
             print(f"[DEBUG] Headers: {dict(request.headers)}")
+            print(f"[DEBUG] Raw data: {request.get_data()}")
             
             try:
-                data = request.get_json(force=True)  # force=True para ignorar Content-Type
-                print(f"[DEBUG] Data recebido: {data}")
+                # Tentar várias maneiras de obter o JSON
+                if request.is_json:
+                    data = request.get_json()
+                    print(f"[DEBUG] JSON via is_json: {data}")
+                else:
+                    data = request.get_json(force=True)
+                    print(f"[DEBUG] JSON via force=True: {data}")
+                
+                if not data:
+                    print("[DEBUG] Nenhum JSON válido encontrado")
+                    return jsonify({
+                        "success": False,
+                        "message": "Dados JSON inválidos ou ausentes"
+                    }), 400
+                    
             except Exception as e:
                 print(f"[DEBUG] Erro ao fazer parse do JSON: {e}")
                 return jsonify({
