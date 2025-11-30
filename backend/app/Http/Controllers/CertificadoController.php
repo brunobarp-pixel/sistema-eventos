@@ -149,8 +149,10 @@ class CertificadoController extends Controller
             $certificado = Certificado::create([
                 'usuario_id' => $request->usuario_id,
                 'evento_id' => $request->evento_id,
+                'inscricao_id' => $inscricao->id,
                 'codigo_validacao' => $codigoValidacao,
-                'url_arquivo' => null
+                'arquivo_pdf' => null,
+                'enviado_email' => false
             ]);
 
             // Carregar dados
