@@ -107,16 +107,16 @@ class InscricaoController extends Controller
                     return [
                         'id' => $inscricao->id,
                         'status' => $inscricao->status,
-                        'data_inscricao' => $inscricao->created_at->format('Y-m-d H:i:s'),
+                        'data_inscricao' => $inscricao->created_at ? $inscricao->created_at->format('Y-m-d H:i:s') : null,
                         'evento' => [
                             'id' => $inscricao->evento->id,
                             'titulo' => $inscricao->evento->nome,
-                            'data_inicio' => $inscricao->evento->data_inicio->format('Y-m-d H:i:s'),
-                            'data_fim' => $inscricao->evento->data_fim->format('Y-m-d H:i:s'),
+                            'data_inicio' => $inscricao->evento->data_inicio ? $inscricao->evento->data_inicio->format('Y-m-d H:i:s') : null,
+                            'data_fim' => $inscricao->evento->data_fim ? $inscricao->evento->data_fim->format('Y-m-d H:i:s') : null,
                             'local' => $inscricao->evento->local
                         ],
                         'possui_presenca' => $inscricao->presenca !== null,
-                        'data_presenca' => $inscricao->presenca ? $inscricao->presenca->data_presenca->format('Y-m-d H:i:s') : null
+                        'data_presenca' => $inscricao->presenca && $inscricao->presenca->data_presenca ? $inscricao->presenca->data_presenca->format('Y-m-d H:i:s') : null
                     ];
                 })
             ], 200);

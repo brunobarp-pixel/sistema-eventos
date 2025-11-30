@@ -291,12 +291,12 @@ class CertificadoController extends Controller
                     return [
                         'id' => $cert->id,
                         'codigo_validacao' => $cert->codigo_validacao,
-                        'data_emissao' => $cert->data_emissao->format('Y-m-d H:i:s'),
+                        'data_emissao' => $cert->data_emissao ? $cert->data_emissao->format('Y-m-d H:i:s') : null,
                         'evento' => [
                             'id' => $cert->evento->id,
                             'titulo' => $cert->evento->nome,
-                            'data_inicio' => $cert->evento->data_inicio->format('Y-m-d'),
-                            'data_fim' => $cert->evento->data_fim->format('Y-m-d')
+                            'data_inicio' => $cert->evento->data_inicio ? $cert->evento->data_inicio->format('Y-m-d') : null,
+                            'data_fim' => $cert->evento->data_fim ? $cert->evento->data_fim->format('Y-m-d') : null
                         ],
                         'url_validacao' => url('/api/certificados/' . $cert->codigo_validacao),
                         'url_pdf' => url('/api/certificados/' . $cert->id . '/pdf')
