@@ -392,7 +392,7 @@ def presencas():
             cursor = conn.cursor()
             
             # Verificar se inscrição existe
-            cursor.execute("SELECT * FROM inscricoes WHERE id = %s AND status = 'ativa'", (inscricao_id,))
+            cursor.execute("SELECT * FROM inscricoes WHERE id = %s AND status = 'confirmada'", (inscricao_id,))
             inscricao = cursor.fetchone()
             
             if not inscricao:
