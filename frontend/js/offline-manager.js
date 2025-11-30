@@ -485,6 +485,7 @@ class OfflineManager {
         const erros = [];
         
         for (const presenca of presencasNaoSincronizadas) {
+            console.log(this.OFFLINE_API)
             try {
                 const response = await fetch(`${this.OFFLINE_API}/presencas`, {
                     method: 'POST',
