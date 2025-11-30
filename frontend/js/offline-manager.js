@@ -639,6 +639,17 @@ class OfflineManager {
             presenca.inscricao_id === parseInt(inscricaoId)
         );
     }
+
+    /**
+     * Obter inscrição por ID
+     */
+    obterInscricao(inscricaoId) {
+        if (!this.dados.inscricoes) return null;
+        
+        return this.dados.inscricoes.find(inscricao => 
+            inscricao.id === parseInt(inscricaoId)
+        );
+    }
 }
 
 // Exportar para uso global
