@@ -56,5 +56,6 @@ Route::middleware('auth:sanctum')->group(function () {
     // ===== CERTIFICADOS =====
     Route::post('/certificados', [CertificadoController::class, 'emitir']);
     Route::get('/certificados/usuario/{usuarioId}', [CertificadoController::class, 'listarPorUsuario']);
+    Route::get('/certificados/debug', [CertificadoController::class, 'debug']);
     Route::get('/certificados/{id}/pdf', [CertificadoController::class, 'gerarPDF']);
 });

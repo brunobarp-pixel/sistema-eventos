@@ -189,7 +189,7 @@ class CertificadoController extends Controller
                         'email' => $certificado->usuario->email
                     ],
                     'evento' => [
-                        'titulo' => $certificado->evento->titulo,
+                        'titulo' => $certificado->evento->nome,
                         'data_inicio' => $certificado->evento->data_inicio ? $certificado->evento->data_inicio->format('Y-m-d H:i:s') : null,
                         'data_fim' => $certificado->evento->data_fim ? $certificado->evento->data_fim->format('Y-m-d H:i:s') : null
                     ],
@@ -244,7 +244,7 @@ class CertificadoController extends Controller
                         'cpf' => $certificado->usuario->cpf ? substr($certificado->usuario->cpf, 0, 3) . '.***.***.***' : null
                     ],
                     'evento' => [
-                        'titulo' => $certificado->evento->titulo,
+                        'titulo' => $certificado->evento->nome,
                         'descricao' => $certificado->evento->descricao,
                         'data_inicio' => $certificado->evento->data_inicio ? $certificado->evento->data_inicio->format('d/m/Y') : null,
                         'data_fim' => $certificado->evento->data_fim ? $certificado->evento->data_fim->format('d/m/Y') : null,
@@ -324,6 +324,43 @@ class CertificadoController extends Controller
                     'file' => basename($e->getFile())
                 ]
             ], 500);
+        }
+    }
+
+    /**
+     * Debug - listar todos os certificados
+     */
+    public function debug(Request $request)
+    {
+        try {
+            // Verificar certificados
+            $certificados = Certificado::with('usuario', 'evento')->get();
+            
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'total_certificados' => $certificados->count(),
+                    'certificados' => $certificados->map(function($cert) {
+                        return [
+                            'id' => $cert->id,
+                            'usuario_id' => $cert->usuario_id,
+                            'evento_id' => $cert->evento_id,
+                            'inscricao_id' => $cert->inscricao_id,
+                            'codigo_validacao' => $cert->codigo_validacao,
+                            'data_emissao' => $cert->data_emissao ? $cert->data_emissao->format('Y-m-d H:i:s') : null,
+                            'usuario_nome' => $cert->usuario ? $cert->usuario->nome : null,
+                            'evento_nome' => $cert->evento ? $cert->evento->nome : null
+                        ];
+                    })
+                ]
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'error' => $e->getMessage(),
+                'message' => 'Erro ao fazer debug dos certificados'
+            ]);
         }
     }
 
