@@ -389,7 +389,9 @@ class OfflineManager {
                     'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({
-                    inscricao_id: inscricaoId
+                    inscricao_id: inscricaoId,
+                    evento_id: eventoId,
+                    usuario_id: usuarioId
                 })
             });
             
@@ -488,7 +490,9 @@ class OfflineManager {
                         'Content-Type': 'application/json'
                     },
                     body: JSON.stringify({
-                        inscricao_id: presenca.inscricao_id
+                        inscricao_id: presenca.inscricao_id,
+                        evento_id: presenca.evento_id,
+                        usuario_id: presenca.usuario_id
                     })
                 });
                 

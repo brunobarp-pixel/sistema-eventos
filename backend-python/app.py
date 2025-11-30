@@ -129,7 +129,7 @@ def sync_loop():
     
     while sync_ativo:
         try:
-            if laravel_auth.is_authenticated():
+            if laravel_auth_service.is_authenticated():
                 print("🔄 Executando sincronização automática...")
                 # Aqui pode adicionar sincronização se necessário
                 
