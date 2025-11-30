@@ -29,12 +29,12 @@ class CertificadoController extends Controller
                 'nome_participante' => $certificado->usuario->nome,
                 'evento_titulo' => $certificado->evento->titulo,
                 'evento_descricao' => $certificado->evento->descricao,
-                'data_inicio' => $certificado->evento->data_inicio->format('Y-m-d'),
-                'data_fim' => $certificado->evento->data_fim->format('Y-m-d'),
+                'data_inicio' => $certificado->evento->data_inicio ? $certificado->evento->data_inicio->format('Y-m-d') : null,
+                'data_fim' => $certificado->evento->data_fim ? $certificado->evento->data_fim->format('Y-m-d') : null,
                 'local' => $certificado->evento->local,
                 'carga_horaria' => $certificado->evento->carga_horaria ?? null,
                 'codigo_validacao' => $certificado->codigo_validacao,
-                'data_emissao' => $certificado->data_emissao->format('Y-m-d H:i:s')
+                'data_emissao' => $certificado->data_emissao ? $certificado->data_emissao->format('Y-m-d H:i:s') : null
             ];
 
             // Chamar API Python para gerar PDF
@@ -132,7 +132,7 @@ class CertificadoController extends Controller
                     'data' => [
                         'id' => $certificadoExistente->id,
                         'codigo_validacao' => $certificadoExistente->codigo_validacao,
-                        'data_emissao' => $certificadoExistente->data_emissao->format('Y-m-d H:i:s')
+                        'data_emissao' => $certificadoExistente->data_emissao ? $certificadoExistente->data_emissao->format('Y-m-d H:i:s') : null
                     ]
                 ], 400);
             }
@@ -159,7 +159,7 @@ class CertificadoController extends Controller
                     $certificado->evento, 
                     [
                         'codigo_validacao' => $certificado->codigo_validacao,
-                        'data_emissao' => $certificado->data_emissao->format('d/m/Y H:i'),
+                        'data_emissao' => $certificado->data_emissao ? $certificado->data_emissao->format('d/m/Y H:i') : null,
                         'url_validacao' => url('/api/certificados/' . $certificado->codigo_validacao)
                     ]
                 );
