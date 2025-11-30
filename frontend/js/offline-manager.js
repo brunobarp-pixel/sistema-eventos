@@ -379,22 +379,28 @@ class OfflineManager {
      * Marcar presença offline
      */
     async marcarPresencaOffline(inscricaoId, eventoId, usuarioId) {
-        console.log(`[OfflineManager] ✋ Marcando presença: inscricao=${inscricaoId}, evento=${eventoId}`);
+        console.log(`[OfflineManager] Marcando presença: inscricao=${inscricaoId}, evento=${eventoId}, usuario=${usuarioId}`);
         
         try {
             // Tentar registrar no servidor primeiro
-            console.log(this.OFFLINE_API);  
+            console.log(`[OfflineManager] Tentando conectar com: ${this.OFFLINE_API}/presencas`);
+            
+            const requestBody = {
+                inscricao_id: inscricaoId,
+                evento_id: eventoId,
+                usuario_id: usuarioId
+            };
+            console.log(`[OfflineManager] 📤 Enviando dados:`, requestBody);
+            
             const response = await fetch(`${this.OFFLINE_API}/presencas`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
                 },
-                body: JSON.stringify({
-                    inscricao_id: inscricaoId,
-                    evento_id: eventoId,
-                    usuario_id: usuarioId
-                })
+                body: JSON.stringify(requestBody)
             });
+            
+            console.log(`[OfflineManager] 📥 Response status: ${response.status}`);
             
             if (response.ok) {
                 const data = await response.json();
@@ -406,8 +412,13 @@ class OfflineManager {
                 return {
                     success: true,
                     message: 'Presença registrada com sucesso',
-                    servidor: true
+                    servidor: true,
+                    data: data
                 };
+            } else {
+                const errorText = await response.text();
+                console.error(`[OfflineManager] ❌ Erro HTTP ${response.status}:`, errorText);
+                throw new Error(`HTTP ${response.status}: ${errorText}`);
             }
         } catch (error) {
             console.warn('[OfflineManager] ⚠️ Servidor indisponível, salvando localmente:', error);

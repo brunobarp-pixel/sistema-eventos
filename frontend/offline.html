@@ -484,20 +484,27 @@
 
         // ==================== CHECK-IN ====================
         async function confirmarCheckin() {
+            console.log('[CHECK-IN] 🚀 Iniciando processo de check-in');
+            
             if (!inscricaoSelecionadaId) {
                 mostrarAlerta('Nenhuma inscrição selecionada!', 'warning');
                 return;
             }
 
             const insc = offlineManager.obterInscricao(inscricaoSelecionadaId);
+            console.log('[CHECK-IN] Dados da inscrição:', insc);
             
             try {
+                console.log('[CHECK-IN] Chamando marcarPresencaOffline...');
+                
                 // Registrar presença usando o novo método offline
                 const resultado = await offlineManager.marcarPresencaOffline(
                     inscricaoSelecionadaId, 
                     insc.evento_id, 
                     insc.usuario_id
                 );
+                
+                console.log('[CHECK-IN] 📨 Resultado da marcação:', resultado);
                 
                 if (resultado.success) {
                     const mensagem = resultado.servidor ? 
@@ -520,8 +527,8 @@
                 }
                 
             } catch (error) {
+                console.error('[CHECK-IN] ❌ Erro capturado:', error);
                 mostrarAlerta('Erro ao registrar presença: ' + error.message, 'danger');
-                console.error('Erro:', error);
             }
         }
 
