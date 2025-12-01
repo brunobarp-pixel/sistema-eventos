@@ -247,6 +247,42 @@ class AuthController extends Controller
     /**
      * Registrar log de acesso
      */
+    /**
+     * Obter token para o sistema offline
+     * GET /api/auth/sistema-token
+     */
+    public function sistemaToken()
+    {
+        try {
+            // Buscar um usuário administrativo para gerar token
+            // Usar o primeiro usuário do sistema como token base
+            $usuario = Usuario::first();
+            
+            if (!$usuario) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Nenhum usuário encontrado no sistema'
+                ], 404);
+            }
+
+            // Gerar token usando Sanctum
+            $token = $usuario->createToken('sistema-offline', ['*'])->plainTextToken;
+
+            return response()->json([
+                'success' => true,
+                'token' => $token,
+                'message' => 'Token do sistema gerado com sucesso',
+                'expires_at' => null // Token não expira
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Erro interno: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
     private function registrarLog(Request $request, $metodo, $endpoint, $status, $usuarioId = null)
     {
         try {

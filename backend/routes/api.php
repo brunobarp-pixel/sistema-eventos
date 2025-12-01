@@ -21,6 +21,7 @@ Route::get('/status', function () {
 
 // Autenticação e Cadastro
 Route::post('/auth', [AuthController::class, 'login']);
+Route::get('/auth/sistema-token', [AuthController::class, 'sistemaToken']); // Nova rota
 Route::post('/usuarios', [AuthController::class, 'cadastrar']);
 
 // Eventos (visualização pública)
