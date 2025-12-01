@@ -222,8 +222,11 @@ class InscricaoController extends Controller
 
             // ENVIAR E-MAIL DE INSCRIÇÃO
             try {
+                // Buscar o usuário real da inscrição para email
+                $usuarioInscricao = Usuario::findOrFail($usuarioId);
+                
                 $emailService = new EmailService();
-                $emailService->enviarEmailInscricao($usuario, $evento);
+                $emailService->enviarEmailInscricao($usuarioInscricao, $evento);
             } catch (\Exception $e) {
                 Log::error('Erro ao enviar email de inscrição: ' . $e->getMessage());
             }
