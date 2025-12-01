@@ -210,14 +210,10 @@
                                     <label class="form-label">E-mail *</label>
                                     <input type="email" class="form-control" id="cadastroEmail" required>
                                 </div>
-                                <div class="col-md-6 mb-3">
-                                    <label class="form-label">CPF</label>
-                                    <input type="text" class="form-control" id="cadastroCpf" maxlength="14">
-                                </div>
-                                <div class="col-md-6 mb-3">
-                                    <label class="form-label">Telefone</label>
-                                    <input type="text" class="form-control" id="cadastroTelefone" maxlength="15">
-                                </div>
+                            </div>
+                            <div class="alert alert-info">
+                                <i class="bi bi-info-circle"></i>
+                                <strong>Senha padrão:</strong> senha123 (o usuário pode alterar depois no login)
                             </div>
                             <button type="submit" class="btn btn-primary">
                                 <i class="bi bi-person-check"></i> Cadastrar e Prosseguir
@@ -539,9 +535,7 @@
             const dados = {
                 nome: document.getElementById('cadastroNome').value,
                 email: document.getElementById('cadastroEmail').value,
-                cpf: document.getElementById('cadastroCpf').value,
-                telefone: document.getElementById('cadastroTelefone').value,
-                password: 'senha_temporaria_123' // Senha temporária
+                senha: 'senha123' // Senha padrão para cadastro rápido
             };
 
             try {
@@ -556,7 +550,9 @@
                 });
 
                 if (!response.ok) {
-                    throw new Error('Erro ao cadastrar usuário');
+                    const errorData = await response.json();
+                    console.error('Erro 422 detalhado:', errorData);
+                    throw new Error(`Erro de validação: ${errorData.message || 'Dados inválidos'}`);
                 }
 
                 const data = await response.json();
@@ -565,7 +561,7 @@
                 offlineManager.dados.usuarios.push(data.data);
                 offlineManager.salvarDadosNoStorage();
                 
-                mostrarAlerta('✓ Usuário cadastrado com sucesso!', 'success');
+                mostrarAlerta('✓ Usuário cadastrado! Login: email | Senha: senha123', 'success');
                 document.getElementById('formCadastro').reset();
                 
                 // Recarregar dados
@@ -684,29 +680,9 @@
             }, 5000);
         }
 
-        // Máscaras de entrada
+        // Máscaras de entrada removidas - cadastro simplificado
         document.addEventListener('DOMContentLoaded', function() {
-            const inputCpf = document.getElementById('cadastroCpf');
-            const inputTelefone = document.getElementById('cadastroTelefone');
-
-            if (inputCpf) {
-                inputCpf.addEventListener('input', function (e) {
-                    let v = e.target.value.replace(/\D/g, '');
-                    v = v.replace(/(\d{3})(\d)/, '$1.$2');
-                    v = v.replace(/(\d{3})(\d)/, '$1.$2');
-                    v = v.replace(/(\d{3})(\d{1,2})$/, '$1-$2');
-                    e.target.value = v;
-                });
-            }
-
-            if (inputTelefone) {
-                inputTelefone.addEventListener('input', function (e) {
-                    let v = e.target.value.replace(/\D/g, '');
-                    v = v.replace(/(\d{2})(\d)/, '($1) $2');
-                    v = v.replace(/(\d{5})(\d)/, '$1-$2');
-                    e.target.value = v;
-                });
-            }
+            // Cadastro simplificado - apenas nome e email
         });
     </script>
 </body>
