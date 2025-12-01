@@ -269,6 +269,18 @@
 
         // Inicializar com callbacks
         document.addEventListener('DOMContentLoaded', async function () {
+            // Verificar se usuário está logado
+            const token = localStorage.getItem('token');
+            const usuario = localStorage.getItem('usuario');
+            
+            if (!token || !usuario) {
+                mostrarAlerta('❌ Você precisa estar logado para acessar esta página!', 'danger');
+                setTimeout(() => window.location.href = 'login.html', 2000);
+                return;
+            }
+            
+            console.log('[Offline.html] ✅ Usuário logado detectado');
+            
             // Criar instância do OfflineManager
             offlineManager = new OfflineManager({
                 apiBase: API_BASE_URL,
@@ -551,7 +563,13 @@
             };
 
             try {
-                const token = await offlineManager.obterTokenSistema();
+                // Usar token do usuário logado ao invés do token do sistema
+                const token = localStorage.getItem('token');
+                if (!token) {
+                    mostrarAlerta('❌ Você precisa estar logado para cadastrar usuários!', 'danger');
+                    return;
+                }
+                
                 const response = await fetch(`${API_BASE_URL}/usuarios`, {
                     method: 'POST',
                     headers: {
@@ -563,7 +581,14 @@
 
                 if (!response.ok) {
                     const errorData = await response.json();
-                    console.error('Erro 422 detalhado:', errorData);
+                    console.error('Erro detalhado:', errorData);
+                    
+                    if (response.status === 401) {
+                        mostrarAlerta('❌ Token expirado. Faça login novamente!', 'danger');
+                        setTimeout(() => window.location.href = 'login.html', 2000);
+                        return;
+                    }
+                    
                     throw new Error(`Erro de validação: ${errorData.message || 'Dados inválidos'}`);
                 }
 
@@ -602,8 +627,13 @@
             }
 
             try {
-                let token = await offlineManager.obterTokenSistema();
-                console.log('[INSCRICAO] Token obtido:', token ? '✅' : '❌');
+                // Usar token do usuário logado ao invés do token do sistema
+                let token = localStorage.getItem('token');
+                if (!token) {
+                    mostrarAlerta('❌ Você precisa estar logado para criar inscrições!', 'danger');
+                    return;
+                }
+                console.log('[INSCRICAO] Token de usuário obtido:', token ? '✅' : '❌');
 
                 let response = await fetch(`${API_BASE_URL}/inscricoes`, {
                     method: 'POST',
@@ -618,29 +648,16 @@
                     })
                 });
 
-                // Se 401, tentar recarregar token e tentar novamente
-                if (response.status === 401) {
-                    console.log('[INSCRICAO] Token expirado, recarregando...');
-                    await offlineManager.carregarTodosDados(); // Recarrega token
-                    token = await offlineManager.obterTokenSistema();
-                    
-                    response = await fetch(`${API_BASE_URL}/inscricoes`, {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'Authorization': `Bearer ${token}`
-                        },
-                        body: JSON.stringify({
-                            usuario_id: usuarioId,
-                            evento_id: eventoId,
-                            status: 'ativa'
-                        })
-                    });
-                }
-
                 if (!response.ok) {
                     const errorData = await response.json().catch(() => ({}));
                     console.error('[INSCRICAO] Erro HTTP:', response.status, errorData);
+                    
+                    if (response.status === 401) {
+                        mostrarAlerta('❌ Token expirado. Faça login novamente!', 'danger');
+                        setTimeout(() => window.location.href = 'login.html', 2000);
+                        return;
+                    }
+                    
                     throw new Error(`Erro ${response.status}: ${errorData.message || 'Falha na inscrição'}`);
                 }
 
