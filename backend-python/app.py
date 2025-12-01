@@ -42,6 +42,7 @@ SISTEMA_OFFLINE_TOKEN = "sistema_offline_token_2025_abcdef123456"
 # Instâncias globais
 sync_ativo = False
 sync_thread = None
+laravel_auth = laravel_auth_service.LaravelAuth()  # Instanciar a classe
 
 
 def popular_dados_exemplo():
@@ -143,7 +144,7 @@ def sync_loop():
     
     while sync_ativo:
         try:
-            if laravel_auth_service.is_authenticated():
+            if laravel_auth.is_authenticated():
                 print("🔄 Executando sincronização automática...")
                 # Aqui pode adicionar sincronização se necessário
                 
@@ -706,18 +707,46 @@ def enviar_email_certificado():
 @app.route("/gerar-certificado-pdf", methods=["POST"])
 def gerar_certificado_endpoint():
     """Gerar certificado PDF"""
-    data = request.get_json()
-    
     try:
+        data = request.get_json()
+        
+        if not data:
+            return jsonify({
+                "success": False,
+                "message": "Dados não fornecidos"
+            }), 400
+        
+        print(f"📋 Dados recebidos para gerar PDF: {data}")
+        
+        # Validar campos obrigatórios
+        required_fields = ['nome_participante', 'evento_titulo', 'codigo_validacao', 'data_inicio', 'data_fim', 'local', 'data_emissao']
+        missing_fields = [field for field in required_fields if not data.get(field)]
+        
+        if missing_fields:
+            return jsonify({
+                "success": False,
+                "message": f"Campos obrigatórios ausentes: {', '.join(missing_fields)}"
+            }), 400
+        
         certificado_path = gerar_certificado_pdf(data)
+        
+        # Extrair apenas o nome do arquivo (sem o caminho completo)
+        nome_arquivo = os.path.basename(certificado_path)
+        
+        print(f"✅ Certificado gerado: {certificado_path}")
+        print(f"📄 Nome do arquivo: {nome_arquivo}")
         
         return jsonify({
             "success": True,
             "message": "Certificado gerado com sucesso",
-            "path": certificado_path
+            "pdf_path": nome_arquivo,  # Frontend espera 'pdf_path'
+            "full_path": certificado_path
         })
         
     except Exception as e:
+        print(f"❌ Erro ao gerar certificado: {str(e)}")
+        import traceback
+        traceback.print_exc()
         return jsonify({
             "success": False,
             "message": f"Erro ao gerar certificado: {str(e)}"

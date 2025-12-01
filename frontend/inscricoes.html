@@ -471,13 +471,16 @@ const getHeaders = () => {
 
         async function baixarCertificadoPDF(certificadoId, eventoTitulo) {
             try {
+                console.log('🔥 [PDF] Iniciando download do certificado:', { certificadoId, eventoTitulo });
                 mostrarAlerta('📥 Gerando certificado...', 'info');
 
                 // Buscar dados do certificado pelo CÓDIGO, não pelo ID
+                console.log('🔥 [PDF] Buscando certificados do usuário:', usuario.id);
         const certResponse = await fetch(`${API_URL}/certificados/usuario/${usuario.id}`, {
             headers: getHeaders()
         });
                 const certData = await certResponse.json();
+                console.log('🔥 [PDF] Resposta dos certificados:', certData);
 
                 if (!certData.success || certData.data.length === 0) {
                     throw new Error('Nenhum certificado encontrado');
@@ -485,14 +488,19 @@ const getHeaders = () => {
 
                 // Encontrar o certificado específico
                 const cert = certData.data.find(c => c.id == certificadoId);
+                console.log('🔥 [PDF] Certificado encontrado:', cert);
 
                 if (!cert) {
                     throw new Error('Certificado não encontrado');
                 }
 
                 // Buscar validação para obter dados completos
-                const validResponse = await fetch(`${API_URL}/certificados/${cert.codigo_validacao}`);
+                console.log('🔥 [PDF] Validando certificado:', cert.codigo_validacao);
+                const validResponse = await fetch(`${API_URL}/certificados/${cert.codigo_validacao}`, {
+                    headers: getHeaders()
+                });
                 const validData = await validResponse.json();
+                console.log('🔥 [PDF] Dados de validação:', validData);
 
                 if (!validData.success) {
                     throw new Error('Erro ao validar certificado');
@@ -500,34 +508,46 @@ const getHeaders = () => {
 
                 const certCompleto = validData.data;
 
+                // Preparar dados para o PDF
+                const dadosPDF = {
+                    nome_participante: certCompleto.participante.nome,
+                    evento_titulo: certCompleto.evento.titulo,
+                    evento_descricao: certCompleto.evento.descricao || '',
+                    data_inicio: converterDataParaISO(certCompleto.evento.data_inicio),
+                    data_fim: converterDataParaISO(certCompleto.evento.data_fim),
+                    local: certCompleto.evento.local,
+                    carga_horaria: certCompleto.evento.carga_horaria || null,
+                    codigo_validacao: certCompleto.codigo_validacao,
+                    data_emissao: certCompleto.data_emissao.replace(/\//g, '-') + ' 00:00:00'
+                };
+                
+                console.log('🔥 [PDF] Dados para gerar PDF:', dadosPDF);
+
                 // Chamar Python para gerar PDF
                 const pdfResponse = await fetch('http://177.44.248.118:5000/gerar-certificado-pdf', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        nome_participante: certCompleto.participante.nome,
-                        evento_titulo: certCompleto.evento.titulo,
-                        evento_descricao: certCompleto.evento.descricao || '',
-                        data_inicio: converterDataParaISO(certCompleto.evento.data_inicio),
-                        data_fim: converterDataParaISO(certCompleto.evento.data_fim),
-                        local: certCompleto.evento.local,
-                        carga_horaria: certCompleto.evento.carga_horaria || null,
-                        codigo_validacao: certCompleto.codigo_validacao,
-                        data_emissao: certCompleto.data_emissao.replace(/\//g, '-') + ' 00:00:00'
-                    })
+                    body: JSON.stringify(dadosPDF)
                 });
 
+                console.log('🔥 [PDF] Status da resposta Python:', pdfResponse.status);
                 const pdfData = await pdfResponse.json();
+                console.log('🔥 [PDF] Resposta do Python:', pdfData);
 
                 if (pdfData.success && pdfData.pdf_path) {
                     // Baixar o PDF gerado
-                    const downloadResponse = await fetch(`http://177.44.248.118:5000/download-pdf/${encodeURIComponent(pdfData.pdf_path)}`);
+                    const downloadUrl = `http://177.44.248.118:5000/download-pdf/${encodeURIComponent(pdfData.pdf_path)}`;
+                    console.log('🔥 [PDF] URL de download:', downloadUrl);
+                    
+                    const downloadResponse = await fetch(downloadUrl);
 
                     if (!downloadResponse.ok) {
-                        throw new Error('Erro ao baixar PDF');
+                        throw new Error(`Erro ao baixar PDF: ${downloadResponse.status}`);
                     }
 
                     const blob = await downloadResponse.blob();
+                    console.log('🔥 [PDF] Blob gerado:', blob.size, 'bytes');
+                    
                     const url = window.URL.createObjectURL(blob);
                     const a = document.createElement('a');
                     a.style.display = 'none';
@@ -539,12 +559,13 @@ const getHeaders = () => {
                     document.body.removeChild(a);
 
                     mostrarAlerta('✅ Certificado baixado com sucesso!', 'success');
+                    console.log('🔥 [PDF] Download concluído com sucesso!');
                 } else {
-                    throw new Error('Erro ao gerar PDF');
+                    throw new Error('Erro ao gerar PDF: ' + (pdfData.message || 'Resposta inválida'));
                 }
 
             } catch (error) {
-                console.error('Erro ao baixar PDF:', error);
+                console.error('❌ [PDF] Erro ao baixar PDF:', error);
                 mostrarAlerta(`❌ ${error.message}`, 'danger');
             }
         }

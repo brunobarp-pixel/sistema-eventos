@@ -33,14 +33,26 @@ def gerar_certificado_pdf(dados_certificado, output_path='certificados_pdf'):
         str: caminho do arquivo PDF gerado
     """
     
-    # Criar pasta se não existir
-    if not os.path.exists(output_path):
-        os.makedirs(output_path)
-    
-    # Nome do arquivo
-    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-    nome_arquivo = f"certificado_{dados_certificado['codigo_validacao'][:8]}_{timestamp}.pdf"
-    caminho_completo = os.path.join(output_path, nome_arquivo)
+    try:
+        print(f"📋 Gerando PDF com dados: {dados_certificado}")
+        
+        # Validar dados obrigatórios
+        campos_obrigatorios = ['nome_participante', 'evento_titulo', 'codigo_validacao', 'data_inicio', 'data_fim', 'local', 'data_emissao']
+        for campo in campos_obrigatorios:
+            if not dados_certificado.get(campo):
+                raise ValueError(f"Campo obrigatório '{campo}' não fornecido")
+        
+        # Criar pasta se não existir
+        if not os.path.exists(output_path):
+            os.makedirs(output_path)
+            print(f"📁 Pasta criada: {output_path}")
+        
+        # Nome do arquivo
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        nome_arquivo = f"certificado_{dados_certificado['codigo_validacao'][:8]}_{timestamp}.pdf"
+        caminho_completo = os.path.join(output_path, nome_arquivo)
+        
+        print(f"📄 Criando arquivo: {caminho_completo}")
     
     # Criar o PDF em paisagem (landscape)
     pdf = canvas.Canvas(caminho_completo, pagesize=landscape(A4))
@@ -162,6 +174,12 @@ def gerar_certificado_pdf(dados_certificado, output_path='certificados_pdf'):
     
     print(f"✅ Certificado gerado: {caminho_completo}")
     return caminho_completo
+
+except Exception as e:
+    print(f"❌ Erro ao gerar PDF: {str(e)}")
+    import traceback
+    traceback.print_exc()
+    raise e
 
 
 # ==================== TESTE ====================
