@@ -590,8 +590,10 @@
             }
 
             try {
-                const token = await offlineManager.obterTokenSistema();
-                const response = await fetch(`${API_BASE_URL}/inscricoes`, {
+                let token = await offlineManager.obterTokenSistema();
+                console.log('[INSCRICAO] Token obtido:', token ? '✅' : '❌');
+
+                let response = await fetch(`${API_BASE_URL}/inscricoes`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -604,11 +606,34 @@
                     })
                 });
 
+                // Se 401, tentar recarregar token e tentar novamente
+                if (response.status === 401) {
+                    console.log('[INSCRICAO] Token expirado, recarregando...');
+                    await offlineManager.carregarTodosDados(); // Recarrega token
+                    token = await offlineManager.obterTokenSistema();
+                    
+                    response = await fetch(`${API_BASE_URL}/inscricoes`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${token}`
+                        },
+                        body: JSON.stringify({
+                            usuario_id: usuarioId,
+                            evento_id: eventoId,
+                            status: 'ativa'
+                        })
+                    });
+                }
+
                 if (!response.ok) {
-                    throw new Error('Erro ao criar inscrição');
+                    const errorData = await response.json().catch(() => ({}));
+                    console.error('[INSCRICAO] Erro HTTP:', response.status, errorData);
+                    throw new Error(`Erro ${response.status}: ${errorData.message || 'Falha na inscrição'}`);
                 }
 
                 const data = await response.json();
+                console.log('[INSCRICAO] ✅ Inscrição criada:', data);
                 
                 // Adicionar aos dados locais
                 offlineManager.dados.inscricoes.push(data.data);
@@ -617,15 +642,16 @@
                 mostrarAlerta('✓ Inscrição realizada! Agora pode fazer o check-in.', 'success');
                 document.getElementById('formInscricao').reset();
                 
-                // Ir para aba de check-in
-                setTimeout(() => {
+                // Recarregar dados e ir para check-in
+                setTimeout(async () => {
+                    await carregarDados();
                     document.getElementById('checkin-tab').click();
                     carregarEstatisticas();
                 }, 1000);
                 
             } catch (error) {
                 mostrarAlerta('Erro ao criar inscrição: ' + error.message, 'danger');
-                console.error('Erro:', error);
+                console.error('[INSCRICAO] ❌ Erro:', error);
             }
         }
 
