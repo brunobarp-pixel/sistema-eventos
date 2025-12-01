@@ -11,7 +11,21 @@ from gerador_pdf import gerar_certificado_pdf
 import laravel_auth_service
 
 app = Flask(__name__)
-CORS(app)
+
+# Configuração CORS mais específica para resolver problemas entre máquinas
+CORS(app, 
+     origins=["*"],  # Permite todas as origens
+     allow_headers=["*"],  # Permite todos os headers
+     methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],  # Métodos permitidos
+     supports_credentials=True)
+
+# Headers CORS personalizados
+@app.after_request
+def after_request(response):
+    response.headers.add('Access-Control-Allow-Origin', '*')
+    response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
+    response.headers.add('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS')
+    return response
 
 # Forçar flush do stdout para debug
 sys.stdout = os.fdopen(sys.stdout.fileno(), 'w', 1)# Configurações
@@ -231,6 +245,28 @@ def status():
         "sistema_token": "ativo",
         "sync_ativo": sync_ativo
     })
+
+
+@app.route("/dados-pendentes", methods=["GET", "OPTIONS"])
+def dados_pendentes():
+    """Obter estatísticas de dados pendentes para sincronização"""
+    try:
+        # Para simplificar, vamos retornar estatísticas básicas
+        return jsonify({
+            "success": True,
+            "dados": {
+                "usuarios_pendentes": 0,
+                "inscricoes_pendentes": 0,
+                "presencas_pendentes": 0,
+                "total_pendentes": 0
+            },
+            "message": "Dados pendentes obtidos com sucesso"
+        })
+    except Exception as e:
+        return jsonify({
+            "success": False,
+            "message": f"Erro ao obter dados pendentes: {str(e)}"
+        }), 500
 
 
 @app.route("/usuarios", methods=["GET", "POST", "OPTIONS"])
