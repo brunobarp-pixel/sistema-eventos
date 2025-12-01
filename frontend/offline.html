@@ -260,6 +260,9 @@
         const API_BASE_URL = 'http://177.44.248.118:8000/api'; // Laravel API 
         const PYTHON_API_URL = 'http://177.44.248.118:5000'; // Python API
         
+        // DEBUG: Cache-buster para forçar atualização
+        console.log('[DEBUG] Carregando offline.html - Timestamp:', new Date().getTime());
+        
         // Variáveis globais
         let offlineManager;
         let statusOnline = false;
@@ -268,6 +271,7 @@
         let inscricaoAtualId = null;
 
         // ==================== CADASTRO RÁPIDO ====================
+        console.log('[DEBUG] Definindo função cadastrarUsuario...');
         async function cadastrarUsuario(e) {
             e.preventDefault();
 
@@ -403,6 +407,8 @@
             console.log('marcarPresencaOffline existe?', typeof offlineManager.marcarPresencaOffline);
 
             // Eventos dos formulários
+            console.log('[DEBUG] cadastrarUsuario existe?', typeof cadastrarUsuario);
+            console.log('[DEBUG] criarInscricao existe?', typeof criarInscricao);
             document.getElementById('formCadastro')?.addEventListener('submit', cadastrarUsuario);
             document.getElementById('formInscricao')?.addEventListener('submit', criarInscricao);
 
@@ -450,8 +456,21 @@
 
         async function carregarEstatisticas() {
             try {
+                // Verificar se offlineManager está inicializado
+                if (!offlineManager) {
+                    console.warn('[Offline] OfflineManager não está inicializado ainda');
+                    return;
+                }
+                
                 const stats = offlineManager.obterEstatisticas();
                 console.log('[Offline] Estatísticas obtidas:', stats);
+                
+                // Verificar se stats existe e tem as propriedades esperadas
+                if (!stats) {
+                    console.warn('[Offline] Stats retornado é undefined');
+                    return;
+                }
+                
                 document.getElementById('totalUsuarios').textContent = stats.usuarios || 0;
                 document.getElementById('totalInscricoes').textContent = stats.inscricoes || 0;
                 document.getElementById('totalPresencas').textContent = stats.presencas || 0;
@@ -745,10 +764,7 @@
             }, 5000);
         }
 
-        // Máscaras de entrada removidas - cadastro simplificado
-        document.addEventListener('DOMContentLoaded', function() {
-            // Cadastro simplificado - apenas nome e email
-        });
+        console.log('[DEBUG] Todas as funções carregadas com sucesso!');
     </script>
 </body>
 
