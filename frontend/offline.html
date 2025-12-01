@@ -456,30 +456,37 @@
 
         async function carregarEstatisticas() {
             try {
-                // Verificar se offlineManager está inicializado
-                if (!offlineManager) {
-                    console.warn('[Offline] OfflineManager não está inicializado ainda');
-                    return;
+                const token = localStorage.getItem('token') || LARAVEL_TOKEN;
+                const resp = await fetch(`${OFFLINE_API}/dados-pendentes`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                if (!resp.ok) {
+                    throw new Error('Erro na resposta da API');
                 }
                 
-                const stats = offlineManager.obterEstatisticas();
-                console.log('[Offline] Estatísticas obtidas:', stats);
-                
-                // Verificar se stats existe e tem as propriedades esperadas
-                if (!stats) {
-                    console.warn('[Offline] Stats retornado é undefined');
-                    return;
+                const data = await resp.json();
+
+                if (data.success && data.data) {
+                    document.getElementById('totalUsuarios').textContent = data.data.usuarios?.length || 0;
+                    document.getElementById('totalInscricoes').textContent = data.data.inscricoes?.length || 0;
+                    document.getElementById('totalPresencas').textContent = data.data.presencas?.length || 0;
+                    document.getElementById('totalPendentes').textContent = data.data.total_pendente || 0;
+                } else {
+                    // Valores padrão se não conseguir carregar
+                    document.getElementById('totalUsuarios').textContent = todosUsuarios.length || 0;
+                    document.getElementById('totalInscricoes').textContent = todasInscricoes.length || 0;
+                    document.getElementById('totalPresencas').textContent = 0;
+                    document.getElementById('totalPendentes').textContent = 0;
                 }
-                
-                document.getElementById('totalUsuarios').textContent = stats.usuarios || 0;
-                document.getElementById('totalInscricoes').textContent = stats.inscricoes || 0;
-                document.getElementById('totalPresencas').textContent = stats.presencas || 0;
-                document.getElementById('totalPendentes').textContent = stats.pendentes || 0;
             } catch (error) {
-                console.error('[Offline] Erro ao carregar estatísticas:', error);
+                console.error('Erro ao carregar estatísticas:', error);
                 // Valores padrão em caso de erro
-                document.getElementById('totalUsuarios').textContent = 0;
-                document.getElementById('totalInscricoes').textContent = 0;
+                document.getElementById('totalUsuarios').textContent = todosUsuarios.length || 0;
+                document.getElementById('totalInscricoes').textContent = todasInscricoes.length || 0;
                 document.getElementById('totalPresencas').textContent = 0;
                 document.getElementById('totalPendentes').textContent = 0;
             }
@@ -639,6 +646,58 @@
             } catch (error) {
                 console.error('[CHECK-IN] ❌ Erro capturado:', error);
                 mostrarAlerta('Erro ao registrar presença: ' + error.message, 'danger');
+            }
+        }
+
+        // ==================== CADASTRO RÁPIDO ====================
+        async function cadastrarUsuario(e) {
+            e.preventDefault();
+
+            const dados = {
+                nome: document.getElementById('cadastroNome').value,
+                email: document.getElementById('cadastroEmail').value,
+                senha: 'senha123' // Senha padrão para cadastro rápido
+            };
+
+            try {
+                // Usar token do usuário logado ao invés do token do sistema
+                const token = localStorage.getItem('token') || LARAVEL_TOKEN;
+                
+                const response = await fetch(`${LARAVEL_API}/usuarios`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify(dados)
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    console.error('Erro detalhado:', errorData);
+                    
+                    if (response.status === 401) {
+                        mostrarAlerta('❌ Token expirado. Faça login novamente!', 'danger');
+                        return;
+                    }
+                    
+                    throw new Error(`Erro de validação: ${errorData.message || 'Dados inválidos'}`);
+                }
+
+                const data = await response.json();
+                
+                mostrarAlerta('✓ Usuário cadastrado! Login: email | Senha: senha123', 'success');
+                document.getElementById('formCadastro').reset();
+                
+                // Recarregar dados
+                setTimeout(() => {
+                    carregarDados();
+                    document.getElementById('inscricao-tab').click();
+                }, 1000);
+                
+            } catch (error) {
+                mostrarAlerta('Erro ao cadastrar: ' + error.message, 'danger');
+                console.error('Erro:', error);
             }
         }
 
