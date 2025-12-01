@@ -535,12 +535,17 @@ def endpoint_enviar_email_inscricao():
         data = request.get_json()
         print(f"[DEBUG INSCRICAO] Parsed JSON: {data}")
         
+        # Garantir compatibilidade: Laravel envia 'titulo', curl envia 'nome'
+        evento = data["evento"].copy()
+        if "titulo" in evento and "nome" not in evento:
+            evento["nome"] = evento["titulo"]
+        
         enviar_email_inscricao(
             {
                 "nome": data["usuario"]["nome"],
                 "email": data["usuario"]["email"]
             },
-            data["evento"]
+            evento
         )
         
         return jsonify({
@@ -561,12 +566,17 @@ def endpoint_enviar_email_checkin():
     data = request.get_json()
     
     try:
+        # Garantir compatibilidade: Laravel envia 'titulo', curl envia 'nome'
+        evento = data["evento"].copy()
+        if "titulo" in evento and "nome" not in evento:
+            evento["nome"] = evento["titulo"]
+        
         enviar_email_checkin(
             {
                 "nome": data["usuario"]["nome"],
                 "email": data["usuario"]["email"]
             },
-            data["evento"]
+            evento
         )
         
         return jsonify({
@@ -593,16 +603,17 @@ def endpoint_enviar_email_cancelamento():
         data = request.get_json()
         print(f"[DEBUG CANCELAMENTO] Parsed JSON: {data}")
         
+        # Garantir compatibilidade: Laravel envia 'titulo', curl envia 'nome'
+        evento = data["evento"].copy()
+        if "titulo" in evento and "nome" not in evento:
+            evento["nome"] = evento["titulo"]
+        
         usuario = {
             "nome": data["usuario"]["nome"],
             "email": data["usuario"]["email"]
         }
         
-        evento_cancelamento = {
-            "nome": data["evento"]["nome"]
-        }
-        
-        enviar_email_cancelamento(usuario, evento_cancelamento)
+        enviar_email_cancelamento(usuario, evento)
         
         return jsonify({
             "success": True,
