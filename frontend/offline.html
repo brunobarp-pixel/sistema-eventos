@@ -267,6 +267,67 @@
         let listaInscricoes = [];
         let inscricaoAtualId = null;
 
+        // ==================== CADASTRO RÁPIDO ====================
+        async function cadastrarUsuario(e) {
+            e.preventDefault();
+
+            const dados = {
+                nome: document.getElementById('cadastroNome').value,
+                email: document.getElementById('cadastroEmail').value,
+                senha: 'senha123' // Senha padrão para cadastro rápido
+            };
+
+            try {
+                // Usar token do usuário logado ao invés do token do sistema
+                const token = localStorage.getItem('token');
+                if (!token) {
+                    mostrarAlerta('❌ Você precisa estar logado para cadastrar usuários!', 'danger');
+                    return;
+                }
+                
+                const response = await fetch(`${API_BASE_URL}/usuarios`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify(dados)
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    console.error('Erro detalhado:', errorData);
+                    
+                    if (response.status === 401) {
+                        mostrarAlerta('❌ Token expirado. Faça login novamente!', 'danger');
+                        setTimeout(() => window.location.href = 'login.html', 2000);
+                        return;
+                    }
+                    
+                    throw new Error(`Erro de validação: ${errorData.message || 'Dados inválidos'}`);
+                }
+
+                const data = await response.json();
+                
+                // Adicionar aos dados locais
+                offlineManager.dados.usuarios.push(data.data);
+                offlineManager.salvarDadosNoStorage();
+                
+                mostrarAlerta('✓ Usuário cadastrado! Login: email | Senha: senha123', 'success');
+                document.getElementById('formCadastro').reset();
+                
+                // Recarregar dados
+                setTimeout(() => {
+                    atualizarSelectUsuarios();
+                    carregarEstatisticas();
+                }, 1000);
+                
+            } catch (error) {
+                mostrarAlerta('Erro ao cadastrar: ' + error.message, 'danger');
+                console.error('Erro:', error);
+            }
+        }
+
         // Inicializar com callbacks
         document.addEventListener('DOMContentLoaded', async function () {
             // Verificar se usuário está logado
@@ -388,11 +449,21 @@
         }
 
         async function carregarEstatisticas() {
-            const stats = offlineManager.obterEstatisticas();
-            document.getElementById('totalUsuarios').textContent = stats.totalUsuarios;
-            document.getElementById('totalInscricoes').textContent = stats.totalInscricoes;
-            document.getElementById('totalPresencas').textContent = stats.totalPresencas;
-            document.getElementById('totalPendentes').textContent = stats.totalPendentes;
+            try {
+                const stats = offlineManager.obterEstatisticas();
+                console.log('[Offline] Estatísticas obtidas:', stats);
+                document.getElementById('totalUsuarios').textContent = stats.usuarios || 0;
+                document.getElementById('totalInscricoes').textContent = stats.inscricoes || 0;
+                document.getElementById('totalPresencas').textContent = stats.presencas || 0;
+                document.getElementById('totalPendentes').textContent = stats.pendentes || 0;
+            } catch (error) {
+                console.error('[Offline] Erro ao carregar estatísticas:', error);
+                // Valores padrão em caso de erro
+                document.getElementById('totalUsuarios').textContent = 0;
+                document.getElementById('totalInscricoes').textContent = 0;
+                document.getElementById('totalPresencas').textContent = 0;
+                document.getElementById('totalPendentes').textContent = 0;
+            }
         }
 
         function atualizarSelectUsuarios() {
@@ -549,68 +620,6 @@
             } catch (error) {
                 console.error('[CHECK-IN] ❌ Erro capturado:', error);
                 mostrarAlerta('Erro ao registrar presença: ' + error.message, 'danger');
-            }
-        }
-
-        // ==================== CADASTRO RÁPIDO ====================
-        async function cadastrarUsuario(e) {
-            e.preventDefault();
-
-            const dados = {
-                nome: document.getElementById('cadastroNome').value,
-                email: document.getElementById('cadastroEmail').value,
-                senha: 'senha123' // Senha padrão para cadastro rápido
-            };
-
-            try {
-                // Usar token do usuário logado ao invés do token do sistema
-                const token = localStorage.getItem('token');
-                if (!token) {
-                    mostrarAlerta('❌ Você precisa estar logado para cadastrar usuários!', 'danger');
-                    return;
-                }
-                
-                const response = await fetch(`${API_BASE_URL}/usuarios`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${token}`
-                    },
-                    body: JSON.stringify(dados)
-                });
-
-                if (!response.ok) {
-                    const errorData = await response.json();
-                    console.error('Erro detalhado:', errorData);
-                    
-                    if (response.status === 401) {
-                        mostrarAlerta('❌ Token expirado. Faça login novamente!', 'danger');
-                        setTimeout(() => window.location.href = 'login.html', 2000);
-                        return;
-                    }
-                    
-                    throw new Error(`Erro de validação: ${errorData.message || 'Dados inválidos'}`);
-                }
-
-                const data = await response.json();
-                
-                // Adicionar aos dados locais
-                offlineManager.dados.usuarios.push(data.data);
-                offlineManager.salvarDadosNoStorage();
-                
-                mostrarAlerta('✓ Usuário cadastrado! Login: email | Senha: senha123', 'success');
-                document.getElementById('formCadastro').reset();
-                
-                // Recarregar dados
-                setTimeout(() => {
-                    atualizarSelectUsuarios();
-                    document.getElementById('cadastro-tab').classList.remove('active');
-                    document.getElementById('inscricao-tab').classList.add('active');
-                }, 1000);
-                
-            } catch (error) {
-                mostrarAlerta('Erro ao cadastrar: ' + error.message, 'danger');
-                console.error('Erro:', error);
             }
         }
 
