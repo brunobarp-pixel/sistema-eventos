@@ -207,9 +207,12 @@ class InscricaoController extends Controller
                 $inscricao = $inscricaoCancelada;
                 $mensagem = 'Inscrição reativada com sucesso! Verifique seu e-mail.';
             } else {
+                // Determinar usuário: se tem usuario_id na request (sistema offline), usar ele; senão usar usuário autenticado
+                $usuarioId = $request->has('usuario_id') ? $request->usuario_id : $usuario->id;
+                
                 // Criar nova inscrição
                 $inscricao = Inscricao::create([
-                    'usuario_id' => $usuario->id,
+                    'usuario_id' => $usuarioId,
                     'evento_id' => $request->evento_id,
                     'status' => 'confirmada',
                     'data_inscricao' => now()
