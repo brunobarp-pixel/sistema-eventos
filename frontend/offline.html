@@ -545,11 +545,12 @@
             };
 
             try {
+                const token = await offlineManager.obterTokenSistema();
                 const response = await fetch(`${API_BASE_URL}/usuarios`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${offlineManager.getToken()}`
+                        'Authorization': `Bearer ${token}`
                     },
                     body: JSON.stringify(dados)
                 });
