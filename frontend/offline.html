@@ -310,6 +310,18 @@
             });
 
             // Carregar dados inicialmente
+            console.log('[Offline.html] Inicializando OfflineManager...');
+            
+            // Primeiro inicializar o sistema (tokens, etc)
+            const inicializacao = await offlineManager.inicializar();
+            if (inicializacao) {
+                console.log('[Offline.html] ✅ Sistema inicializado com sucesso');
+            } else {
+                console.warn('[Offline.html] ⚠️ Sistema inicializado com limitações');
+                mostrarAlerta('⚠️ Sistema funcionando em modo limitado - algumas funcionalidades podem não estar disponíveis', 'warning');
+            }
+            
+            // Depois carregar dados
             await offlineManager.carregarTodosDados();
 
             // Debug: verificar se os métodos existem

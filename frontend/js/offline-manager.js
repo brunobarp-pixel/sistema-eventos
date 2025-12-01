@@ -41,8 +41,47 @@ class OfflineManager {
         
         // Token fixo do sistema para autenticação
         this.SISTEMA_TOKEN = null;
+        this.inicializandoToken = false;
         
         console.log('[OfflineManager] Inicializado em modo simplificado');
+        console.log('[OfflineManager] ℹ️ Use await offlineManager.inicializar() para configurar tokens automaticamente');
+    }
+    
+    /**
+     * Inicializar sistema offline com token automático
+     */
+    async inicializar() {
+        // Evitar múltiplas inicializações simultâneas
+        if (this.inicializandoToken) {
+            console.log('[OfflineManager] ⏳ Inicialização já em andamento...');
+            return false;
+        }
+        
+        try {
+            this.inicializandoToken = true;
+            console.log('[OfflineManager] 🚀 Inicializando sistema offline...');
+            
+            // Obter token automaticamente
+            const token = await this.obterTokenSistema();
+            if (token) {
+                console.log('[OfflineManager] ✅ Sistema inicializado com token válido');
+            } else {
+                console.warn('[OfflineManager] ⚠️ Sistema inicializado sem token - funcionalidade limitada');
+            }
+            
+            // Carregar dados se offline
+            if (this.modoOfflineEstatico) {
+                await this.carregarDadosOfflineEstatico();
+            }
+            
+            return true;
+            
+        } catch (error) {
+            console.error('[OfflineManager] ❌ Erro na inicialização:', error);
+            return false;
+        } finally {
+            this.inicializandoToken = false;
+        }
     }
     
     /**
@@ -50,48 +89,120 @@ class OfflineManager {
      */
     async obterTokenSistema() {
         try {
-            // Verificar se já tem token armazenado
+            // Verificar se já tem token válido armazenado
             const tokenArmazenado = localStorage.getItem(this.STORAGE_KEYS.SISTEMA_TOKEN);
             if (tokenArmazenado) {
-                this.SISTEMA_TOKEN = tokenArmazenado;
-                console.log('[OfflineManager] 🔑 Token do sistema recuperado do localStorage');
-                return tokenArmazenado;
+                // Testar se token ainda é válido
+                if (await this.validarToken(tokenArmazenado)) {
+                    this.SISTEMA_TOKEN = tokenArmazenado;
+                    console.log('[OfflineManager] 🔑 Token do sistema recuperado e validado');
+                    return tokenArmazenado;
+                } else {
+                    console.warn('[OfflineManager] ⚠️ Token armazenado expirado, obtendo novo...');
+                    localStorage.removeItem(this.STORAGE_KEYS.SISTEMA_TOKEN);
+                }
             }
             
-            // Obter novo token do servidor Python
-            console.log('[OfflineManager] 🔑 Obtendo token do sistema...');
-            const response = await fetch(`${this.OFFLINE_API}/sistema-token`);
-            
-            if (response.ok) {
-                const data = await response.json();
-                this.SISTEMA_TOKEN = data.token;
-                
-                // Armazenar token
-                localStorage.setItem(this.STORAGE_KEYS.SISTEMA_TOKEN, data.token);
-                
-                console.log('[OfflineManager] ✅ Token do sistema obtido:', data.usuario.nome);
-                return data.token;
-            } else {
-                console.warn('[OfflineManager] ⚠️ Falha ao obter token do sistema');
-                return null;
+            // Tentar obter token do Laravel primeiro
+            console.log('[OfflineManager] 🔑 Tentando obter token do Laravel...');
+            const laravelToken = await this.obterTokenDoLaravel();
+            if (laravelToken) {
+                this.SISTEMA_TOKEN = laravelToken;
+                localStorage.setItem(this.STORAGE_KEYS.SISTEMA_TOKEN, laravelToken);
+                console.log('[OfflineManager] ✅ Token obtido do Laravel');
+                return laravelToken;
             }
+            
+            // Fallback para servidor Python
+            console.log('[OfflineManager] 🔑 Fallback: obtendo token do Python...');
+            const pythonToken = await this.obterTokenDoPython();
+            if (pythonToken) {
+                this.SISTEMA_TOKEN = pythonToken;
+                localStorage.setItem(this.STORAGE_KEYS.SISTEMA_TOKEN, pythonToken);
+                console.log('[OfflineManager] ✅ Token obtido do Python');
+                return pythonToken;
+            }
+            
+            console.error('[OfflineManager] ❌ Falha ao obter token de qualquer fonte');
+            return null;
             
         } catch (error) {
             console.error('[OfflineManager] ❌ Erro ao obter token do sistema:', error);
             return null;
         }
     }
+
+    /**
+     * Validar se token ainda é válido
+     */
+    async validarToken(token) {
+        try {
+            const response = await fetch(`${this.OFFLINE_API}/validar-token`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+            return response.ok;
+        } catch (error) {
+            console.warn('[OfflineManager] Erro ao validar token:', error);
+            return false;
+        }
+    }
+
+    /**
+     * Obter token do Laravel
+     */
+    async obterTokenDoLaravel() {
+        try {
+            const response = await fetch('http://177.44.248.118:8000/api/auth/sistema-token');
+            if (response.ok) {
+                const data = await response.json();
+                console.log('[OfflineManager] ✅ Token Laravel obtido:', data.user?.name);
+                return data.token;
+            }
+        } catch (error) {
+            console.warn('[OfflineManager] Erro ao obter token do Laravel:', error);
+        }
+        return null;
+    }
+
+    /**
+     * Obter token do Python (fallback)
+     */
+    async obterTokenDoPython() {
+        try {
+            const response = await fetch(`${this.OFFLINE_API}/sistema-token`);
+            if (response.ok) {
+                const data = await response.json();
+                console.log('[OfflineManager] ✅ Token Python obtido:', data.usuario?.nome);
+                return data.token;
+            }
+        } catch (error) {
+            console.warn('[OfflineManager] Erro ao obter token do Python:', error);
+        }
+        return null;
+    }
     
     /**
      * Obter headers com autenticação
      */
-    getAuthHeaders() {
+    async getAuthHeaders() {
         const headers = {
             'Content-Type': 'application/json'
         };
         
+        // Garantir que temos um token válido
+        if (!this.SISTEMA_TOKEN && !this.inicializandoToken) {
+            console.log('[OfflineManager] 🔄 Token não encontrado, obtendo automaticamente...');
+            await this.obterTokenSistema();
+        }
+        
         if (this.SISTEMA_TOKEN) {
             headers['Authorization'] = `Bearer ${this.SISTEMA_TOKEN}`;
+        } else {
+            console.warn('[OfflineManager] ⚠️ Nenhum token disponível para autenticação');
         }
         
         return headers;
@@ -216,8 +327,9 @@ class OfflineManager {
      */
     async buscarUsuarios() {
         try {
+            const headers = await this.getAuthHeaders();
             const response = await fetch(`${this.OFFLINE_API}/usuarios`, {
-                headers: this.getAuthHeaders()
+                headers: headers
             });
             
             if (response.ok) {
@@ -236,8 +348,9 @@ class OfflineManager {
      */
     async buscarInscricoes() {
         try {
+            const headers = await this.getAuthHeaders();
             const response = await fetch(`${this.OFFLINE_API}/inscricoes`, {
-                headers: this.getAuthHeaders()
+                headers: headers
             });
             
             if (response.ok) {
@@ -256,8 +369,9 @@ class OfflineManager {
      */
     async buscarPresencas() {
         try {
+            const headers = await this.getAuthHeaders();
             const response = await fetch(`${this.OFFLINE_API}/presencas`, {
-                headers: this.getAuthHeaders()
+                headers: headers
             });
             
             if (response.ok) {
@@ -392,11 +506,13 @@ class OfflineManager {
             };
             console.log(`[OfflineManager] 📤 Enviando dados:`, requestBody);
             
+            // Obter headers com autenticação
+            const headers = await this.getAuthHeaders();
+            headers['Content-Type'] = 'application/json';
+            
             const response = await fetch(`${this.OFFLINE_API}/presencas`, {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
+                headers: headers,
                 body: JSON.stringify(requestBody)
             });
             
@@ -497,11 +613,13 @@ class OfflineManager {
         for (const presenca of presencasNaoSincronizadas) {
             console.log(this.OFFLINE_API)
             try {
+                // Obter headers com autenticação
+                const headers = await this.getAuthHeaders();
+                headers['Content-Type'] = 'application/json';
+                
                 const response = await fetch(`${this.OFFLINE_API}/presencas`, {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
+                    headers: headers,
                     body: JSON.stringify({
                         inscricao_id: presenca.inscricao_id,
                         evento_id: presenca.evento_id,

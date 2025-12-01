@@ -186,8 +186,21 @@ def sistema_token():
 @app.route("/validar-token", methods=["POST"])
 def validar_token():
     """Validar se o token é válido"""
-    data = request.get_json()
-    token = data.get('token') if data else None
+    # Tentar obter token do header Authorization
+    auth_header = request.headers.get('Authorization')
+    if auth_header and auth_header.startswith('Bearer '):
+        token = auth_header.split(' ')[1]
+    else:
+        # Fallback: tentar obter do body JSON
+        data = request.get_json()
+        token = data.get('token') if data else None
+    
+    if not token:
+        return jsonify({
+            "success": False,
+            "valid": False,
+            "message": "Token não fornecido"
+        }), 400
     
     if token == SISTEMA_OFFLINE_TOKEN:
         return jsonify({

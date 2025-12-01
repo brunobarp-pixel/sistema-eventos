@@ -46,6 +46,10 @@
                 
                 console.log('✅ OfflineManager criado');
                 
+                // Inicializar sistema com tokens
+                console.log('🔄 Inicializando tokens...');
+                await offlineManager.inicializar();
+                
                 // Testar carregamento de dados
                 const dados = await offlineManager.carregarTodosDados();
                 
