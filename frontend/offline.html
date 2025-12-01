@@ -256,12 +256,19 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="js/offline-manager.js"></script>
     <script>
-        // Configuração do Offline Manager
+        // ==================== CONFIGURAÇÕES DE API ====================
         const API_BASE_URL = 'http://177.44.248.118:8000/api'; // Laravel API 
         const PYTHON_API_URL = 'http://177.44.248.118:5000'; // Python API
+        const LARAVEL_API = 'http://177.44.248.118:8000/api'; // Alias para compatibilidade
+        const OFFLINE_API = 'http://177.44.248.118:5000'; // Alias para compatibilidade
+        const LARAVEL_TOKEN = '70|VaI5IynnhSWh5OcaRzbL4mZq4WnXSjPDf003cqSE65c407fe';
         
         // DEBUG: Cache-buster para forçar atualização
         console.log('[DEBUG] Carregando offline.html - Timestamp:', new Date().getTime());
+        console.log('[DEBUG] APIs configuradas:', {
+            laravel: LARAVEL_API,
+            python: OFFLINE_API
+        });
         
         // Variáveis globais
         let offlineManager;
@@ -269,6 +276,8 @@
         let listaUsuarios = [];
         let listaInscricoes = [];
         let inscricaoAtualId = null;
+        let todosUsuarios = []; // Para compatibilidade com estatísticas
+        let todasInscricoes = []; // Para compatibilidade com estatísticas
 
         // ==================== CADASTRO RÁPIDO ====================
         console.log('[DEBUG] Definindo função cadastrarUsuario...');
@@ -476,18 +485,26 @@
                     document.getElementById('totalPresencas').textContent = data.data.presencas?.length || 0;
                     document.getElementById('totalPendentes').textContent = data.data.total_pendente || 0;
                 } else {
-                    // Valores padrão se não conseguir carregar
-                    document.getElementById('totalUsuarios').textContent = todosUsuarios.length || 0;
-                    document.getElementById('totalInscricoes').textContent = todasInscricoes.length || 0;
-                    document.getElementById('totalPresencas').textContent = 0;
+                    // Valores padrão se não conseguir carregar - usar dados do offlineManager
+                    const usuarios = offlineManager?.dados?.usuarios || [];
+                    const inscricoes = offlineManager?.dados?.inscricoes || [];
+                    const presencas = offlineManager?.dados?.presencas || [];
+                    
+                    document.getElementById('totalUsuarios').textContent = usuarios.length || 0;
+                    document.getElementById('totalInscricoes').textContent = inscricoes.length || 0;
+                    document.getElementById('totalPresencas').textContent = presencas.length || 0;
                     document.getElementById('totalPendentes').textContent = 0;
                 }
             } catch (error) {
                 console.error('Erro ao carregar estatísticas:', error);
-                // Valores padrão em caso de erro
-                document.getElementById('totalUsuarios').textContent = todosUsuarios.length || 0;
-                document.getElementById('totalInscricoes').textContent = todasInscricoes.length || 0;
-                document.getElementById('totalPresencas').textContent = 0;
+                // Valores padrão em caso de erro - usar dados do offlineManager
+                const usuarios = offlineManager?.dados?.usuarios || [];
+                const inscricoes = offlineManager?.dados?.inscricoes || [];
+                const presencas = offlineManager?.dados?.presencas || [];
+                
+                document.getElementById('totalUsuarios').textContent = usuarios.length || 0;
+                document.getElementById('totalInscricoes').textContent = inscricoes.length || 0;
+                document.getElementById('totalPresencas').textContent = presencas.length || 0;
                 document.getElementById('totalPendentes').textContent = 0;
             }
         }
