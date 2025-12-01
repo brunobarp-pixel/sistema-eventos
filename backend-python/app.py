@@ -526,9 +526,15 @@ def presencas():
 @app.route("/enviar-email-inscricao", methods=["POST"])
 def endpoint_enviar_email_inscricao():
     """Enviar email de confirmação de inscrição"""
-    data = request.get_json()
-    
     try:
+        # Log detalhado para debug
+        print(f"[DEBUG INSCRICAO] Headers: {dict(request.headers)}")
+        print(f"[DEBUG INSCRICAO] Content-Type: {request.content_type}")
+        print(f"[DEBUG INSCRICAO] Raw data: {request.get_data()}")
+        
+        data = request.get_json()
+        print(f"[DEBUG INSCRICAO] Parsed JSON: {data}")
+        
         enviar_email_inscricao(
             {
                 "nome": data["usuario"]["nome"],
@@ -578,9 +584,15 @@ def endpoint_enviar_email_checkin():
 @app.route("/enviar-email-cancelamento", methods=["POST"])
 def endpoint_enviar_email_cancelamento():
     """Enviar email de cancelamento de inscrição"""
-    data = request.get_json()
-    
     try:
+        # Log detalhado para debug
+        print(f"[DEBUG CANCELAMENTO] Headers: {dict(request.headers)}")
+        print(f"[DEBUG CANCELAMENTO] Content-Type: {request.content_type}")
+        print(f"[DEBUG CANCELAMENTO] Raw data: {request.get_data()}")
+        
+        data = request.get_json()
+        print(f"[DEBUG CANCELAMENTO] Parsed JSON: {data}")
+        
         usuario = {
             "nome": data["usuario"]["nome"],
             "email": data["usuario"]["email"]
