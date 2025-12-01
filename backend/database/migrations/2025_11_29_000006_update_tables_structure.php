@@ -20,7 +20,7 @@ return new class extends Migration
 
         if (!Schema::hasColumn('usuarios', 'remember_token')) {
             Schema::table('usuarios', function (Blueprint $table) {
-                $table->string('remember_token')->nullable()->after('password');
+                $table->string('remember_token')->nullable()->after('senha');
             });
         }
 
