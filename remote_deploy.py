@@ -1,8 +1,5 @@
 #!/usr/bin/env python3
-"""
-Deploy Remoto - Sistema de Eventos
-Script para facilitar deploy na VM 177.44.248.118
-"""
+
 
 import subprocess
 import sys
@@ -32,19 +29,19 @@ def print_banner():
 
 def print_info(msg):
     """Imprime mensagem informativa"""
-    print(f"{Colors.BLUE}ℹ  {msg}{Colors.END}")
+    print(f"{Colors.BLUE} {msg}{Colors.END}")
 
 def print_success(msg):
     """Imprime mensagem de sucesso"""
-    print(f"{Colors.GREEN}✅ {msg}{Colors.END}")
+    print(f"{Colors.GREEN} {msg}{Colors.END}")
 
 def print_warning(msg):
     """Imprime mensagem de aviso"""
-    print(f"{Colors.YELLOW}⚠  {msg}{Colors.END}")
+    print(f"{Colors.YELLOW}  {msg}{Colors.END}")
 
 def print_error(msg):
     """Imprime mensagem de erro"""
-    print(f"{Colors.RED}❌ {msg}{Colors.END}")
+    print(f"{Colors.RED} {msg}{Colors.END}")
 
 def run_command(cmd, description=None, show_output=True):
     """Executa comando e retorna status"""

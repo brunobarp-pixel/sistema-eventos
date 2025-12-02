@@ -8,7 +8,6 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
 </head>
 <body>
-    <!-- Navbar -->
     <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
         <div class="container">
             <a class="navbar-brand" href="index.html">
@@ -36,7 +35,6 @@
         </div>
     </nav>
 
-    <!-- Header -->
     <div class="bg-primary text-white py-5">
         <div class="container">
             <h1 class="display-4"><i class="bi bi-calendar-event"></i> Eventos Disponíveis</h1>
@@ -44,9 +42,7 @@
         </div>
     </div>
 
-    <!-- Conteúdo -->
     <div class="container my-5">
-        <!-- Filtros -->
         <div class="row mb-4">
             <div class="col-md-6">
                 <input type="text" class="form-control" id="searchInput" placeholder="Buscar eventos...">
@@ -65,7 +61,6 @@
             </div>
         </div>
 
-        <!-- Loading -->
         <div id="loading" class="text-center py-5">
             <div class="spinner-border text-primary" role="status">
                 <span class="visually-hidden">Carregando...</span>
@@ -73,18 +68,15 @@
             <p class="mt-3">Carregando eventos...</p>
         </div>
 
-        <!-- Lista de Eventos -->
         <div id="eventosContainer" class="row" style="display: none;">
-            <!-- Os eventos serão inseridos aqui via JavaScript -->
+            <!-- Os eventos serão inseridos aqui via JS -->
         </div>
 
-        <!-- Mensagem de erro -->
         <div id="errorMessage" class="alert alert-danger" style="display: none;">
             <i class="bi bi-exclamation-triangle"></i> Erro ao carregar eventos. Verifique se o servidor está rodando.
         </div>
     </div>
 
-    <!-- Modal Detalhes do Evento -->
     <div class="modal fade" id="eventoModal" tabindex="-1">
         <div class="modal-dialog modal-lg">
             <div class="modal-content">
@@ -93,7 +85,6 @@
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body" id="eventoModalBody">
-                    <!-- Detalhes serão inseridos aqui -->
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
@@ -110,7 +101,6 @@
         const API_URL = 'http://177.44.248.118:8000/api';
         let eventoSelecionado = null;
 
-        // Carregar eventos ao abrir a página
         document.addEventListener('DOMContentLoaded', function() {
             carregarEventos();
         });
@@ -249,13 +239,11 @@
     const token = localStorage.getItem('token');
     
     if (!usuarioData || !token) {
-        // Não está logado, salvar evento e redirecionar para login
         localStorage.setItem('eventoParaInscricao', JSON.stringify(eventoSelecionado));
         window.location.href = 'login.html?redirect=inscricao';
         return;
     }
 
-    // Está logado, fazer inscrição diretamente
     const usuario = JSON.parse(usuarioData);
     
     try {
@@ -273,9 +261,8 @@
                 const data = await response.json();
 
                 if (data.success) {
-                    alert('✓ Inscrição realizada com sucesso! Você receberá um e-mail de confirmação.');
+                    alert('Inscrição realizada com sucesso! Você receberá um e-mail de confirmação.');
                     
-                    // Fechar modal e redirecionar
                     const modal = bootstrap.Modal.getInstance(document.getElementById('eventoModal'));
                     modal.hide();
                     

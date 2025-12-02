@@ -21,7 +21,6 @@
 </head>
 
 <body>
-    <!-- Navbar -->
     <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
         <div class="container">
             <a class="navbar-brand" href="index.html">
@@ -55,7 +54,6 @@
         </div>
     </nav>
 
-    <!-- Header -->
     <div class="bg-primary text-white py-5">
         <div class="container">
             <h1 class="display-4"><i class="bi bi-list-check"></i> Minhas Inscrições</h1>
@@ -63,12 +61,9 @@
         </div>
     </div>
 
-    <!-- Conteúdo -->
     <div class="container my-5">
-        <!-- Alertas -->
         <div id="alertContainer"></div>
 
-        <!-- Abas -->
         <ul class="nav nav-tabs mb-4" id="inscricoesTab" role="tablist">
             <li class="nav-item" role="presentation">
                 <button class="nav-link active" id="minhas-tab" data-bs-toggle="tab" data-bs-target="#minhas">
@@ -82,10 +77,8 @@
             </li>
         </ul>
 
-        <!-- Conteúdo das Abas -->
         <div class="tab-content" id="inscricoesTabContent">
 
-            <!-- Aba: Minhas Inscrições -->
             <div class="tab-pane fade show active" id="minhas" role="tabpanel">
                 <div id="loadingInscricoes" class="text-center py-5">
                     <div class="spinner-border text-primary" role="status"></div>
@@ -93,11 +86,9 @@
                 </div>
 
                 <div id="inscricoesContainer" style="display: none;">
-                    <!-- Inscrições serão inseridas aqui -->
                 </div>
             </div>
 
-            <!-- Aba: Certificados -->
             <div class="tab-pane fade" id="certificados" role="tabpanel">
                 <div id="loadingCertificados" class="text-center py-5">
                     <div class="spinner-border text-primary" role="status"></div>
@@ -105,7 +96,6 @@
                 </div>
 
                 <div id="certificadosContainer" style="display: none;">
-                    <!-- Certificados serão inseridos aqui -->
                 </div>
 
                 <div class="card mt-4">
@@ -140,7 +130,6 @@ const API_URL = 'http://177.44.248.118:8000/api';
 
 let usuario = null;
 
-// Headers padrão com autenticação
 const getHeaders = () => {
     const token = localStorage.getItem('token');
     return {
@@ -150,7 +139,6 @@ const getHeaders = () => {
     };
 };
 
-        // Verificar autenticação
         document.addEventListener('DOMContentLoaded', function () {
             const usuarioData = localStorage.getItem('usuario');
 
@@ -167,7 +155,6 @@ const getHeaders = () => {
             carregarCertificados();
         });
 
-        // ==================== MINHAS INSCRIÇÕES ====================
         async function carregarInscricoes() {
             const loading = document.getElementById('loadingInscricoes');
             const container = document.getElementById('inscricoesContainer');
@@ -182,7 +169,6 @@ const getHeaders = () => {
         const url = `${API_URL}/usuarios/${usuario.id}/inscricoes`;
         console.log('URL da requisição:', url);
         
-        // CORRIGIDO: fetch COM parênteses (estava sem)
         const response = await fetch(url, {
             headers: {
                 'Authorization': `Bearer ${token}`,
@@ -211,8 +197,6 @@ const getHeaders = () => {
             loading.style.display = 'none';
             container.style.display = 'block';
             
-            // DEBUG: Verificar dados recebidos
-            console.log('=== DEBUG exibirInscricoes ===');
             console.log('Quantidade de inscrições:', inscricoes.length);
             console.log('Dados completos:', inscricoes);
             
@@ -232,7 +216,6 @@ const getHeaders = () => {
                 return;
             }
 
-            // DEBUG: Adicionar alerta com dados da primeira inscrição
             if (inscricoes.length > 0) {
                 const primeira = inscricoes[0];
                 alert(`DEBUG - Primeira inscrição:\nID: ${primeira.id}\nStatus: ${primeira.status}\nPossui presença: ${primeira.possui_presenca}\nEvento: ${primeira.evento.titulo}`);
@@ -265,7 +248,6 @@ const getHeaders = () => {
                                     </p>
                                     ${!inscricao.possui_presenca ? '<p class="text-muted mt-2 mb-2"><small><i class="bi bi-info-circle"></i> O check-in será feito pelos atendentes no dia do evento</small></p>' : ''}
                                     
-                                    <!-- Botão Cancelar - SEMPRE VISÍVEL PARA TESTE -->
                                     <div class="mt-3">
                                         <button class="btn btn-outline-danger" onclick="cancelarInscricao(${inscricao.id})">
                                             <i class="bi bi-x-circle"></i> Cancelar Inscrição (ID: ${inscricao.id})
@@ -280,7 +262,6 @@ const getHeaders = () => {
             });
         }
 
-        // ==================== CERTIFICADOS ====================
         async function carregarCertificados() {
             const loading = document.getElementById('loadingCertificados');
             const container = document.getElementById('certificadosContainer');
@@ -441,23 +422,19 @@ const getHeaders = () => {
             }
         }
 
-        // Função auxiliar para converter data DD/MM/YYYY para YYYY-MM-DD
         function converterDataParaISO(dataString) {
-            // Se a data já está no formato ISO (YYYY-MM-DD), retorna direto
             if (dataString.includes('-') && dataString.indexOf('-') === 4) {
-                return dataString.split(' ')[0]; // Remove hora se tiver
+                return dataString.split(' ')[0]; 
             }
 
-            // Se está no formato DD/MM/YYYY, converte
             if (dataString.includes('/')) {
-                const partes = dataString.split(' ')[0].split('/'); // Remove hora e divide
+                const partes = dataString.split(' ')[0].split('/'); 
                 if (partes.length === 3) {
                     const [dia, mes, ano] = partes;
                     return `${ano}-${mes.padStart(2, '0')}-${dia.padStart(2, '0')}`;
                 }
             }
 
-            // Fallback: tenta usar como Date
             const data = new Date(dataString);
             if (!isNaN(data.getTime())) {
                 const ano = data.getFullYear();
@@ -466,21 +443,20 @@ const getHeaders = () => {
                 return `${ano}-${mes}-${dia}`;
             }
 
-            return dataString; // Retorna original se não conseguir converter
+            return dataString; 
         }
 
         async function baixarCertificadoPDF(certificadoId, eventoTitulo) {
             try {
-                console.log('🔥 [PDF] Iniciando download do certificado:', { certificadoId, eventoTitulo });
-                mostrarAlerta('📥 Gerando certificado...', 'info');
+                console.log('Iniciando download do certificado:', { certificadoId, eventoTitulo });
+                mostrarAlerta('Gerando certificado...', 'info');
 
-                // Buscar dados do certificado pelo CÓDIGO, não pelo ID
-                console.log('🔥 [PDF] Buscando certificados do usuário:', usuario.id);
+                console.log('Buscando certificados do usuário:', usuario.id);
         const certResponse = await fetch(`${API_URL}/certificados/usuario/${usuario.id}`, {
             headers: getHeaders()
         });
                 const certData = await certResponse.json();
-                console.log('🔥 [PDF] Resposta dos certificados:', certData);
+                console.log('Resposta dos certificados:', certData);
 
                 if (!certData.success || certData.data.length === 0) {
                     throw new Error('Nenhum certificado encontrado');
@@ -488,19 +464,18 @@ const getHeaders = () => {
 
                 // Encontrar o certificado específico
                 const cert = certData.data.find(c => c.id == certificadoId);
-                console.log('🔥 [PDF] Certificado encontrado:', cert);
+                console.log('Certificado encontrado:', cert);
 
                 if (!cert) {
                     throw new Error('Certificado não encontrado');
                 }
 
-                // Buscar validação para obter dados completos
-                console.log('🔥 [PDF] Validando certificado:', cert.codigo_validacao);
+                console.log('Validando certificado:', cert.codigo_validacao);
                 const validResponse = await fetch(`${API_URL}/certificados/${cert.codigo_validacao}`, {
                     headers: getHeaders()
                 });
                 const validData = await validResponse.json();
-                console.log('🔥 [PDF] Dados de validação:', validData);
+                console.log('Dados de validação:', validData);
 
                 if (!validData.success) {
                     throw new Error('Erro ao validar certificado');
@@ -508,7 +483,6 @@ const getHeaders = () => {
 
                 const certCompleto = validData.data;
 
-                // Preparar dados para o PDF
                 const dadosPDF = {
                     nome_participante: certCompleto.participante.nome,
                     evento_titulo: certCompleto.evento.titulo,
@@ -521,23 +495,21 @@ const getHeaders = () => {
                     data_emissao: certCompleto.data_emissao.replace(/\//g, '-') + ' 00:00:00'
                 };
                 
-                console.log('🔥 [PDF] Dados para gerar PDF:', dadosPDF);
+                console.log('Dados para gerar PDF:', dadosPDF);
 
-                // Chamar Python para gerar PDF
                 const pdfResponse = await fetch('http://177.44.248.118:5000/gerar-certificado-pdf', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(dadosPDF)
                 });
 
-                console.log('🔥 [PDF] Status da resposta Python:', pdfResponse.status);
+                console.log('Status da resposta Python:', pdfResponse.status);
                 const pdfData = await pdfResponse.json();
-                console.log('🔥 [PDF] Resposta do Python:', pdfData);
+                console.log('Resposta do Python:', pdfData);
 
                 if (pdfData.success && pdfData.pdf_path) {
-                    // Baixar o PDF gerado
                     const downloadUrl = `http://177.44.248.118:5000/download-pdf/${encodeURIComponent(pdfData.pdf_path)}`;
-                    console.log('🔥 [PDF] URL de download:', downloadUrl);
+                    console.log('URL de download:', downloadUrl);
                     
                     const downloadResponse = await fetch(downloadUrl);
 
@@ -545,8 +517,8 @@ const getHeaders = () => {
                         throw new Error(`Erro ao baixar PDF: ${downloadResponse.status}`);
                     }
 
-                    const blob = await downloadResponse.blob();
-                    console.log('🔥 [PDF] Blob gerado:', blob.size, 'bytes');
+                    const blob = await downloadResponse.blob();//objeto binário 
+                    console.log('blob gerado:', blob.size, 'bytes');
                     
                     const url = window.URL.createObjectURL(blob);
                     const a = document.createElement('a');
@@ -558,15 +530,15 @@ const getHeaders = () => {
                     window.URL.revokeObjectURL(url);
                     document.body.removeChild(a);
 
-                    mostrarAlerta('✅ Certificado baixado com sucesso!', 'success');
-                    console.log('🔥 [PDF] Download concluído com sucesso!');
+                    mostrarAlerta('Certificado baixado com sucesso!', 'success');
+                    console.log('Download concluído com sucesso!');
                 } else {
                     throw new Error('Erro ao gerar PDF: ' + (pdfData.message || 'Resposta inválida'));
                 }
 
             } catch (error) {
-                console.error('❌ [PDF] Erro ao baixar PDF:', error);
-                mostrarAlerta(`❌ ${error.message}`, 'danger');
+                console.error('Erro ao baixar PDF:', error);
+                mostrarAlerta(`${error.message}`, 'danger');
             }
         }
 

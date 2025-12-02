@@ -1,7 +1,3 @@
-/**
- * Sistema de Gerenciamento Offline - OfflineManager
- * Gerencia o carregamento de dados, armazenamento local e sincronização
- */
 
 class OfflineManager {
     constructor(config = {}) {
@@ -38,14 +34,10 @@ class OfflineManager {
         };
     }
 
-    /**
-     * Verificar conexão com internet
-     */
     async verificarConexao() {
         const statusAnterior = this.isOnline;
         
         try {
-            // Usar endpoint simples sem autenticação
             const response = await Promise.race([
                 fetch(`${this.API_BASE.replace('/api', '')}/`, { 
                     method: 'GET'
@@ -68,14 +60,10 @@ class OfflineManager {
         return this.isOnline;
     }
 
-    /**
-     * Carregar todos os dados necessários do servidor
-     */
     async carregarTodosDados() {
         console.log('[OfflineManager] Carregando dados...');
         
         try {
-            // Primeiro verificar conexão
             await this.verificarConexao();
 
             if (!this.isOnline) {
@@ -85,21 +73,18 @@ class OfflineManager {
                 return this.dados;
             }
 
-            // Se online, carregar eventos sem exigir autenticação
             console.log('[OfflineManager] Sistema online - carregando eventos...');
             
             const eventos = await this.carregarEventosSemAuth();
             
-            // Inicializar dados básicos
             this.dados = {
                 usuarios: [],
                 eventos: eventos || [],
                 inscricoes: [],
                 presencas: [],
-                filaSincronizacao: this.dados.filaSincronizacao || [] // Manter fila existente
+                filaSincronizacao: this.dados.filaSincronizacao || [] 
             };
 
-            // Tentar carregar dados do localStorage para complementar
             const dadosLocal = this.carregarDadosDoStorage();
             if (dadosLocal) {
                 this.dados.usuarios = dadosLocal.usuarios || [];
@@ -107,13 +92,11 @@ class OfflineManager {
                 this.dados.presencas = dadosLocal.presencas || [];
             }
             
-            // Se não há eventos, usar exemplos
             if (this.dados.eventos.length === 0) {
                 console.log('[OfflineManager] Nenhum evento encontrado, usando exemplos...');
                 this.dados.eventos = this.getEventosExemplo();
             }
 
-            // Salvar no localStorage
             this.salvarDadosNoStorage();
 
             console.log('[OfflineManager] Dados carregados com sucesso', {
@@ -136,9 +119,7 @@ class OfflineManager {
         }
     }
 
-    /**
-     * Buscar usuários do servidor
-     */
+
     async buscarUsuarios(token) {
         try {
             const response = await fetch(`${this.API_BASE}/usuarios`, {
@@ -154,14 +135,10 @@ class OfflineManager {
         }
     }
 
-    /**
-     * Buscar eventos sem autenticação (públicos)
-     */
     async carregarEventosSemAuth() {
         console.log('[OfflineManager] Carregando eventos sem autenticação...');
         
         try {
-            // 1. Tentar Laravel primeiro (público)
             console.log('[OfflineManager] Tentando Laravel...');
             const responseLaravel = await fetch('http://localhost:8000/api/eventos');
             
@@ -169,14 +146,12 @@ class OfflineManager {
                 const dataLaravel = await responseLaravel.json();
                 
                 if (dataLaravel && dataLaravel.length > 0) {
-                    console.log(`[OfflineManager] ✅ ${dataLaravel.length} eventos carregados do Laravel`);
-                    // Salvar no localStorage para offline
+                    console.log(`[OfflineManager] ${dataLaravel.length} eventos carregados do Laravel`);
                     localStorage.setItem('eventos_cache', JSON.stringify(dataLaravel));
                     return dataLaravel;
                 }
             }
             
-            // 2. Tentar Python MySQL
             console.log('[OfflineManager] Laravel falhou, tentando Python MySQL...');
             const responsePython = await fetch('http://localhost:5000/eventos');
             
@@ -184,14 +159,12 @@ class OfflineManager {
                 const dataPython = await responsePython.json();
                 
                 if (dataPython.success && dataPython.data && dataPython.data.length > 0) {
-                    console.log(`[OfflineManager] ✅ ${dataPython.data.length} eventos carregados do Python MySQL`);
-                    // Salvar no localStorage para offline
+                    console.log(`[OfflineManager] ${dataPython.data.length} eventos carregados do Python MySQL`);
                     localStorage.setItem('eventos_cache', JSON.stringify(dataPython.data));
                     return dataPython.data;
                 }
             }
             
-            // 3. Usar cache localStorage se tudo falhar
             console.log('[OfflineManager] APIs falharam, usando cache localStorage...');
             const cachedEventos = localStorage.getItem('eventos_cache');
             if (cachedEventos) {
@@ -200,13 +173,11 @@ class OfflineManager {
                 return eventos;
             }
             
-            // 4. Dados de exemplo como último recurso
             console.log('[OfflineManager] Usando dados de exemplo...');
             return this.getEventosExemplo();
             
         } catch (error) {
             console.error('[OfflineManager] Erro ao carregar eventos:', error);
-            // Tentar cache local se há erro de rede
             const cachedEventos = localStorage.getItem('eventos_cache');
             if (cachedEventos) {
                 return JSON.parse(cachedEventos);
@@ -215,32 +186,22 @@ class OfflineManager {
         }
     }
 
-    /**
-     * Buscar eventos do servidor
-     */
-    /**
-     * Buscar eventos do servidor
-     */
+
     async buscarEventos() {
         console.log('[OfflineManager] Buscando eventos...');
         return await this.carregarEventosSemAuth();
     }
 
-    /**
-     * Carregar eventos com todos os inscritos para modo offline
-     */
+
     async carregarEventosCompletos(token) {
         try {
             console.log('[OfflineManager] Carregando eventos completos com inscritos...');
             
-            // Buscar eventos
             const eventos = await this.carregarEventosSemAuth();
             
-            // Para cada evento, buscar os inscritos ativos
             const eventosCompletos = await Promise.all(
                 eventos.map(async (evento) => {
                     try {
-                        // Tentar Laravel primeiro
                         let response = null;
                         if (token) {
                             try {
@@ -252,7 +213,6 @@ class OfflineManager {
                             }
                         }
                         
-                        // Fallback para Python
                         if (!response || !response.ok) {
                             try {
                                 response = await fetch(`${this.OFFLINE_API}/eventos-offline/${evento.id}/inscritos`);
@@ -285,9 +245,6 @@ class OfflineManager {
         }
     }
 
-    /**
-     * Buscar inscrições do servidor
-     */
     async buscarInscricoes(token) {
         try {
             const response = await fetch(`${this.API_BASE}/inscricoes`, {
@@ -303,9 +260,6 @@ class OfflineManager {
         }
     }
 
-    /**
-     * Buscar presenças do servidor
-     */
     async buscarPresencas(token) {
         try {
             const response = await fetch(`${this.API_BASE}/presencas`, {
@@ -321,9 +275,7 @@ class OfflineManager {
         }
     }
 
-    /**
-     * Registrar presença (offline ou online)
-     */
+
     async registrarPresenca(inscricaoId, eventoId) {
         const presenca = {
             id: `temp_${Date.now()}`,
@@ -334,10 +286,8 @@ class OfflineManager {
             status: 'pendente'
         };
 
-        // Adicionar à lista local
         this.dados.presencas.push(presenca);
 
-        // Adicionar à fila de sincronização
         this.adicionarFilaSincronizacao({
             tipo: 'presenca',
             acao: 'criar',
@@ -345,13 +295,10 @@ class OfflineManager {
             timestamp: Date.now()
         });
 
-        // Salvar no localStorage
         this.salvarDadosNoStorage();
 
-        // Notificar
         this.callbacks.onPresencaRegistrada(presenca);
 
-        // Se online, sincronizar imediatamente
         if (this.isOnline) {
             this.sincronizarPresenca(presenca);
         }
@@ -359,9 +306,7 @@ class OfflineManager {
         return presenca;
     }
 
-    /**
-     * Sincronizar uma presença com o servidor
-     */
+
     async sincronizarPresenca(presenca) {
         try {
             const token = this.getToken();
@@ -381,7 +326,6 @@ class OfflineManager {
             if (response.ok) {
                 const data = await response.json();
                 
-                // Atualizar ID da presença
                 if (data.data && data.data.id) {
                     const index = this.dados.presencas.findIndex(p => p.id === presenca.id);
                     if (index !== -1) {
@@ -390,7 +334,6 @@ class OfflineManager {
                     }
                 }
 
-                // Remover da fila
                 this.removerFilaSincronizacao(presenca.id);
                 this.salvarDadosNoStorage();
 
@@ -403,9 +346,7 @@ class OfflineManager {
         return false;
     }
 
-    /**
-     * Adicionar item à fila de sincronização
-     */
+
     adicionarFilaSincronizacao(item) {
         if (!this.dados.filaSincronizacao) {
             this.dados.filaSincronizacao = [];
@@ -413,18 +354,14 @@ class OfflineManager {
         this.dados.filaSincronizacao.push(item);
     }
 
-    /**
-     * Remover item da fila de sincronização
-     */
+ 
     removerFilaSincronizacao(itemId) {
         this.dados.filaSincronizacao = this.dados.filaSincronizacao.filter(
             item => item.dados && item.dados.id !== itemId
         );
     }
 
-    /**
-     * Sincronizar todos os dados pendentes
-     */
+
     async sincronizarTodos() {
         if (!this.isOnline) {
             throw new Error('Sem conexão com internet. Sincronização não é possível.');
@@ -436,7 +373,6 @@ class OfflineManager {
             let totalSincronizados = 0;
             const erros = [];
 
-            // Sincronizar presenças
             for (const item of this.dados.filaSincronizacao) {
                 if (item.tipo === 'presenca') {
                     try {
@@ -453,7 +389,6 @@ class OfflineManager {
                 }
             }
 
-            // Recarregar dados do servidor para garantir sincronização
             await this.carregarTodosDados();
 
             this.callbacks.onSyncEnd({
@@ -472,9 +407,7 @@ class OfflineManager {
         }
     }
 
-    /**
-     * Salvar dados no localStorage
-     */
+
     salvarDadosNoStorage() {
         try {
             localStorage.setItem(this.STORAGE_KEYS.USUARIOS, JSON.stringify(this.dados.usuarios));
@@ -490,9 +423,7 @@ class OfflineManager {
         }
     }
 
-    /**
-     * Carregar dados do localStorage
-     */
+
     carregarDadosDoStorage() {
         try {
             const dados = {
@@ -503,7 +434,6 @@ class OfflineManager {
                 filaSincronizacao: JSON.parse(localStorage.getItem(this.STORAGE_KEYS.FILA_SINCRONIZACAO)) || []
             };
 
-            // Atualizar dados da instância
             this.dados = dados;
 
             console.log('[OfflineManager] Dados carregados do localStorage', {
@@ -529,11 +459,8 @@ class OfflineManager {
         }
     }
 
-    /**
-     * Obter token de autenticação
-     */
+
     getToken() {
-        // Tentar várias formas de obter o token
         const possiveisTokens = [
             localStorage.getItem(this.STORAGE_KEYS.USER_TOKEN),
             localStorage.getItem('authToken'),
@@ -551,53 +478,37 @@ class OfflineManager {
         return token;
     }
 
-    /**
-     * Obter informações de uma inscrição
-     */
+    
     obterInscricao(inscricaoId) {
         return this.dados.inscricoes.find(i => i.id === inscricaoId);
     }
 
-    /**
-     * Obter informações de um usuário
-     */
     obterUsuario(usuarioId) {
         return this.dados.usuarios.find(u => u.id === usuarioId);
     }
 
-    /**
-     * Obter informações de um evento
-     */
+
     obterEvento(eventoId) {
         return this.dados.eventos.find(e => e.id === eventoId);
     }
 
-    /**
-     * Buscar inscrições por evento
-     */
+
     obterInscricoesPorEvento(eventoId, ativo = true) {
         return this.dados.inscricoes.filter(i => 
             i.evento_id === eventoId && (!ativo || i.status === 'ativa')
         );
     }
 
-    /**
-     * Buscar presenças já registradas para uma inscrição
-     */
+
     temPresenca(inscricaoId) {
         return this.dados.presencas.some(p => p.inscricao_id === inscricaoId);
     }
 
-    /**
-     * Contar presenças por evento
-     */
     contarPresencasPorEvento(eventoId) {
         return this.dados.presencas.filter(p => p.evento_id === eventoId).length;
     }
 
-    /**
-     * Obter estatísticas
-     */
+
     obterEstatisticas() {
         return {
             totalUsuarios: this.dados.usuarios.length,
@@ -610,9 +521,7 @@ class OfflineManager {
         };
     }
 
-    /**
-     * Limpar todos os dados (para teste)
-     */
+
     limparTodosDados() {
         Object.values(this.STORAGE_KEYS).forEach(key => {
             localStorage.removeItem(key);
@@ -627,9 +536,7 @@ class OfflineManager {
         console.log('[OfflineManager] Todos os dados foram limpos');
     }
 
-    /**
-     * Marcar presença offline
-     */
+
     async marcarPresencaOffline(inscricaoId, eventoId, usuarioId) {
         try {
             const agora = new Date().toISOString();
@@ -645,24 +552,20 @@ class OfflineManager {
                 offline: true
             };
 
-            // Verificar se já existe presença para esta inscrição
             const presencaExistente = this.dados.presencas.find(p => p.inscricao_id === inscricaoId);
             if (presencaExistente) {
                 console.warn('[OfflineManager] Presença já registrada para esta inscrição');
                 return false;
             }
 
-            // Adicionar à lista local
             this.dados.presencas.push(novaPresenca);
 
-            // Adicionar à fila de sincronização
             this.adicionarFilaSincronizacao({
                 tipo: 'presenca',
                 dados: novaPresenca,
                 timestamp: agora
             });
 
-            // Salvar no localStorage
             this.salvarDadosNoStorage();
 
             console.log('[OfflineManager] Presença marcada offline:', {
@@ -684,9 +587,7 @@ class OfflineManager {
         }
     }
 
-    /**
-     * Sincronizar todas as presenças offline
-     */
+
     async sincronizarPresencas() {
         console.log('[OfflineManager] Iniciando sincronização de presenças...');
         
@@ -709,7 +610,6 @@ class OfflineManager {
         
         for (const presenca of presencasNaoSincronizadas) {
             try {
-                // Tentar sincronizar com Python primeiro
                 const response = await fetch(`${this.OFFLINE_API}/presencas`, {
                     method: 'POST',
                     headers: {
@@ -721,22 +621,20 @@ class OfflineManager {
                 });
                 
                 if (response.ok) {
-                    // Marcar como sincronizada
                     presenca.sincronizado = true;
                     sincronizadas++;
-                    console.log(`[OfflineManager] ✅ Presença ${presenca.inscricao_id} sincronizada`);
+                    console.log(`[OfflineManager] Presença ${presenca.inscricao_id} sincronizada`);
                 } else {
-                    console.warn(`[OfflineManager] ⚠️ Falha ao sincronizar presença ${presenca.inscricao_id}`);
+                    console.warn(`[OfflineManager] Falha ao sincronizar presença ${presenca.inscricao_id}`);
                     erros.push(presenca.inscricao_id);
                 }
                 
             } catch (error) {
-                console.error(`[OfflineManager] ❌ Erro ao sincronizar presença ${presenca.inscricao_id}:`, error);
+                console.error(`[OfflineManager] Erro ao sincronizar presença ${presenca.inscricao_id}:`, error);
                 erros.push(presenca.inscricao_id);
             }
         }
         
-        // Atualizar localStorage
         localStorage.setItem('presencas_offline', JSON.stringify(presencasOffline));
         
         console.log(`[OfflineManager] Sincronização completa: ${sincronizadas}/${presencasNaoSincronizadas.length}`);
@@ -750,9 +648,7 @@ class OfflineManager {
         };
     }
 
-    /**
-     * Gerar certificado automaticamente após marcar presença
-     */
+
     async gerarCertificadoAutomatico(inscricaoId, eventoId, usuarioId) {
         try {
             console.log(`[OfflineManager] Gerando certificado automático - Inscrição: ${inscricaoId}, Evento: ${eventoId}, Usuário: ${usuarioId}`);
@@ -824,9 +720,7 @@ class OfflineManager {
         ];
     }
     
-    /**
-     * Cria usuário de teste para funcionalidade offline
-     */
+
     criarUsuarioTeste() {
         const usuarioTeste = {
             id: 999,
@@ -837,16 +731,12 @@ class OfflineManager {
             criado_em: new Date().toISOString()
         };
         
-        // Salvar no localStorage
         localStorage.setItem('usuario_offline_teste', JSON.stringify(usuarioTeste));
         console.log('[OfflineManager] Usuário de teste criado:', usuarioTeste);
         
         return usuarioTeste;
     }
-    
-    /**
-     * Obter usuário para operações offline
-     */
+
     getUsuarioOffline() {
         let usuario = JSON.parse(localStorage.getItem('usuario_offline_teste') || 'null');
         
@@ -859,7 +749,9 @@ class OfflineManager {
     }
 }
 
-// Exportar para uso global
 if (typeof window !== 'undefined') {
     window.OfflineManager = OfflineManager;
 }
+
+
+//ver das qustoes do localstorage

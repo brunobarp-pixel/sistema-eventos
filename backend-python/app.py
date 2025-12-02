@@ -12,14 +12,12 @@ import laravel_auth_service
 
 app = Flask(__name__)
 
-# Configuração CORS mais específica para resolver problemas entre máquinas
 CORS(app, 
      origins=["*"],  # Permite todas as origens
      allow_headers=["*"],  # Permite todos os headers
      methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],  # Métodos permitidos
      supports_credentials=True)
 
-# Headers CORS personalizados
 @app.after_request
 def after_request(response):
     response.headers.add('Access-Control-Allow-Origin', '*')
@@ -27,8 +25,7 @@ def after_request(response):
     response.headers.add('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS')
     return response
 
-# Forçar flush do stdout para debug
-sys.stdout = os.fdopen(sys.stdout.fileno(), 'w', 1)# Configurações
+sys.stdout = os.fdopen(sys.stdout.fileno(), 'w', 1)
 MYSQL_CONFIG = {
     "host": "database",
     "user": "eventos_user",
@@ -36,33 +33,28 @@ MYSQL_CONFIG = {
     "database": "sistema_eventos",
 }
 
-# Token fixo para o sistema offline
 SISTEMA_OFFLINE_TOKEN = "sistema_offline_token_2025_abcdef123456"
 
-# Instâncias globais
 sync_ativo = False
 sync_thread = None
 laravel_auth = laravel_auth_service.LaravelAuth()  # Instanciar a classe
 
 
 def popular_dados_exemplo():
-    """Popular dados de exemplo no MySQL se estiver vazio"""
     try:
-        conn = get_mysql_connection()
+        conn = get_mysql_connection() #nao adiantou usar isso aqui o snho sqlite no more
         if not conn:
-            print("❌ Não foi possível conectar ao MySQL para popular dados")
+            print("Não foi possível conectar ao MySQL")
             return
             
         cursor = conn.cursor()
         
-        # Verificar se já tem eventos
         cursor.execute("SELECT COUNT(*) FROM eventos")
         count = cursor.fetchone()[0]
         
         if count == 0:
             print("📋 Populando dados de exemplo no MySQL...")
             
-            # Adicionar eventos de exemplo
             eventos_exemplo = [
                 ("Workshop Laravel", "Introdução ao desenvolvimento com Laravel", 
                  "2025-12-15 09:00:00", "2025-12-15 17:00:00", "Laboratório 1", 30, "aberto"),
@@ -83,7 +75,6 @@ def popular_dados_exemplo():
                     VALUES (%s, %s, %s, %s, %s, %s, %s)
                 """, evento)
             
-            # Adicionar usuário do sistema permanente
             cursor.execute("""
                 INSERT IGNORE INTO usuarios 
                 (nome, email, cpf, telefone, senha)
@@ -93,16 +84,15 @@ def popular_dados_exemplo():
             """)
             
             conn.commit()
-            print("✅ Dados de exemplo populados no MySQL!")
+            print("Dados de exemplo populados no MySQL!")
             
         conn.close()
         
     except Exception as e:
-        print(f"❌ Erro ao popular dados de exemplo: {str(e)}")
+        print(f"Erro ao popular dados de exemplo: {str(e)}")
 
 
 def validar_token_sistema(request):
-    """Validar se o request tem o token do sistema válido"""
     auth_header = request.headers.get('Authorization')
     if not auth_header:
         return False
@@ -115,7 +105,6 @@ def validar_token_sistema(request):
 
 
 def get_mysql_connection():
-    """Conectar ao MySQL"""
     try:
         conn = mysql.connector.connect(**MYSQL_CONFIG)
         return conn
@@ -125,38 +114,34 @@ def get_mysql_connection():
 
 
 def iniciar_sync_automatico():
-    """Iniciar thread de sincronização automática"""
     global sync_ativo, sync_thread
     
     if sync_ativo:
-        print("⚠️ Sync já está ativo")
+        print("Sync já está ativo")
         return
         
     sync_ativo = True
     sync_thread = threading.Thread(target=sync_loop, daemon=True)
     sync_thread.start()
-    print("🔄 Sincronização automática iniciada")
+    print("Sincronização automática iniciada")
 
 
 def sync_loop():
-    """Loop principal de sincronização"""
     global sync_ativo
     
     while sync_ativo:
         try:
             if laravel_auth.is_authenticated():
-                print("🔄 Executando sincronização automática...")
-                # Aqui pode adicionar sincronização se necessário
+                print("Executando sincronização automática...")
                 
         except Exception as e:
-            print(f"❌ Erro na sincronização: {str(e)}")
+            print(f"Erro na sincronização: {str(e)}")
             
-        time.sleep(300)  # 5 minutos
+        time.sleep(300)  
 
 
 @app.route("/login-laravel", methods=["POST"])
 def login_laravel():
-    """Fazer login no Laravel (simplificado - retorna token fixo)"""
     data = request.get_json()
     
     if not data or not data.get("email") or not data.get("password"):
@@ -165,7 +150,6 @@ def login_laravel():
             "message": "Email e senha são obrigatórios"
         }), 400
     
-    # Simulação de login bem-sucedido com token fixo
     return jsonify({
         "success": True,
         "message": "Login realizado com sucesso",
@@ -201,12 +185,11 @@ def sistema_token():
 @app.route("/validar-token", methods=["POST"])
 def validar_token():
     """Validar se o token é válido"""
-    # Tentar obter token do header Authorization
+    # Tentar obter token do header 
     auth_header = request.headers.get('Authorization')
     if auth_header and auth_header.startswith('Bearer '):
         token = auth_header.split(' ')[1]
     else:
-        # Fallback: tentar obter do body JSON
         data = request.get_json()
         token = data.get('token') if data else None
     
@@ -237,7 +220,6 @@ def validar_token():
 
 @app.route("/status", methods=["GET"])
 def status():
-    """Status geral do sistema"""
     mysql_ok = get_mysql_connection() is not None
     
     return jsonify({
@@ -248,11 +230,9 @@ def status():
     })
 
 
-@app.route("/dados-pendentes", methods=["GET", "OPTIONS"])
+@app.route("/dados-pendentes", methods=["GET", "OPTIONS"]) #Tentar rever isso aqui
 def dados_pendentes():
-    """Obter estatísticas de dados pendentes para sincronização"""
     try:
-        # Para simplificar, vamos retornar estatísticas básicas
         return jsonify({
             "success": True,
             "dados": {
@@ -438,7 +418,6 @@ def presencas():
             print(f"[DEBUG] Raw data: {request.get_data()}")
             
             try:
-                # Tentar várias maneiras de obter o JSON
                 if request.is_json:
                     data = request.get_json()
                     print(f"[DEBUG] JSON via is_json: {data}")
@@ -484,7 +463,6 @@ def presencas():
                 
             cursor = conn.cursor()
             
-            # Verificar se inscrição existe
             cursor.execute("SELECT * FROM inscricoes WHERE id = %s AND status = 'confirmada'", (inscricao_id,))
             inscricao = cursor.fetchone()
             
@@ -494,7 +472,6 @@ def presencas():
                     "message": "Inscrição não encontrada ou inativa"
                 }), 404
                 
-            # Verificar se já tem presença
             cursor.execute("SELECT id FROM presencas WHERE inscricao_id = %s", (inscricao_id,))
             if cursor.fetchone():
                 return jsonify({
@@ -502,7 +479,6 @@ def presencas():
                     "message": "Presença já registrada"
                 }), 400
                 
-            # Registrar presença
             cursor.execute("""
                 INSERT INTO presencas (inscricao_id, evento_id, usuario_id, data_checkin)
                 VALUES (%s, %s, %s, NOW())
@@ -511,7 +487,6 @@ def presencas():
             conn.commit()
             presenca_id = cursor.lastrowid
             
-            # Buscar dados do usuário e evento para certificado e email
             cursor.execute("""
                 SELECT u.nome, u.email, e.nome as titulo, e.data_inicio, e.data_fim
                 FROM inscricoes i
@@ -524,7 +499,6 @@ def presencas():
             if dados:
                 nome, email, evento_titulo, data_inicio, data_fim = dados
                 
-                # Gerar certificado automaticamente
                 try:
                     certificado_path = gerar_certificado_pdf({
                         'nome_participante': nome,
@@ -535,28 +509,26 @@ def presencas():
                         'data_emissao': datetime.now().strftime('%Y-%m-%d')
                     })
                     
-                    # Salvar certificado no banco
                     cursor.execute("""
                         INSERT INTO certificados (inscricao_id, caminho_arquivo)
                         VALUES (%s, %s)
                     """, (inscricao_id, certificado_path))
                     conn.commit()
                     
-                    print(f"✅ Certificado gerado: {certificado_path}")
+                    print(f"Certificado gerado: {certificado_path}")
                     
                 except Exception as e:
-                    print(f"⚠️ Erro ao gerar certificado: {str(e)}")
+                    print(f"Erro ao gerar certificado: {str(e)}")
                 
-                # Enviar email de check-in
                 try:
                     enviar_email_checkin(
                         {"nome": nome, "email": email},
                         {"nome": evento_titulo}
                     )
-                    print(f"✅ Email de check-in enviado para {email}")
+                    print(f"Email de check-in enviado para {email}")
                     
                 except Exception as e:
-                    print(f"⚠️ Erro ao enviar email de check-in: {str(e)}")
+                    print(f"Erro ao enviar email de check-in: {str(e)}")
             
             return jsonify({
                 "success": True,
@@ -575,17 +547,16 @@ def presencas():
 
 @app.route("/enviar-email-inscricao", methods=["POST"])
 def endpoint_enviar_email_inscricao():
-    """Enviar email de confirmação de inscrição"""
     try:
-        # Log detalhado para debug
-        print(f"[DEBUG INSCRICAO] Headers: {dict(request.headers)}")
-        print(f"[DEBUG INSCRICAO] Content-Type: {request.content_type}")
-        print(f"[DEBUG INSCRICAO] Raw data: {request.get_data()}")
+        # Logs
+        print(f"Headers: {dict(request.headers)}")
+        print(f"Content-Type: {request.content_type}")
+        print(f"Raw data: {request.get_data()}")
         
         data = request.get_json()
-        print(f"[DEBUG INSCRICAO] Parsed JSON: {data}")
+        print(f"Parsed JSON: {data}")
         
-        # Garantir compatibilidade: Laravel envia 'titulo', curl envia 'nome'
+        # Garantir compatibilidade, torcer para nao dar pau
         evento = data["evento"].copy()
         if "titulo" in evento and "nome" not in evento:
             evento["nome"] = evento["titulo"]
@@ -616,7 +587,7 @@ def endpoint_enviar_email_checkin():
     data = request.get_json()
     
     try:
-        # Garantir compatibilidade: Laravel envia 'titulo', curl envia 'nome'
+        # Garantir compatibilidade, torcer para nao dar pau
         evento = data["evento"].copy()
         if "titulo" in evento and "nome" not in evento:
             evento["nome"] = evento["titulo"]
@@ -646,14 +617,13 @@ def endpoint_enviar_email_cancelamento():
     """Enviar email de cancelamento de inscrição"""
     try:
         # Log detalhado para debug
-        print(f"[DEBUG CANCELAMENTO] Headers: {dict(request.headers)}")
-        print(f"[DEBUG CANCELAMENTO] Content-Type: {request.content_type}")
-        print(f"[DEBUG CANCELAMENTO] Raw data: {request.get_data()}")
+        print(f"Headers: {dict(request.headers)}")
+        print(f"Content-Type: {request.content_type}")
+        print(f"Raw data: {request.get_data()}")
         
         data = request.get_json()
-        print(f"[DEBUG CANCELAMENTO] Parsed JSON: {data}")
+        print(f"Parsed JSON: {data}")
         
-        # Garantir compatibilidade: Laravel envia 'titulo', curl envia 'nome'
         evento = data["evento"].copy()
         if "titulo" in evento and "nome" not in evento:
             evento["nome"] = evento["titulo"]
@@ -677,7 +647,7 @@ def endpoint_enviar_email_cancelamento():
         }), 500
 
 
-@app.route("/enviar-email-certificado", methods=["POST"])
+@app.route("/enviar-email-certificado", methods=["POST"]) #rever isso aqui tbm
 def enviar_email_certificado():
     """Enviar email com certificado"""
     data = request.get_json()
@@ -704,7 +674,7 @@ def enviar_email_certificado():
         }), 500
 
 
-@app.route("/gerar-certificado-pdf", methods=["POST"])
+@app.route("/gerar-certificado-pdf", methods=["POST"])#rever isso aqui tbm
 def gerar_certificado_endpoint():
     """Gerar certificado PDF"""
     try:
@@ -730,21 +700,20 @@ def gerar_certificado_endpoint():
         
         certificado_path = gerar_certificado_pdf(data)
         
-        # Extrair apenas o nome do arquivo (sem o caminho completo)
         nome_arquivo = os.path.basename(certificado_path)
         
-        print(f"✅ Certificado gerado: {certificado_path}")
-        print(f"📄 Nome do arquivo: {nome_arquivo}")
+        print(f"Certificado gerado: {certificado_path}")
+        print(f"Nome do arquivo: {nome_arquivo}")
         
         return jsonify({
             "success": True,
             "message": "Certificado gerado com sucesso",
-            "pdf_path": nome_arquivo,  # Frontend espera 'pdf_path'
+            "pdf_path": nome_arquivo,
             "full_path": certificado_path
         })
         
     except Exception as e:
-        print(f"❌ Erro ao gerar certificado: {str(e)}")
+        print(f"Erro ao gerar certificado: {str(e)}")
         import traceback
         traceback.print_exc()
         return jsonify({
@@ -755,7 +724,6 @@ def gerar_certificado_endpoint():
 
 @app.route("/download-pdf/<path:filename>", methods=["GET"])
 def download_pdf(filename):
-    """Download de arquivo PDF"""
     try:
         file_path = os.path.join("certificados_pdf", filename)
         
@@ -772,24 +740,21 @@ if __name__ == "__main__":
     # Criar pastas
     if not os.path.exists("certificados_pdf"):
         os.makedirs("certificados_pdf")
-        print("📁 Pasta 'certificados_pdf' criada!")
+        print("Pasta 'certificados_pdf' criada!") 
 
-    # Popular dados de exemplo se necessário
-    print("\n📋 Verificando dados de exemplo...")
+    print("\nVerificando dados de exemplo...")
     popular_dados_exemplo()
 
-    # Sistema iniciado com token fixo
-    print("\n🔐 Sistema iniciado com autenticação por token fixo")
-    print("✅ Token do sistema configurado!")
+    print("\nSistema iniciado com autenticação por token fixo")
+    print("Token do sistema configurado!")
 
-    # Iniciar sincronização automática
-    print("\n🔄 Iniciando sincronização automática...")
+    print("\nIniciando sincronização automática...")
     iniciar_sync_automatico()
 
     # Rodar aplicação
-    print("\n🚀 Sistema Python iniciado!")
-    print("🔐 Autenticação: Token fixo ativo")
-    print("🔄 Sincronização automática: ATIVA")
-    print("💾 Usando MySQL diretamente (sem SQLite)\n")
+    print("\nSistema Python iniciado!")
+    print("Autenticação: Token fixo ativo")
+    print("Sincronização automática: ATIVA")
+    print("Usando MySQL diretamente (sem SQLite)\n")
 
     app.run(host='0.0.0.0', port=5000, debug=False, use_reloader=False)

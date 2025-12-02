@@ -44,12 +44,10 @@ class PresencaController extends Controller
 
             $inscricao = Inscricao::with('usuario', 'evento')->find($inscricao->id);
 
-            // ENVIAR E-MAIL DE CHECK-IN
             try {
                 $emailService = new EmailService();
                 $emailService->enviarEmailCheckin($inscricao->usuario, $inscricao->evento);
             } catch (\Exception $e) {
-                // Silenciar
             }
 
             $this->registrarLog($request, 'POST', '/api/presencas', 201, $inscricao->usuario_id);

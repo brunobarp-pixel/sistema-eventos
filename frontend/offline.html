@@ -45,7 +45,6 @@
 </head>
 
 <body>
-    <!-- Navbar -->
     <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
         <div class="container">
             <a class="navbar-brand" href="index.html">
@@ -62,7 +61,6 @@
         </div>
     </nav>
 
-    <!-- Status Bar -->
     <div id="statusBar" class="status-offline text-white py-2">
         <div class="container">
             <div class="row align-items-center">
@@ -83,7 +81,6 @@
     </div>
 
     <div class="container my-4">
-        <!-- Estatísticas -->
         <div class="row mb-4">
             <div class="col-md-3">
                 <div class="card text-center border-primary">
@@ -123,10 +120,8 @@
             </div>
         </div>
 
-        <!-- Alertas -->
         <div id="alertContainer"></div>
 
-        <!-- Abas -->
         <ul class="nav nav-tabs mb-4" id="myTab" role="tablist">
             <li class="nav-item" role="presentation">
                 <button class="nav-link active" id="checkin-tab" data-bs-toggle="tab" data-bs-target="#checkin">
@@ -145,10 +140,8 @@
             </li>
         </ul>
 
-        <!-- Conteúdo das Abas -->
         <div class="tab-content">
 
-            <!-- ABA 1: CHECK-IN -->
             <div class="tab-pane fade show active" id="checkin" role="tabpanel">
                 <div class="card">
                     <div class="card-header bg-info text-white">
@@ -188,7 +181,6 @@
                 </div>
             </div>
 
-            <!-- ABA 2: CADASTRO RÁPIDO -->
             <div class="tab-pane fade" id="cadastro" role="tabpanel">
                 <div class="card">
                     <div class="card-header bg-primary text-white">
@@ -223,7 +215,6 @@
                 </div>
             </div>
 
-            <!-- ABA 3: INSCRIÇÃO -->
             <div class="tab-pane fade" id="inscricao" role="tabpanel">
                 <div class="card">
                     <div class="card-header bg-success text-white">
@@ -256,21 +247,19 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="js/offline-manager.js"></script>
     <script>
-        // ==================== CONFIGURAÇÕES DE API ====================
         const API_BASE_URL = 'http://177.44.248.118:8000/api'; // Laravel API 
         const PYTHON_API_URL = 'http://177.44.248.118:5000'; // Python API
         const LARAVEL_API = 'http://177.44.248.118:8000/api'; // Alias para compatibilidade
         const OFFLINE_API = 'http://177.44.248.118:5000'; // Alias para compatibilidade
         const LARAVEL_TOKEN = '70|VaI5IynnhSWh5OcaRzbL4mZq4WnXSjPDf003cqSE65c407fe';
         
-        // DEBUG: Cache-buster para forçar atualização
-        console.log('[DEBUG] Carregando offline.html - Timestamp:', new Date().getTime());
-        console.log('[DEBUG] APIs configuradas:', {
+        console.log('Carregando offline.html - Timestamp:', new Date().getTime());
+        console.log('APIs configuradas:', {
             laravel: LARAVEL_API,
             python: OFFLINE_API
         });
         
-        // Variáveis globais
+        //  globais
         let offlineManager;
         let statusOnline = false;
         let listaUsuarios = [];
@@ -279,22 +268,20 @@
         let todosUsuarios = []; // Para compatibilidade com estatísticas
         let todasInscricoes = []; // Para compatibilidade com estatísticas
 
-        // ==================== CADASTRO RÁPIDO ====================
-        console.log('[DEBUG] Definindo função cadastrarUsuario...');
+        console.log('Definindo função cadastrarUsuario...');
         async function cadastrarUsuario(e) {
             e.preventDefault();
 
             const dados = {
                 nome: document.getElementById('cadastroNome').value,
                 email: document.getElementById('cadastroEmail').value,
-                senha: 'senha123' // Senha padrão para cadastro rápido
+                senha: 'senha123' 
             };
 
             try {
-                // Usar token do usuário logado ao invés do token do sistema
                 const token = localStorage.getItem('token');
                 if (!token) {
-                    mostrarAlerta('❌ Você precisa estar logado para cadastrar usuários!', 'danger');
+                    mostrarAlerta('Você precisa estar logado para cadastrar usuários!', 'danger');
                     return;
                 }
                 
@@ -312,7 +299,7 @@
                     console.error('Erro detalhado:', errorData);
                     
                     if (response.status === 401) {
-                        mostrarAlerta('❌ Token expirado. Faça login novamente!', 'danger');
+                        mostrarAlerta('Token expirado. Faça login novamente!', 'danger');
                         setTimeout(() => window.location.href = 'login.html', 2000);
                         return;
                     }
@@ -322,14 +309,12 @@
 
                 const data = await response.json();
                 
-                // Adicionar aos dados locais
                 offlineManager.dados.usuarios.push(data.data);
                 offlineManager.salvarDadosNoStorage();
                 
-                mostrarAlerta('✓ Usuário cadastrado! Login: email | Senha: senha123', 'success');
+                mostrarAlerta('Usuário cadastrado! Login: email | Senha: senha123', 'success');
                 document.getElementById('formCadastro').reset();
                 
-                // Recarregar dados
                 setTimeout(() => {
                     atualizarSelectUsuarios();
                     carregarEstatisticas();
@@ -341,21 +326,18 @@
             }
         }
 
-        // Inicializar com callbacks
         document.addEventListener('DOMContentLoaded', async function () {
-            // Verificar se usuário está logado
             const token = localStorage.getItem('token');
             const usuario = localStorage.getItem('usuario');
             
             if (!token || !usuario) {
-                mostrarAlerta('❌ Você precisa estar logado para acessar esta página!', 'danger');
+                mostrarAlerta('Você precisa estar logado para acessar esta página!', 'danger');
                 setTimeout(() => window.location.href = 'login.html', 2000);
                 return;
             }
             
-            console.log('[Offline.html] ✅ Usuário logado detectado');
+            console.log('Usuário logado detectado');
             
-            // Criar instância do OfflineManager
             offlineManager = new OfflineManager({
                 apiBase: API_BASE_URL,
                 offlineApi: PYTHON_API_URL,
@@ -370,7 +352,7 @@
                     atualizarUIs();
                 },
                 onPresencaRegistrada: (presenca) => {
-                    console.log('✓ Presença registrada:', presenca);
+                    console.log('Presença registrada:', presenca);
                     carregarEstatisticas();
                 },
                 onSyncStart: () => {
@@ -383,7 +365,7 @@
                     btn.disabled = false;
                     btn.innerHTML = '<i class="bi bi-cloud-arrow-up"></i> Sincronizar';
                     mostrarAlerta(
-                        `✅ ${resultado.totalSincronizados} item(ns) sincronizado(s)!`,
+                        ` ${resultado.totalSincronizados} item(ns) sincronizado(s)!`,
                         resultado.erros.length > 0 ? 'warning' : 'success'
                     );
                 },
@@ -391,37 +373,30 @@
                     const btn = document.getElementById('btnSincronizar');
                     btn.disabled = false;
                     btn.innerHTML = '<i class="bi bi-cloud-arrow-up"></i> Sincronizar';
-                    mostrarAlerta(`❌ Erro na sincronização: ${erro.message}`, 'danger');
+                    mostrarAlerta(`Erro na sincronização: ${erro.message}`, 'danger');
                 }
             });
 
-            // Carregar dados inicialmente
-            console.log('[Offline.html] Inicializando OfflineManager...');
             
-            // Primeiro inicializar o sistema (tokens, etc)
             const inicializacao = await offlineManager.inicializar();
             if (inicializacao) {
-                console.log('[Offline.html] ✅ Sistema inicializado com sucesso');
+                console.log('Sistema inicializado com sucesso');
             } else {
-                console.warn('[Offline.html] ⚠️ Sistema inicializado com limitações');
-                mostrarAlerta('⚠️ Sistema funcionando em modo limitado - algumas funcionalidades podem não estar disponíveis', 'warning');
+                console.warn('Sistema inicializado com limitações');
+                mostrarAlerta('Sistema funcionando em modo limitado - algumas funcionalidades podem não estar disponíveis', 'warning');
             }
             
-            // Depois carregar dados
             await offlineManager.carregarTodosDados();
 
-            // Debug: verificar se os métodos existem
             console.log('Métodos disponíveis no offlineManager:', Object.getOwnPropertyNames(Object.getPrototypeOf(offlineManager)));
             console.log('sincronizarPresencas existe?', typeof offlineManager.sincronizarPresencas);
             console.log('marcarPresencaOffline existe?', typeof offlineManager.marcarPresencaOffline);
 
-            // Eventos dos formulários
-            console.log('[DEBUG] cadastrarUsuario existe?', typeof cadastrarUsuario);
-            console.log('[DEBUG] criarInscricao existe?', typeof criarInscricao);
+            console.log('cadastrarUsuario existe?', typeof cadastrarUsuario);
+            console.log('criarInscricao existe?', typeof criarInscricao);
             document.getElementById('formCadastro')?.addEventListener('submit', cadastrarUsuario);
             document.getElementById('formInscricao')?.addEventListener('submit', criarInscricao);
 
-            // Recarregar ao trocar de aba
             document.querySelectorAll('button[data-bs-toggle="tab"]').forEach(btn => {
                 btn.addEventListener('shown.bs.tab', () => {
                     carregarEstatisticas();
@@ -429,13 +404,11 @@
                 });
             });
 
-            // Verificar conexão a cada 5 segundos
             setInterval(() => {
                 offlineManager.verificarConexao();
             }, 5000);
         });
 
-        // ==================== FUNÇÕES DE ATUALIZAÇÃO ====================
         function atualizarStatusBar() {
             const statusBar = document.getElementById('statusBar');
             const statusText = document.getElementById('statusText');
@@ -443,7 +416,7 @@
 
             if (statusOnline) {
                 statusBar.className = 'status-online text-white py-2';
-                statusText.innerHTML = '✓ Sistema ONLINE - Dados em tempo real';
+                statusText.innerHTML = 'Sistema ONLINE - Dados em tempo real';
                 statusConexao.innerHTML = '<i class="bi bi-wifi"></i> Online';
             } else {
                 statusBar.className = 'status-offline text-white py-2';
@@ -458,7 +431,6 @@
             carregarEstatisticas();
         }
 
-        // ==================== CARREGAR DADOS ====================
         async function carregarDados() {
             await offlineManager.carregarTodosDados();
         }
@@ -485,7 +457,6 @@
                     document.getElementById('totalPresencas').textContent = data.data.presencas?.length || 0;
                     document.getElementById('totalPendentes').textContent = data.data.total_pendente || 0;
                 } else {
-                    // Valores padrão se não conseguir carregar - usar dados do offlineManager
                     const usuarios = offlineManager?.dados?.usuarios || [];
                     const inscricoes = offlineManager?.dados?.inscricoes || [];
                     const presencas = offlineManager?.dados?.presencas || [];
@@ -497,7 +468,6 @@
                 }
             } catch (error) {
                 console.error('Erro ao carregar estatísticas:', error);
-                // Valores padrão em caso de erro - usar dados do offlineManager
                 const usuarios = offlineManager?.dados?.usuarios || [];
                 const inscricoes = offlineManager?.dados?.inscricoes || [];
                 const presencas = offlineManager?.dados?.presencas || [];
@@ -531,7 +501,6 @@
                 });
             });
         }
-        // ==================== BUSCA DE PARTICIPANTE ====================
         function buscarParticipante() {
             const termo = document.getElementById('buscaParticipante').value.toLowerCase().trim();
             const resultado = document.getElementById('resultadosBusca');
@@ -544,15 +513,13 @@
             }
 
             if (!eventoId) {
-                lista.innerHTML = '<div class="alert alert-warning">⚠️ Selecione um evento primeiro</div>';
+                lista.innerHTML = '<div class="alert alert-warning">Selecione um evento primeiro</div>';
                 resultado.style.display = 'block';
                 return;
             }
 
-            // Filtrar inscrições do evento selecionado
             const inscricoesDoEvento = offlineManager.obterInscricoesPorEvento(eventoId, true);
 
-            // Buscar por nome, email ou CPF
             const resultados = inscricoesDoEvento.filter(insc => {
                 const usuario = offlineManager.obterUsuario(insc.usuario_id);
                 if (!usuario) return false;
@@ -568,7 +535,7 @@
             });
 
             if (resultados.length === 0) {
-                lista.innerHTML = '<div class="alert alert-warning">⚠️ Nenhum participante encontrado neste evento</div>';
+                lista.innerHTML = '<div class="alert alert-warning">Nenhum participante encontrado neste evento</div>';
                 resultado.style.display = 'block';
                 return;
             }
@@ -616,9 +583,8 @@
             document.getElementById('inscricaoSelecionada').style.display = 'block';
         }
 
-        // ==================== CHECK-IN ====================
         async function confirmarCheckin() {
-            console.log('[CHECK-IN] 🚀 Iniciando processo de check-in');
+            console.log('Iniciando processo de check-in');
             
             if (!inscricaoSelecionadaId) {
                 mostrarAlerta('Nenhuma inscrição selecionada!', 'warning');
@@ -626,24 +592,20 @@
             }
 
             const insc = offlineManager.obterInscricao(inscricaoSelecionadaId);
-            console.log('[CHECK-IN] Dados da inscrição:', insc);
+            console.log('Dados da inscrição:', insc);
             
             try {
-                console.log('[CHECK-IN] Chamando marcarPresencaOffline...');
                 
-                // Registrar presença usando o novo método offline
                 const resultado = await offlineManager.marcarPresencaOffline(
                     inscricaoSelecionadaId, 
                     insc.evento_id, 
                     insc.usuario_id
                 );
                 
-                console.log('[CHECK-IN] 📨 Resultado da marcação:', resultado);
+                console.log('Resultado da marcação:', resultado);
                 
                 if (resultado.success) {
-                    const mensagem = resultado.servidor ? 
-                        '✅ Check-in realizado! Email enviado.' : 
-                        '✓ Presença registrada offline! Sincronize quando conectado.';
+                    const mensagem = resultado.servidor ? 'Presença registrada no servidor!' : 
                     
                     mostrarAlerta(mensagem, 'success');
                     document.getElementById('buscaParticipante').value = '';
@@ -651,33 +613,30 @@
                     document.getElementById('inscricaoSelecionada').style.display = 'none';
                     inscricaoSelecionadaId = null;
                     
-                    // Recarregar estatísticas
                     setTimeout(() => {
                         document.getElementById('buscaParticipante').focus();
                         carregarEstatisticas();
                     }, 1000);
                 } else {
-                    mostrarAlerta('⚠️ Presença já foi registrada para esta inscrição!', 'warning');
+                    mostrarAlerta('Presença já foi registrada para esta inscrição!', 'warning');
                 }
                 
             } catch (error) {
-                console.error('[CHECK-IN] ❌ Erro capturado:', error);
+                console.error('Erro capturado:', error);
                 mostrarAlerta('Erro ao registrar presença: ' + error.message, 'danger');
             }
         }
 
-        // ==================== CADASTRO RÁPIDO ====================
         async function cadastrarUsuario(e) {
             e.preventDefault();
 
             const dados = {
                 nome: document.getElementById('cadastroNome').value,
                 email: document.getElementById('cadastroEmail').value,
-                senha: 'senha123' // Senha padrão para cadastro rápido
+                senha: 'senha123' 
             };
 
             try {
-                // Usar token do usuário logado ao invés do token do sistema
                 const token = localStorage.getItem('token') || LARAVEL_TOKEN;
                 
                 const response = await fetch(`${LARAVEL_API}/usuarios`, {
@@ -694,7 +653,7 @@
                     console.error('Erro detalhado:', errorData);
                     
                     if (response.status === 401) {
-                        mostrarAlerta('❌ Token expirado. Faça login novamente!', 'danger');
+                        mostrarAlerta('Token expirado. Faça login novamente!', 'danger');
                         return;
                     }
                     
@@ -703,10 +662,9 @@
 
                 const data = await response.json();
                 
-                mostrarAlerta('✓ Usuário cadastrado! Login: email | Senha: senha123', 'success');
+                mostrarAlerta('Usuário cadastrado! Login: email | Senha: senha123', 'success');
                 document.getElementById('formCadastro').reset();
                 
-                // Recarregar dados
                 setTimeout(() => {
                     carregarDados();
                     document.getElementById('inscricao-tab').click();
@@ -718,7 +676,6 @@
             }
         }
 
-        // ==================== INSCRIÇÃO ====================
         async function criarInscricao(e) {
             e.preventDefault();
 
@@ -731,13 +688,12 @@
             }
 
             try {
-                // Usar token do usuário logado ao invés do token do sistema
                 let token = localStorage.getItem('token');
                 if (!token) {
-                    mostrarAlerta('❌ Você precisa estar logado para criar inscrições!', 'danger');
+                    mostrarAlerta('Você precisa estar logado para criar inscrições!', 'danger');
                     return;
                 }
-                console.log('[INSCRICAO] Token de usuário obtido:', token ? '✅' : '❌');
+                console.log('Token de usuário obtido:', token ? 'POSITIVO' : 'NEGATIVO');
 
                 let response = await fetch(`${API_BASE_URL}/inscricoes`, {
                     method: 'POST',
@@ -757,7 +713,7 @@
                     console.error('[INSCRICAO] Erro HTTP:', response.status, errorData);
                     
                     if (response.status === 401) {
-                        mostrarAlerta('❌ Token expirado. Faça login novamente!', 'danger');
+                        mostrarAlerta('Token expirado. Faça login novamente!', 'danger');
                         setTimeout(() => window.location.href = 'login.html', 2000);
                         return;
                     }
@@ -766,16 +722,14 @@
                 }
 
                 const data = await response.json();
-                console.log('[INSCRICAO] ✅ Inscrição criada:', data);
+                console.log('Inscrição criada:', data);
                 
-                // Adicionar aos dados locais
                 offlineManager.dados.inscricoes.push(data.data);
                 offlineManager.salvarDadosNoStorage();
                 
-                mostrarAlerta('✓ Inscrição realizada! Agora pode fazer o check-in.', 'success');
+                mostrarAlerta('Inscrição realizada! Agora pode fazer o check-in.', 'success');
                 document.getElementById('formInscricao').reset();
                 
-                // Recarregar dados e ir para check-in
                 setTimeout(async () => {
                     await carregarDados();
                     document.getElementById('checkin-tab').click();
@@ -784,47 +738,42 @@
                 
             } catch (error) {
                 mostrarAlerta('Erro ao criar inscrição: ' + error.message, 'danger');
-                console.error('[INSCRICAO] ❌ Erro:', error);
+                console.error('Erro:', error);
             }
         }
 
-        // ==================== SINCRONIZAR ====================
         async function sincronizar() {
             if (!statusOnline) {
-                mostrarAlerta('⚠️ Sistema offline! Conecte-se à internet primeiro.', 'warning');
+                mostrarAlerta('Esta Offiline conecte-se à internet primeiro.', 'warning');
                 return;
             }
 
             try {
-                // Sincronizar especificamente as presenças offline
                 const resultado = await offlineManager.sincronizarPresencas();
                 
                 if (resultado.sucesso) {
                     mostrarAlerta(
-                        `✅ Sincronização completa!\n${resultado.sincronizadas} presença(s) sincronizada(s)\n${resultado.sincronizadas} certificado(s) gerado(s)`,
+                        `Sincronização completa!\n${resultado.sincronizadas} presença(s) sincronizada(s)\n${resultado.sincronizadas} certificado(s) gerado(s)`,
                         'success'
                     );
                 } else {
                     mostrarAlerta(
-                        `⚠️ Sincronização parcial!\n${resultado.sincronizadas} sucesso, ${resultado.erros} erro(s)`,
+                        `Sincronização parcial!\n${resultado.sincronizadas} sucesso, ${resultado.erros} erro(s)`,
                         'warning'
                     );
                 }
 
-                // Recarregar dados
                 await carregarDados();
                 
             } catch (error) {
-                mostrarAlerta('❌ Erro ao sincronizar: ' + error.message, 'danger');
+                mostrarAlerta('Erro ao sincronizar: ' + error.message, 'danger');
             }
         }
 
-        // ==================== VERIFICAR CONEXÃO ====================
         async function verificarConexao() {
             await offlineManager.verificarConexao();
         }
 
-        // ==================== UTILITÁRIOS ====================
         function mostrarAlerta(msg, tipo) {
             const c = document.getElementById('alertContainer');
             const alertId = 'alert_' + Date.now();
@@ -840,7 +789,7 @@
             }, 5000);
         }
 
-        console.log('[DEBUG] Todas as funções carregadas com sucesso!');
+        console.log('Todas as funções carregadas com sucesso!');
     </script>
 </body>
 

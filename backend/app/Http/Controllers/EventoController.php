@@ -9,7 +9,6 @@ use Illuminate\Http\Request;
 class EventoController extends Controller
 {
     /**
-     * Listar todos os eventos
      * GET /api/eventos
      */
     public function listar(Request $request)
@@ -60,7 +59,6 @@ class EventoController extends Controller
     }
 
     /**
-     * Buscar um evento específico
      * GET /api/eventos/{id}
      */
     public function buscar(Request $request, $id)
@@ -103,7 +101,6 @@ class EventoController extends Controller
     }
 
     /**
-     * Listar inscritos de um evento
      * GET /api/eventos/{id}/inscritos
      */
     public function listarInscritos(Request $request, $id)
@@ -111,7 +108,6 @@ class EventoController extends Controller
         try {
             $evento = Evento::findOrFail($id);
 
-            // Buscar inscrições ativas com dados do usuário
             $inscritos = $evento->inscricoes()
                 ->where('status', 'ativa')
                 ->with(['usuario'])

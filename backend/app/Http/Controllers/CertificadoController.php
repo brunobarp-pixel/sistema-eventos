@@ -16,7 +16,6 @@ use Illuminate\Support\Facades\Http;
 class CertificadoController extends Controller
 {
     /**
-     * ✅ NOVO: Gerar e baixar certificado em PDF
      * GET /api/certificados/{id}/pdf
      */
     public function gerarPDF(Request $request, $id)
@@ -24,7 +23,6 @@ class CertificadoController extends Controller
         try {
             $certificado = Certificado::with('usuario', 'evento')->findOrFail($id);
 
-            // Preparar dados para o gerador de PDF (Python)
             $dadosPDF = [
                 'nome_participante' => $certificado->usuario->nome,
                 'evento_titulo' => $certificado->evento->titulo,
@@ -37,7 +35,6 @@ class CertificadoController extends Controller
                 'data_emissao' => $certificado->data_emissao ? $certificado->data_emissao->format('Y-m-d H:i:s') : null
             ];
 
-            // Chamar API Python para gerar PDF
             try {
                 $response = Http::timeout(30)->post('http://127.0.0.1:5000/gerar-certificado-pdf', $dadosPDF);
 
@@ -85,7 +82,6 @@ class CertificadoController extends Controller
     public function emitir(Request $request)
     {
         try {
-            // Validação
             $validator = Validator::make($request->all(), [
                 'usuario_id' => 'required|exists:usuarios,id',
                 'evento_id' => 'required|exists:eventos,id'
@@ -99,7 +95,6 @@ class CertificadoController extends Controller
                 ], 422);
             }
 
-            // Verificar se o usuário participou do evento (tem inscrição e presença)
             $inscricao = Inscricao::where('usuario_id', $request->usuario_id)
                 ->where('evento_id', $request->evento_id)
                 ->whereIn('status', ['ativa', 'confirmada'])
@@ -112,7 +107,6 @@ class CertificadoController extends Controller
                 ], 400);
             }
 
-            // Verificar se existe presença registrada para esta inscrição
             $presenca = \App\Models\Presenca::where('inscricao_id', $inscricao->id)
                 ->where('evento_id', $request->evento_id)
                 ->where('usuario_id', $request->usuario_id)
@@ -125,7 +119,6 @@ class CertificadoController extends Controller
                 ], 400);
             }
 
-            // Verificar se já existe certificado
             $certificadoExistente = Certificado::where('usuario_id', $request->usuario_id)
                 ->where('evento_id', $request->evento_id)
                 ->first();
@@ -142,10 +135,8 @@ class CertificadoController extends Controller
                 ], 400);
             }
 
-            // Gerar código único de validação
             $codigoValidacao = $this->gerarCodigoValidacao($request->usuario_id, $request->evento_id);
 
-            // Criar certificado
             $certificado = Certificado::create([
                 'usuario_id' => $request->usuario_id,
                 'evento_id' => $request->evento_id,
@@ -156,10 +147,8 @@ class CertificadoController extends Controller
                 'data_emissao' => now()
             ]);
 
-            // Carregar dados
             $certificado->load('usuario', 'evento');
 
-            // ENVIAR E-MAIL COM O CERTIFICADO
             try {
                 $emailService = new EmailService();
                 $emailService->enviarEmailCertificado(
@@ -210,7 +199,6 @@ class CertificadoController extends Controller
     }
 
     /**
-     * Validar certificado (rota pública)
      * GET /api/certificados/{codigo}
      */
     public function validar(Request $request, $codigo)
@@ -265,13 +253,11 @@ class CertificadoController extends Controller
     }
 
     /**
-     * Listar certificados de um usuário
      * GET /api/certificados/usuario/{usuarioId}
      */
     public function listarPorUsuario(Request $request, $usuarioId)
     {
         try {
-            // DEBUG: Verificar se o usuário existe
             $usuario = Usuario::find($usuarioId);
             if (!$usuario) {
                 return response()->json([

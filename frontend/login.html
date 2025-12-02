@@ -32,7 +32,6 @@
                                 <p class="text-muted">Faça login para continuar</p>
                             </div>
 
-                            <!-- Mensagens -->
                             <div id="alertContainer"></div>
 
                             <form id="loginForm">
@@ -95,10 +94,8 @@
             const senha = document.getElementById('senha').value;
             const alertContainer = document.getElementById('alertContainer');
 
-            // Limpar mensagens anteriores
             alertContainer.innerHTML = '';
 
-            // Loading
             alertContainer.innerHTML = `
                 <div class="alert alert-info">
                     <i class="bi bi-hourglass-split"></i> Entrando...
@@ -117,7 +114,6 @@
                 const data = await response.json();
 
                 if (data.success) {
-                    // Salvar dados do usuário no localStorage
                     localStorage.setItem('usuario', JSON.stringify(data.data.usuario));
                     localStorage.setItem('token', data.data.token);
 
@@ -127,9 +123,8 @@
                         </div>
                     `;
 
-                    // Redirecionar
+                
                     setTimeout(() => {
-                        // Verificar se há redirect (para inscrição)
                         const urlParams = new URLSearchParams(window.location.search);
                         const redirect = urlParams.get('redirect');
                         
@@ -157,7 +152,6 @@
             }
         });
 
-        // Verificar se já está logado
         window.addEventListener('DOMContentLoaded', function() {
             const usuario = localStorage.getItem('usuario');
             if (usuario) {

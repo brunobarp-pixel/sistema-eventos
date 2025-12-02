@@ -8,7 +8,7 @@ use Laravel\Sanctum\HasApiTokens;
 
 class Usuario extends Model
 {
-    use HasApiTokens; // ✅ ADICIONAR ISSO
+    use HasApiTokens; 
     
     protected $table = 'usuarios';
     
@@ -31,7 +31,6 @@ class Usuario extends Model
         'updated_at' => 'datetime'
     ];
 
-    // Relacionamentos
     public function inscricoes(): HasMany
     {
         return $this->hasMany(Inscricao::class, 'usuario_id');
@@ -42,7 +41,6 @@ class Usuario extends Model
         return $this->hasMany(Certificado::class, 'usuario_id');
     }
 
-    // Método para verificar se os dados estão completos
     public function verificarDadosCompletos(): bool
     {
         return !empty($this->nome) && 

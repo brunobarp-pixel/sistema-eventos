@@ -31,7 +31,6 @@
                                 <p class="text-muted">Preencha os dados abaixo para se cadastrar</p>
                             </div>
 
-                            <!-- Mensagens -->
                             <div id="alertContainer"></div>
 
                             <form id="cadastroForm">
@@ -103,7 +102,6 @@
     <script>
         const API_URL = 'http://177.44.248.118:8000/api';
 
-        // Máscaras
         document.getElementById('cpf').addEventListener('input', function(e) {
             let value = e.target.value.replace(/\D/g, '');
             if (value.length <= 11) {
@@ -134,10 +132,8 @@
             const confirmarSenha = document.getElementById('confirmarSenha').value;
             const alertContainer = document.getElementById('alertContainer');
 
-            // Limpar mensagens
             alertContainer.innerHTML = '';
 
-            // Validar senhas
             if (senha !== confirmarSenha) {
                 alertContainer.innerHTML = `
                     <div class="alert alert-danger">
@@ -147,7 +143,6 @@
                 return;
             }
 
-            // Loading
             alertContainer.innerHTML = `
                 <div class="alert alert-info">
                     <i class="bi bi-hourglass-split"></i> Cadastrando...
@@ -178,7 +173,6 @@
                         </div>
                     `;
 
-                    // Redirecionar para login
                     setTimeout(() => {
                         window.location.href = 'login.html';
                     }, 2000);
@@ -186,7 +180,6 @@
                 } else {
                     let errorMessage = data.message;
                     
-                    // Exibir erros de validação
                     if (data.errors) {
                         errorMessage += '<ul class="mb-0 mt-2">';
                         for (let field in data.errors) {

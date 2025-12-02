@@ -7,6 +7,8 @@ use App\Models\Evento;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
+//Bridge/Ponte entre Controllers e Python, responsa pelas tratativas 
+
 class EmailService
 {
     private $pythonApiUrl = 'http://sistema-eventos-python:5000';

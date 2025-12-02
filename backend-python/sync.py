@@ -6,7 +6,7 @@ from datetime import datetime
 DATABASE = 'data/eventos.db'
 LARAVEL_API = 'http://127.0.0.1:8000/api'
 
-def get_db():
+def get_db():#legado
     """Conecta ao banco SQLite"""
     conn = sqlite3.connect(DATABASE)
     conn.row_factory = sqlite3.Row
@@ -25,8 +25,7 @@ def get_db():
     return conn
 
 def baixar_usuarios():
-    """Baixa usuários do servidor Laravel para cache local"""
-    print("\n📥 Baixando usuários do servidor...")
+    print("\nBaixando usuários do servidor...")
 
     try:
         response = requests.get(f'{LARAVEL_API}/usuarios', timeout=5)
@@ -34,11 +33,11 @@ def baixar_usuarios():
             try:
                 data = response.json()
             except Exception as e:
-                print(f"❌ Erro ao decodificar JSON: {str(e)}\nResposta: {response.text}\n")
+                print(f"Erro ao decodificar JSON: {str(e)}\nResposta: {response.text}\n")
                 return 0
             usuarios = data.get('data', [])
             if not isinstance(usuarios, list):
-                print(f"❌ Formato inesperado dos dados de usuários: {usuarios}\n")
+                print(f"Formato inesperado dos dados de usuários: {usuarios}\n")
                 return 0
 
             try:
@@ -60,26 +59,26 @@ def baixar_usuarios():
                             usuario.get('senha')
                         ))
                     except Exception as e:
-                        print(f"❌ Erro ao inserir usuário no cache: {usuario} - {str(e)}\n")
+                        print(f"Erro ao inserir usuário no cache: {usuario} - {str(e)}\n")
                 conn.commit()
                 conn.close()
             except Exception as e:
-                print(f"❌ Erro ao salvar usuários no banco SQLite: {str(e)}\n")
+                print(f"Erro ao salvar usuários no banco SQLite: {str(e)}\n")
                 return 0
 
-            print(f"✅ {len(usuarios)} usuários baixados com sucesso!\n")
+            print(f"{len(usuarios)} usuários baixados com sucesso!\n")
             return len(usuarios)
         else:
-            print(f"❌ Erro ao baixar usuários: {response.status_code} - {response.text}\n")
+            print(f"Erro ao baixar usuários: {response.status_code} - {response.text}\n")
             return 0
 
     except Exception as e:
-        print(f"❌ Erro geral ao baixar usuários: {str(e)}\n")
+        print(f"Erro geral ao baixar usuários: {str(e)}\n")
         return 0
 
 def sincronizar_usuarios():
     """Sincroniza usuários offline com o servidor Laravel"""
-    print("\n📤 Sincronizando usuários...")
+    print("\nSincronizando usuários...")
     
     conn = get_db()
     cursor = conn.cursor()
@@ -107,22 +106,21 @@ def sincronizar_usuarios():
                 )
                 conn.commit()
                 sincronizados += 1
-                print(f"  ✅ Usuário {usuario['nome']} sincronizado")
+                print(f"Usuário {usuario['nome']} sincronizado")
             else:
-                print(f"  ❌ Erro ao sincronizar {usuario['nome']}: {response.text}")
+                print(f"Erro ao sincronizar {usuario['nome']}: {response.text}")
                 erros += 1
                 
         except Exception as e:
-            print(f"  ❌ Erro ao sincronizar {usuario['nome']}: {str(e)}")
+            print(f"Erro ao sincronizar {usuario['nome']}: {str(e)}")
             erros += 1
     
     conn.close()
-    print(f"✅ {sincronizados} usuários sincronizados, {erros} erros\n")
+    print(f"{sincronizados} usuários sincronizados, {erros} erros\n")
     return sincronizados, erros
 
 def sincronizar_inscricoes():
-    """Sincroniza inscrições offline com o servidor Laravel"""
-    print("\n📤 Sincronizando inscrições...")
+    print("\nSincronizando inscrições...")
     
     conn = get_db()
     cursor = conn.cursor()
@@ -147,22 +145,22 @@ def sincronizar_inscricoes():
                 )
                 conn.commit()
                 sincronizados += 1
-                print(f"  ✅ Inscrição ID {inscricao['id']} sincronizada")
+                print(f"Inscrição ID {inscricao['id']} sincronizada")
             else:
-                print(f"  ❌ Erro ao sincronizar inscrição {inscricao['id']}: {response.text}")
+                print(f"Erro ao sincronizar inscrição {inscricao['id']}: {response.text}")
                 erros += 1
                 
         except Exception as e:
-            print(f"  ❌ Erro ao sincronizar inscrição {inscricao['id']}: {str(e)}")
+            print(f"Erro ao sincronizar inscrição {inscricao['id']}: {str(e)}")
             erros += 1
     
     conn.close()
-    print(f"✅ {sincronizados} inscrições sincronizadas, {erros} erros\n")
+    print(f"{sincronizados} inscrições sincronizadas, {erros} erros\n")
     return sincronizados, erros
 
 def sincronizar_presencas():
     """Sincroniza presenças offline com o servidor Laravel"""
-    print("\n📤 Sincronizando presenças...")
+    print("\nSincronizando presenças...")
     
     conn = get_db()
     cursor = conn.cursor()
@@ -186,22 +184,21 @@ def sincronizar_presencas():
                 )
                 conn.commit()
                 sincronizados += 1
-                print(f"  ✅ Presença ID {presenca['id']} sincronizada")
+                print(f"Presença ID {presenca['id']} sincronizada")
             else:
-                print(f"  ❌ Erro ao sincronizar presença {presenca['id']}: {response.text}")
+                print(f"Erro ao sincronizar presença {presenca['id']}: {response.text}")
                 erros += 1
                 
         except Exception as e:
-            print(f"  ❌ Erro ao sincronizar presença {presenca['id']}: {str(e)}")
+            print(f"Erro ao sincronizar presença {presenca['id']}: {str(e)}")
             erros += 1
     
     conn.close()
-    print(f"✅ {sincronizados} presenças sincronizadas, {erros} erros\n")
+    print(f"{sincronizados} presenças sincronizadas, {erros} erros\n")
     return sincronizados, erros
 
 def baixar_eventos():
-    """Baixa eventos do servidor Laravel para cache local"""
-    print("\n📥 Baixando eventos do servidor...")
+    print("\nBaixando eventos do servidor...")
     
     try:
         response = requests.get(f'{LARAVEL_API}/eventos', timeout=5)
@@ -235,33 +232,33 @@ def baixar_eventos():
             conn.commit()
             conn.close()
             
-            print(f"✅ {len(eventos)} eventos baixados com sucesso!\n")
+            print(f"{len(eventos)} eventos baixados com sucesso!\n")
             return len(eventos)
         else:
-            print(f"❌ Erro ao baixar eventos: {response.text}\n")
+            print(f"Erro ao baixar eventos: {response.text}\n")
             return 0
             
     except Exception as e:
-        print(f"❌ Erro ao baixar eventos: {str(e)}\n")
+        print(f"Erro ao baixar eventos: {str(e)}\n")
         return 0
 
 def sincronizar_tudo():
     """Executa sincronização completa"""
     print("\n" + "="*50)
-    print("🔄 INICIANDO SINCRONIZAÇÃO COMPLETA")
+    print("INICIANDO SINCRONIZAÇÃO COMPLETA")
     print("="*50)
     
     try:
         response = requests.get(f'{LARAVEL_API}/eventos', timeout=5)
         if response.status_code != 200:
-            print("❌ Servidor Laravel não está respondendo!")
+            print("Servidor Laravel não está respondendo!")
             return
     except:
-        print("❌ Não foi possível conectar ao servidor Laravel!")
+        print("Não foi possível conectar ao servidor Laravel!")
         print("   Verifique se o servidor está rodando em http://127.0.0.1:8000")
         return
     
-    print("✅ Conexão com servidor OK!\n")
+    print("Conexão com servidor OK!\n")
     
     # 1. Baixar usuários
     baixar_usuarios()
@@ -278,9 +275,6 @@ def sincronizar_tudo():
     # 5. Sincronizar presenças
     sincronizar_presencas()
     
-    print("="*50)
-    print("✅ SINCRONIZAÇÃO COMPLETA FINALIZADA!")
-    print("="*50 + "\n")
 
 if __name__ == '__main__':
     sincronizar_tudo()

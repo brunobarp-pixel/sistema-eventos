@@ -114,7 +114,7 @@ class AuthController extends Controller
                 ], 401);
             }
 
-            // ✅ GERAR TOKEN SANCTUM
+            // GERAR TOKEN SANCTUM
             $token = $usuario->createToken('api-token')->plainTextToken;
 
             $this->registrarLog($request, 'POST', '/api/auth', 200, $usuario->id);
@@ -144,7 +144,6 @@ class AuthController extends Controller
     }
 
     /**
-     * ✅ NOVO: Logout (revoga token)
      * POST /api/logout
      */
     public function logout(Request $request)
@@ -168,7 +167,6 @@ class AuthController extends Controller
     }
 
     /**
-     * ✅ NOVO: Obter usuário autenticado
      * GET /api/me
      */
     public function me(Request $request)
@@ -187,7 +185,6 @@ class AuthController extends Controller
     }
 
     /**
-     * Completar dados do usuário
      * PUT /api/usuarios/{id}
      */
     public function completarDados(Request $request, $id)
@@ -248,14 +245,11 @@ class AuthController extends Controller
      * Registrar log de acesso
      */
     /**
-     * Obter token para o sistema offline
      * GET /api/auth/sistema-token
      */
     public function sistemaToken()
     {
         try {
-            // Buscar um usuário administrativo para gerar token
-            // Usar o primeiro usuário do sistema como token base
             $usuario = Usuario::first();
             
             if (!$usuario) {

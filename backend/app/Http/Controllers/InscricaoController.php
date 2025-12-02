@@ -13,7 +13,6 @@ use Illuminate\Support\Facades\Log;
 class InscricaoController extends Controller
 {
     /**
-     * ✅ NOVO: Listar TODAS as inscrições (com filtros)
      * GET /api/inscricoes
      */
     public function listar(Request $request)
@@ -85,7 +84,6 @@ class InscricaoController extends Controller
     }
 
     /**
-     * ✅ NOVO: Listar inscrições de um usuário específico
      * GET /api/usuarios/{usuarioId}/inscricoes
      */
     public function listarPorUsuario(Request $request, $usuarioId)
@@ -181,7 +179,6 @@ class InscricaoController extends Controller
                 ], 400);
             }
 
-            // Verificar se já existe inscrição ATIVA
             $inscricaoAtiva = Inscricao::where('usuario_id', $usuario->id)
                 ->where('evento_id', $request->evento_id)
                 ->where('status', 'ativa')
@@ -194,23 +191,19 @@ class InscricaoController extends Controller
                 ], 400);
             }
 
-            // Verificar se existe inscrição cancelada (para reativar ou criar nova)
             $inscricaoCancelada = Inscricao::where('usuario_id', $usuario->id)
                 ->where('evento_id', $request->evento_id)
                 ->where('status', 'cancelada')
                 ->first();
 
             if ($inscricaoCancelada) {
-                // Reativar inscrição cancelada
                 $inscricaoCancelada->status = 'ativa';
                 $inscricaoCancelada->save();
                 $inscricao = $inscricaoCancelada;
                 $mensagem = 'Inscrição reativada com sucesso! Verifique seu e-mail.';
             } else {
-                // Determinar usuário: se tem usuario_id na request (sistema offline), usar ele; senão usar usuário autenticado
                 $usuarioId = $request->has('usuario_id') ? $request->usuario_id : $usuario->id;
                 
-                // Criar nova inscrição
                 $inscricao = Inscricao::create([
                     'usuario_id' => $usuarioId,
                     'evento_id' => $request->evento_id,
@@ -220,9 +213,7 @@ class InscricaoController extends Controller
                 $mensagem = 'Inscrição realizada com sucesso! Verifique seu e-mail.';
             }
 
-            // ENVIAR E-MAIL DE INSCRIÇÃO
             try {
-                // Buscar o usuário real da inscrição para email
                 $usuarioInscricao = Usuario::findOrFail($usuarioId);
                 
                 $emailService = new EmailService();
@@ -313,7 +304,6 @@ class InscricaoController extends Controller
             $inscricao->status = 'cancelada';
             $inscricao->save();
 
-            // ENVIAR E-MAIL DE CANCELAMENTO
             try {
                 $emailService = new EmailService();
                 $emailService->enviarEmailCancelamento($inscricao->usuario, $inscricao->evento);
