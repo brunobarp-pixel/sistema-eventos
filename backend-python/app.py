@@ -12,7 +12,7 @@ import laravel_auth_service
 
 app = Flask(__name__)
 
-CORS(app, 
+CORS(app, #isso e nem um pouco seguro, rever depois
      origins=["*"],  # Permite todas as origens
      allow_headers=["*"],  # Permite todos os headers
      methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],  # Métodos permitidos
@@ -37,12 +37,12 @@ SISTEMA_OFFLINE_TOKEN = "sistema_offline_token_2025_abcdef123456"
 
 sync_ativo = False
 sync_thread = None
-laravel_auth = laravel_auth_service.LaravelAuth()  # Instanciar a classe
+laravel_auth = laravel_auth_service.LaravelAuth() 
 
 
 def popular_dados_exemplo():
     try:
-        conn = get_mysql_connection() #nao adiantou usar isso aqui o snho sqlite no more
+        conn = get_mysql_connection() 
         if not conn:
             print("Não foi possível conectar ao MySQL")
             return
@@ -53,7 +53,7 @@ def popular_dados_exemplo():
         count = cursor.fetchone()[0]
         
         if count == 0:
-            print("📋 Populando dados de exemplo no MySQL...")
+            print("Populando dados de exemplo no MySQL...")
             
             eventos_exemplo = [
                 ("Workshop Laravel", "Introdução ao desenvolvimento com Laravel", 
@@ -109,7 +109,7 @@ def get_mysql_connection():
         conn = mysql.connector.connect(**MYSQL_CONFIG)
         return conn
     except Exception as e:
-        print(f"❌ Erro ao conectar MySQL: {str(e)}")
+        print(f"Erro ao conectar MySQL: {str(e)}")
         return None
 
 
@@ -184,7 +184,6 @@ def sistema_token():
 
 @app.route("/validar-token", methods=["POST"])
 def validar_token():
-    """Validar se o token é válido"""
     # Tentar obter token do header 
     auth_header = request.headers.get('Authorization')
     if auth_header and auth_header.startswith('Bearer '):
@@ -412,28 +411,28 @@ def presencas():
             })
             
         elif request.method == "POST":
-            print(f"[DEBUG] Recebendo POST para /presencas")
-            print(f"[DEBUG] Content-Type: {request.content_type}")
-            print(f"[DEBUG] Headers: {dict(request.headers)}")
-            print(f"[DEBUG] Raw data: {request.get_data()}")
+            print(f"Recebendo POST para /presencas")
+            print(f"Content-Type: {request.content_type}")
+            print(f"Headers: {dict(request.headers)}")
+            print(f"Raw data: {request.get_data()}")
             
             try:
                 if request.is_json:
                     data = request.get_json()
-                    print(f"[DEBUG] JSON via is_json: {data}")
+                    print(f"JSON via is_json: {data}")
                 else:
                     data = request.get_json(force=True)
-                    print(f"[DEBUG] JSON via force=True: {data}")
+                    print(f"JSON via force=True: {data}")
                 
                 if not data:
-                    print("[DEBUG] Nenhum JSON válido encontrado")
+                    print("Nenhum JSON válido encontrado")
                     return jsonify({
                         "success": False,
                         "message": "Dados JSON inválidos ou ausentes"
                     }), 400
                     
             except Exception as e:
-                print(f"[DEBUG] Erro ao fazer parse do JSON: {e}")
+                print(f"Erro ao fazer parse do JSON: {e}")
                 return jsonify({
                     "success": False,
                     "message": f"Erro ao fazer parse do JSON: {str(e)}"
@@ -614,9 +613,7 @@ def endpoint_enviar_email_checkin():
 
 @app.route("/enviar-email-cancelamento", methods=["POST"])
 def endpoint_enviar_email_cancelamento():
-    """Enviar email de cancelamento de inscrição"""
     try:
-        # Log detalhado para debug
         print(f"Headers: {dict(request.headers)}")
         print(f"Content-Type: {request.content_type}")
         print(f"Raw data: {request.get_data()}")
@@ -686,7 +683,7 @@ def gerar_certificado_endpoint():
                 "message": "Dados não fornecidos"
             }), 400
         
-        print(f"📋 Dados recebidos para gerar PDF: {data}")
+        print(f"Dados recebidos para gerar PDF: {data}")
         
         # Validar campos obrigatórios
         required_fields = ['nome_participante', 'evento_titulo', 'codigo_validacao', 'data_inicio', 'data_fim', 'local', 'data_emissao']
@@ -745,16 +742,7 @@ if __name__ == "__main__":
     print("\nVerificando dados de exemplo...")
     popular_dados_exemplo()
 
-    print("\nSistema iniciado com autenticação por token fixo")
-    print("Token do sistema configurado!")
-
     print("\nIniciando sincronização automática...")
     iniciar_sync_automatico()
-
-    # Rodar aplicação
-    print("\nSistema Python iniciado!")
-    print("Autenticação: Token fixo ativo")
-    print("Sincronização automática: ATIVA")
-    print("Usando MySQL diretamente (sem SQLite)\n")
 
     app.run(host='0.0.0.0', port=5000, debug=False, use_reloader=False)
