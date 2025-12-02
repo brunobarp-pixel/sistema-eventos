@@ -605,7 +605,9 @@
                 console.log('Resultado da marcação:', resultado);
                 
                 if (resultado.success) {
-                    const mensagem = resultado.servidor ? 'Presença registrada no servidor!' : 
+                    const mensagem = resultado.servidor ? 
+                        'Presença registrada no servidor!' : 
+                        'Presença salva offline';
                     
                     mostrarAlerta(mensagem, 'success');
                     document.getElementById('buscaParticipante').value = '';
