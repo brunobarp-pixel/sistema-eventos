@@ -248,7 +248,6 @@
     <script src="js/offline-manager.js"></script>
     <script>
         const API_BASE_URL = 'http://177.44.248.118:8000/api'; // Laravel API principal
-        const PYTHON_API_URL = 'http://177.44.248.118:5000'; // Python API (manter compatibilidade)
         const OFFLINE_API_URL = 'http://177.44.248.118:8081/api'; // Novo Backend Offline
         const LARAVEL_API = 'http://177.44.248.118:8000/api'; // Alias para compatibilidade
         const OFFLINE_API = 'http://177.44.248.118:8081/api'; // Novo endpoint offline
@@ -338,7 +337,7 @@
             
             offlineManager = new OfflineManager({
                 apiBase: API_BASE_URL,
-                offlineApi: PYTHON_API_URL,
+                offlineApi: OFFLINE_API_URL,
                 timeout: 5000,
                 onStatusChange: (online) => {
                     statusOnline = online;

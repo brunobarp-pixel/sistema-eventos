@@ -181,28 +181,10 @@ class OfflineManager {
             return this.isOnline;
             
         } catch (error) {
-            // Fallback para API Python se o backend-offline falhar
-            try {
-                const controller = new AbortController();
-                const timeoutId = setTimeout(() => controller.abort(), this.timeout);
-                
-                const response = await fetch(`${this.PYTHON_API}/status`, {
-                    signal: controller.signal,
-                    method: 'GET'
-                });
-                
-                clearTimeout(timeoutId);
-                
-                this.isOnline = response.ok;
-                this.callbacks.onStatusChange(this.isOnline);
-                
-                return this.isOnline;
-                
-            } catch (fallbackError) {
-                this.isOnline = false;
-                this.callbacks.onStatusChange(false);
-                return false;
-            }
+            console.warn('Backend-offline indisponível:', error.message);
+            this.isOnline = false;
+            this.callbacks.onStatusChange(this.isOnline);
+            return this.isOnline;
         }
     }
     
@@ -417,45 +399,32 @@ class OfflineManager {
      * Carregar eventos das APIs
      */
     async carregarEventos() {
-        
         try {
+            console.log('🎤 Carregando eventos do Laravel API...');
+            
             // Tentar Laravel primeiro
             const responseLaravel = await fetch(`${this.API_BASE}/eventos`);
             if (responseLaravel.ok) {
                 const dataLaravel = await responseLaravel.json();
-                if (dataLaravel && dataLaravel.length > 0) {
-                    console.log(`Questao offline: ${dataLaravel.length} eventos do Laravel`);
-                    localStorage.setItem('eventos_cache', JSON.stringify(dataLaravel));
-                    return dataLaravel;
+                if (dataLaravel && dataLaravel.data && dataLaravel.data.length > 0) {
+                    console.log(`✅ ${dataLaravel.data.length} eventos do Laravel`);
+                    localStorage.setItem('eventos_cache', JSON.stringify(dataLaravel.data));
+                    return dataLaravel.data;
                 }
             }
         } catch (error) {
-            console.warn('Laravel falhou:', error.message);
+            console.warn('Laravel API falhou:', error.message);
         }
         
-        try {
-            // Tentar Python MySQL
-            const responsePython = await fetch(`${this.OFFLINE_API}/eventos`);
-            if (responsePython.ok) {
-                const dataPython = await responsePython.json();
-                if (dataPython.success && dataPython.data && dataPython.data.length > 0) {
-                    console.log(`Questao offline: ${dataPython.data.length} eventos do Python`);
-                    localStorage.setItem('eventos_cache', JSON.stringify(dataPython.data));
-                    return dataPython.data;
-                }
-            }
-        } catch (error) {
-            console.warn('[OfflineManager] Python falhou:', error.message);
-        }
-        
+        // Fallback para cache local
         const cached = localStorage.getItem('eventos_cache');
         if (cached) {
             const eventos = JSON.parse(cached);
-            console.log(`${eventos.length} eventos do cache`);
+            console.log(`📱 ${eventos.length} eventos do cache`);
             return eventos;
         }
         
-        console.log('Usando eventos de exemplo');
+        console.log('📋 Usando eventos de exemplo');
         return this.getEventosExemplo();
     }
     
