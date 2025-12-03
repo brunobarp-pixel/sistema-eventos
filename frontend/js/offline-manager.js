@@ -2,7 +2,6 @@ class OfflineManager {
     constructor(config = {}) {
         this.API_BASE = config.apiBase || 'http://177.44.248.118:8000/api';
         this.OFFLINE_API = config.offlineApi || 'http://177.44.248.118:8081/api'; // Novo backend offline
-        this.PYTHON_API = 'http://177.44.248.118:5000'; // Manter para compatibilidade
         this.timeout = config.timeout || 5000;
         
         this.callbacks = {
@@ -250,29 +249,23 @@ class OfflineManager {
             const eventos = await this.carregarEventos();
             const dadosLocal = this.carregarDadosDoStorage();
             
-            let usuarios = [];
-            let inscricoes = [];
-            let presencas = [];
+            let usuarios = dadosLocal.usuarios || [];
+            let inscricoes = dadosLocal.inscricoes || [];
+            let presencas = dadosLocal.presencas || [];
             
+            // Tentar carregar dados frescos se estivermos online
             if (this.SISTEMA_TOKEN && this.isOnline) {
                 try {
-                    console.log('Tentando carregar dados das APIs antigas...');
+                    console.log('Tentando carregar dados das APIs principais...');
                     [usuarios, inscricoes, presencas] = await Promise.all([
                         this.buscarUsuarios(),
                         this.buscarInscricoes(), 
                         this.buscarPresencas()
                     ]);
                 } catch (authError) {
-                    console.warn('Erro ao carregar dados autenticados:', authError);
-                    usuarios = dadosLocal.usuarios || [];
-                    inscricoes = dadosLocal.inscricoes || [];
-                    presencas = dadosLocal.presencas || [];
+                    console.warn('Erro ao carregar dados das APIs principais:', authError);
+                    // Manter dados do localStorage
                 }
-            } else {
-                console.log('Usando dados do localStorage...');
-                usuarios = dadosLocal.usuarios || [];
-                inscricoes = dadosLocal.inscricoes || [];
-                presencas = dadosLocal.presencas || [];
             }
             
             this.dados = {
