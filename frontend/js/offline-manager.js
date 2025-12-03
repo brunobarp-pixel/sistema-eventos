@@ -1,7 +1,8 @@
 class OfflineManager {
     constructor(config = {}) {
         this.API_BASE = config.apiBase || 'http://177.44.248.118:8000/api';
-        this.OFFLINE_API = config.offlineApi || 'http://177.44.248.118:5000';
+        this.OFFLINE_API = config.offlineApi || 'http://177.44.248.118:8081/api'; // Novo backend offline
+        this.PYTHON_API = 'http://177.44.248.118:5000'; // Manter para compatibilidade
         this.timeout = config.timeout || 5000;
         
         this.callbacks = {
@@ -180,7 +181,8 @@ class OfflineManager {
             const controller = new AbortController();
             const timeoutId = setTimeout(() => controller.abort(), this.timeout);
             
-            const response = await fetch(`${this.OFFLINE_API}/status`, {
+            // Testar primeiro o novo backend-offline
+            const response = await fetch(`${this.OFFLINE_API}/offline/status`, {
                 signal: controller.signal,
                 method: 'GET'
             });
@@ -190,28 +192,84 @@ class OfflineManager {
             this.isOnline = response.ok;
             this.callbacks.onStatusChange(this.isOnline);
             
-            console.log(`Status: ${this.isOnline ? 'ONLINE' : 'OFFLINE'}`);
+            console.log(`Status: ${this.isOnline ? 'ONLINE' : 'OFFLINE'} (backend-offline)`);
             return this.isOnline;
             
         } catch (error) {
-            this.isOnline = false;
-            this.callbacks.onStatusChange(false);
-            console.log('Status: OFFLINE (erro de conexão)');
-            return false;
+            // Fallback para API Python se o backend-offline falhar
+            try {
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), this.timeout);
+                
+                const response = await fetch(`${this.PYTHON_API}/status`, {
+                    signal: controller.signal,
+                    method: 'GET'
+                });
+                
+                clearTimeout(timeoutId);
+                
+                this.isOnline = response.ok;
+                this.callbacks.onStatusChange(this.isOnline);
+                
+                console.log(`Status: ${this.isOnline ? 'ONLINE' : 'OFFLINE'} (python-fallback)`);
+                return this.isOnline;
+                
+            } catch (fallbackError) {
+                this.isOnline = false;
+                this.callbacks.onStatusChange(false);
+                console.log('Status: OFFLINE (todas as APIs falharam)');
+                return false;
+            }
         }
     }
     
   
     async carregarTodosDados() {
-        console.log('Carregando dados...');
+        console.log('Carregando dados do backend-offline...');
         
         try {
-            await this.obterTokenSistema();
-            
+            // Verificar conexão primeiro
             await this.verificarConexao();
             
-            const eventos = await this.carregarEventos();
+            if (this.isOnline) {
+                // Tentar carregar dados do novo backend-offline
+                try {
+                    console.log('Carregando dados do backend-offline...');
+                    const response = await fetch(`${this.OFFLINE_API}/offline/dados`, {
+                        method: 'GET',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        }
+                    });
+                    
+                    if (response.ok) {
+                        const data = await response.json();
+                        console.log('Dados recebidos do backend-offline:', data);
+                        
+                        if (data.success && data.data) {
+                            // Processar dados estruturados do backend-offline
+                            this.processarDadosOffline(data.data);
+                            this.salvarDadosNoStorage();
+                            
+                            console.log('Dados do backend-offline carregados com sucesso:', {
+                                eventos: this.dados.eventos.length,
+                                inscricoes: this.dados.inscricoes.length,
+                                presencas: this.dados.presencas.length
+                            });
+                            
+                            this.callbacks.onDataLoaded(this.dados);
+                            return this.dados;
+                        }
+                    }
+                } catch (error) {
+                    console.warn('Erro ao carregar do backend-offline:', error);
+                }
+            }
             
+            // Fallback para dados locais ou APIs antigas
+            console.log('Usando fallback para carregar dados...');
+            
+            const eventos = await this.carregarEventos();
             const dadosLocal = this.carregarDadosDoStorage();
             
             let usuarios = [];
@@ -220,7 +278,7 @@ class OfflineManager {
             
             if (this.SISTEMA_TOKEN && this.isOnline) {
                 try {
-                    console.log('Carregando dados com token do sistema...');
+                    console.log('Tentando carregar dados das APIs antigas...');
                     [usuarios, inscricoes, presencas] = await Promise.all([
                         this.buscarUsuarios(),
                         this.buscarInscricoes(), 
@@ -249,12 +307,11 @@ class OfflineManager {
             
             this.salvarDadosNoStorage();
             
-            console.log('Dados carregados:', {
+            console.log('Dados carregados (fallback):', {
                 usuarios: this.dados.usuarios.length,
                 eventos: this.dados.eventos.length,
                 inscricoes: this.dados.inscricoes.length,
-                presencas: this.dados.presencas.length,
-                token: this.SISTEMA_TOKEN ? 'SIM' : 'NEGATUVO'
+                presencas: this.dados.presencas.length
             });
             
             this.callbacks.onDataLoaded(this.dados);
@@ -272,6 +329,61 @@ class OfflineManager {
             this.callbacks.onDataLoaded(this.dados);
             return this.dados;
         }
+    }
+
+    /**
+     * Processar dados estruturados do backend-offline
+     */
+    processarDadosOffline(dadosOffline) {
+        this.dados.eventos = [];
+        this.dados.inscricoes = [];
+        this.dados.presencas = [];
+        this.dados.usuarios = [];
+        
+        const usuariosMap = new Map();
+        
+        dadosOffline.forEach(eventoData => {
+            // Adicionar evento
+            this.dados.eventos.push(eventoData.evento);
+            
+            // Processar inscrições e usuários
+            eventoData.inscricoes.forEach(inscricao => {
+                this.dados.inscricoes.push({
+                    id: inscricao.id,
+                    evento_id: inscricao.evento_id,
+                    usuario_id: inscricao.usuario_id,
+                    status: inscricao.status,
+                    presente: inscricao.presente,
+                    data_presenca: inscricao.data_presenca,
+                    observacoes: inscricao.observacoes
+                });
+                
+                // Adicionar usuário único
+                if (!usuariosMap.has(inscricao.usuario_id)) {
+                    usuariosMap.set(inscricao.usuario_id, {
+                        id: inscricao.usuario_id,
+                        nome: inscricao.usuario_nome,
+                        email: inscricao.usuario_email,
+                        cpf: inscricao.usuario_cpf
+                    });
+                }
+            });
+            
+            // Processar presenças
+            eventoData.presencas.forEach(presenca => {
+                this.dados.presencas.push(presenca);
+            });
+        });
+        
+        // Converter mapa de usuários para array
+        this.dados.usuarios = Array.from(usuariosMap.values());
+        
+        console.log('Dados processados do backend-offline:', {
+            eventos: this.dados.eventos.length,
+            usuarios: this.dados.usuarios.length,
+            inscricoes: this.dados.inscricoes.length,
+            presencas: this.dados.presencas.length
+        });
     }
     
  
@@ -518,7 +630,7 @@ class OfflineManager {
     
   
     async sincronizarPresencas() {
-        console.log('Sincronizando presenças...');
+        console.log('Sincronizando presenças com backend-offline...');
         
         const presencasOffline = JSON.parse(localStorage.getItem('presencas_offline') || '[]');
         const presencasNaoSincronizadas = presencasOffline.filter(p => !p.sincronizado);
@@ -534,54 +646,80 @@ class OfflineManager {
         
         console.log(`Sincronizando ${presencasNaoSincronizadas.length} presenças...`);
         
-        let sincronizadas = 0;
-        const erros = [];
-        
-        for (const presenca of presencasNaoSincronizadas) {
-            console.log(this.OFFLINE_API)
-            try {
-                const headers = await this.getAuthHeaders();
-                headers['Content-Type'] = 'application/json';
+        try {
+            // Preparar dados para o backend-offline
+            const presencasParaSincronizar = presencasNaoSincronizadas.map(presenca => ({
+                inscricao_id: presenca.inscricao_id,
+                evento_id: presenca.evento_id,
+                usuario_id: presenca.usuario_id,
+                data_checkin: presenca.timestamp || new Date().toISOString(),
+                tipo_marcacao: 'manual',
+                observacoes: presenca.observacoes || null
+            }));
+            
+            // Enviar todas as presenças de uma vez para o backend-offline
+            const response = await fetch(`${this.OFFLINE_API}/offline/sincronizar-presencas`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    presencas: presencasParaSincronizar
+                })
+            });
+            
+            if (response.ok) {
+                const data = await response.json();
+                console.log('Resposta da sincronização:', data);
                 
-                const response = await fetch(`${this.OFFLINE_API}/presencas`, {
-                    method: 'POST',
-                    headers: headers,
-                    body: JSON.stringify({
-                        inscricao_id: presenca.inscricao_id,
-                        evento_id: presenca.evento_id,
-                        usuario_id: presenca.usuario_id
-                    })
-                });
-                
-                if (response.ok) {
-                    presenca.sincronizado = true;
-                    sincronizadas++;
-                    console.log(`Presença ${presenca.inscricao_id} sincronizada`);
+                if (data.success) {
+                    // Marcar presenças como sincronizadas baseado nos resultados
+                    const resultadosSucesso = data.resultados.filter(r => r.sucesso);
+                    const resultadosErro = data.resultados.filter(r => !r.sucesso);
+                    
+                    // Atualizar status das presenças sincronizadas
+                    presencasOffline.forEach(presenca => {
+                        const resultado = resultadosSucesso.find(r => r.inscricao_id === presenca.inscricao_id);
+                        if (resultado) {
+                            presenca.sincronizado = true;
+                            presenca.servidor_id = resultado.presenca_id;
+                        }
+                    });
+                    
+                    localStorage.setItem('presencas_offline', JSON.stringify(presencasOffline));
+                    
+                    const resultado = {
+                        sucesso: true,
+                        sincronizadas: resultadosSucesso.length,
+                        total: presencasNaoSincronizadas.length,
+                        erros: resultadosErro.map(r => r.inscricao_id || 'N/A'),
+                        message: data.message
+                    };
+                    
+                    console.log('Sincronização completa:', resultado);
+                    this.callbacks.onSyncEnd(resultado);
+                    return resultado;
                 } else {
-                    console.warn(`Falha ao sincronizar presença ${presenca.inscricao_id}`);
-                    erros.push(presenca.inscricao_id);
+                    throw new Error(data.error || 'Erro na sincronização');
                 }
-                
-            } catch (error) {
-                console.error(`Erro ao sincronizar presença ${presenca.inscricao_id}:`, error);
-                erros.push(presenca.inscricao_id);
+            } else {
+                throw new Error(`Erro HTTP ${response.status}: ${response.statusText}`);
             }
+            
+        } catch (error) {
+            console.error('Erro na sincronização:', error);
+            
+            const resultado = {
+                sucesso: false,
+                sincronizadas: 0,
+                total: presencasNaoSincronizadas.length,
+                erros: [error.message],
+                message: `Erro na sincronização: ${error.message}`
+            };
+            
+            this.callbacks.onSyncError(error);
+            return resultado;
         }
-        
-        localStorage.setItem('presencas_offline', JSON.stringify(presencasOffline));
-        
-        const resultado = {
-            sucesso: true,
-            sincronizadas: sincronizadas,
-            total: presencasNaoSincronizadas.length,
-            erros: erros,
-            message: `${sincronizadas} presenças sincronizadas`
-        };
-        
-        console.log(`Sincronização completa:`, resultado);
-        
-        this.callbacks.onSyncEnd(resultado);
-        return resultado;
     }
     
 

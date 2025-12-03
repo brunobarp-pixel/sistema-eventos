@@ -247,10 +247,11 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="js/offline-manager.js"></script>
     <script>
-        const API_BASE_URL = 'http://177.44.248.118:8000/api'; // Laravel API 
-        const PYTHON_API_URL = 'http://177.44.248.118:5000'; // Python API
+        const API_BASE_URL = 'http://177.44.248.118:8000/api'; // Laravel API principal
+        const PYTHON_API_URL = 'http://177.44.248.118:5000'; // Python API (manter compatibilidade)
+        const OFFLINE_API_URL = 'http://177.44.248.118:8081/api'; // Novo Backend Offline
         const LARAVEL_API = 'http://177.44.248.118:8000/api'; // Alias para compatibilidade
-        const OFFLINE_API = 'http://177.44.248.118:5000'; // Alias para compatibilidade
+        const OFFLINE_API = 'http://177.44.248.118:8081/api'; // Novo endpoint offline
         const LARAVEL_TOKEN = '70|VaI5IynnhSWh5OcaRzbL4mZq4WnXSjPDf003cqSE65c407fe';
         
         console.log('Carregando offline.html - Timestamp:', new Date().getTime());
@@ -437,44 +438,44 @@
 
         async function carregarEstatisticas() {
             try {
-                const token = localStorage.getItem('token') || LARAVEL_TOKEN;
-                const resp = await fetch(`${OFFLINE_API}/dados-pendentes`, {
-                    headers: {
-                        'Authorization': `Bearer ${token}`,
-                        'Content-Type': 'application/json'
+                // Tentar carregar estatísticas do novo backend-offline
+                if (statusOnline) {
+                    try {
+                        const resp = await fetch(`${OFFLINE_API}/offline/status`, {
+                            headers: {
+                                'Content-Type': 'application/json'
+                            }
+                        });
+                        
+                        if (resp.ok) {
+                            const data = await resp.json();
+                            console.log('Status do backend-offline:', data);
+                        }
+                    } catch (error) {
+                        console.warn('Erro ao consultar backend-offline:', error);
                     }
-                });
-                
-                if (!resp.ok) {
-                    throw new Error('Erro na resposta da API');
                 }
                 
-                const data = await resp.json();
-
-                if (data.success && data.data) {
-                    document.getElementById('totalUsuarios').textContent = data.data.usuarios?.length || 0;
-                    document.getElementById('totalInscricoes').textContent = data.data.inscricoes?.length || 0;
-                    document.getElementById('totalPresencas').textContent = data.data.presencas?.length || 0;
-                    document.getElementById('totalPendentes').textContent = data.data.total_pendente || 0;
-                } else {
-                    const usuarios = offlineManager?.dados?.usuarios || [];
-                    const inscricoes = offlineManager?.dados?.inscricoes || [];
-                    const presencas = offlineManager?.dados?.presencas || [];
-                    
-                    document.getElementById('totalUsuarios').textContent = usuarios.length || 0;
-                    document.getElementById('totalInscricoes').textContent = inscricoes.length || 0;
-                    document.getElementById('totalPresencas').textContent = presencas.length || 0;
-                    document.getElementById('totalPendentes').textContent = 0;
-                }
-            } catch (error) {
-                console.error('Erro ao carregar estatísticas:', error);
+                // Usar dados do offlineManager para estatísticas
                 const usuarios = offlineManager?.dados?.usuarios || [];
                 const inscricoes = offlineManager?.dados?.inscricoes || [];
                 const presencas = offlineManager?.dados?.presencas || [];
                 
+                // Calcular presenças pendentes
+                const presencasOffline = JSON.parse(localStorage.getItem('presencas_offline') || '[]');
+                const totalPendentes = presencasOffline.filter(p => !p.sincronizado).length;
+                
                 document.getElementById('totalUsuarios').textContent = usuarios.length || 0;
                 document.getElementById('totalInscricoes').textContent = inscricoes.length || 0;
                 document.getElementById('totalPresencas').textContent = presencas.length || 0;
+                document.getElementById('totalPendentes').textContent = totalPendentes || 0;
+                
+            } catch (error) {
+                console.error('Erro ao carregar estatísticas:', error);
+                // Fallback para valores padrão
+                document.getElementById('totalUsuarios').textContent = 0;
+                document.getElementById('totalInscricoes').textContent = 0;
+                document.getElementById('totalPresencas').textContent = 0;
                 document.getElementById('totalPendentes').textContent = 0;
             }
         }
