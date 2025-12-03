@@ -254,11 +254,6 @@
         const OFFLINE_API = 'http://177.44.248.118:8081/api'; // Novo endpoint offline
         const LARAVEL_TOKEN = '70|VaI5IynnhSWh5OcaRzbL4mZq4WnXSjPDf003cqSE65c407fe';
         
-        console.log('Carregando offline.html - Timestamp:', new Date().getTime());
-        console.log('APIs configuradas:', {
-            laravel: LARAVEL_API,
-            python: OFFLINE_API
-        });
         
         //  globais
         let offlineManager;
@@ -340,10 +335,6 @@
                 return;
             }
             
-            console.log('Usuário logado detectado');
-            
-            console.log('🚀 Inicializando sistema offline...');
-            console.log('📡 Conectando com backend-offline em:', OFFLINE_API);
             
             offlineManager = new OfflineManager({
                 apiBase: API_BASE_URL,
@@ -354,7 +345,7 @@
                     atualizarStatusBar();
                 },
                 onDataLoaded: (dados) => {
-                    console.log('📥 Dados carregados para localStorage:', {
+                    console.log('Dados carregados para localStorage:', {
                         eventos: dados.eventos?.length || 0,
                         usuarios: dados.usuarios?.length || 0,
                         inscricoes: dados.inscricoes?.length || 0,
@@ -366,7 +357,6 @@
                     atualizarUIs();
                 },
                 onPresencaRegistrada: (presenca) => {
-                    console.log('Presença registrada:', presenca);
                     carregarEstatisticas();
                 },
                 onSyncStart: () => {
@@ -394,38 +384,24 @@
             
             const inicializacao = await offlineManager.inicializar();
             if (inicializacao) {
-                console.log('✅ Sistema inicializado com sucesso');
             } else {
                 console.warn('⚠️ Sistema inicializado com limitações');
                 mostrarAlerta('Sistema funcionando em modo limitado - algumas funcionalidades podem não estar disponíveis', 'warning');
             }
             
-            console.log('📦 Carregando dados do servidor para localStorage...');
             await offlineManager.carregarTodosDados();
-            console.log('✅ Dados carregados no localStorage');
-
-            console.log('🔧 Métodos disponíveis no offlineManager:', Object.getOwnPropertyNames(Object.getPrototypeOf(offlineManager)));
-            console.log('🔄 sincronizarPresencas existe?', typeof offlineManager.sincronizarPresencas);
-            console.log('✏️ marcarPresencaOffline existe?', typeof offlineManager.marcarPresencaOffline);
-
-            // Configurar event listeners após inicialização completa
-            console.log('🖼️ Configurando event listeners...');
-            console.log('cadastrarUsuario existe?', typeof cadastrarUsuario);
-            console.log('criarInscricao existe?', typeof criarInscricao);
             
             const formCadastro = document.getElementById('formCadastro');
             const formInscricao = document.getElementById('formInscricao');
             
             if (formCadastro && typeof cadastrarUsuario === 'function') {
                 formCadastro.addEventListener('submit', cadastrarUsuario);
-                console.log('✓ Event listener para cadastro configurado');
             } else {
                 console.error('Erro: formCadastro ou cadastrarUsuario não encontrado');
             }
             
             if (formInscricao && typeof criarInscricao === 'function') {
-                formInscricao.addEventListener('submit', criarInscricao);
-                console.log('✓ Event listener para inscrição configurado');
+                formInscricao.addEventListener('submit', criarInscricao)
             } else {
                 console.error('Erro: formInscricao ou criarInscricao não encontrado');
             }
@@ -442,9 +418,7 @@
             }, 5000);
             
             // Carregar estatísticas inicial após tudo estar configurado
-            console.log('📊 Carregando estatísticas iniciais...');
             await carregarEstatisticas();
-            console.log('✅ Sistema completamente inicializado!');
         });
 
         function atualizarStatusBar() {
@@ -475,11 +449,6 @@
 
         async function carregarEstatisticas() {
             try {
-                console.log('📊 Carregando estatísticas...', { 
-                    offlineManagerExiste: !!offlineManager,
-                    temDados: !!(offlineManager?.dados)
-                });
-                
                 // Aguardar até que o offlineManager esteja inicializado
                 if (!offlineManager) {
                     console.warn('⚠️ OfflineManager ainda não existe, aguardando...');
@@ -506,7 +475,6 @@
                         
                         if (resp.ok) {
                             const data = await resp.json();
-                            console.log('Status do backend-offline:', data);
                         }
                     } catch (error) {
                         console.warn('Erro ao consultar backend-offline:', error);
@@ -522,12 +490,6 @@
                 const presencasOffline = JSON.parse(localStorage.getItem('presencas_offline') || '[]');
                 const totalPendentes = presencasOffline.filter(p => !p.sincronizado).length;
                 
-                console.log('📊 Estatísticas atualizadas:', {
-                    usuarios: usuarios.length,
-                    inscricoes: inscricoes.length,
-                    presencas: presencas.length,
-                    pendentes: totalPendentes
-                });
                 
                 document.getElementById('totalUsuarios').textContent = usuarios.length || 0;
                 document.getElementById('totalInscricoes').textContent = inscricoes.length || 0;
@@ -565,7 +527,6 @@
                     offlineManager.dados.eventos.forEach(e => {
                         const nomeEvento = e.nome || e.titulo || e.name || 'Evento sem nome';
                         s.innerHTML += `<option value="${e.id}">${nomeEvento}</option>`;
-                        console.log('🎫 Evento adicionado ao select:', { id: e.id, nome: nomeEvento });
                     });
                 }
             });
@@ -585,7 +546,6 @@
                 return;
             }
             
-            console.log('🔍 Mostrando todas as inscrições do evento:', eventoId);
             
             if (!offlineManager || !offlineManager.dados) {
                 listaResultados.innerHTML = '<div class="alert alert-warning">Dados ainda carregando...</div>';
@@ -626,7 +586,6 @@
             });
             
             resultadosBusca.style.display = 'block';
-            console.log(`📋 Exibindo ${inscricoesDoEvento.length} inscrições do evento`);
         }
         function buscarParticipante() {
             const termo = document.getElementById('buscaParticipante').value.toLowerCase().trim();
@@ -650,7 +609,6 @@
                 return;
             }
 
-            console.log('🔍 Buscando participante:', termo, 'no evento:', eventoId);
 
             const inscricoesDoEvento = offlineManager.obterInscricoesPorEvento(eventoId, true);
 
@@ -699,7 +657,6 @@
             });
 
             resultado.style.display = 'block';
-            console.log(`📋 Encontrados ${resultados.length} resultados para "${termo}"`);
         }
 
         function selecionarInscricao(inscricaoId) {
@@ -719,7 +676,6 @@
         }
 
         async function confirmarCheckin() {
-            console.log('Iniciando processo de check-in');
             
             if (!inscricaoSelecionadaId) {
                 mostrarAlerta('Nenhuma inscrição selecionada!', 'warning');
@@ -727,7 +683,6 @@
             }
 
             const insc = offlineManager.obterInscricao(inscricaoSelecionadaId);
-            console.log('Dados da inscrição:', insc);
             
             try {
                 
@@ -736,9 +691,7 @@
                     insc.evento_id, 
                     insc.usuario_id
                 );
-                
-                console.log('Resultado da marcação:', resultado);
-                
+                                
                 if (resultado.success) {
                     const mensagem = resultado.servidor ? 
                         'Presença registrada no servidor!' : 
@@ -830,7 +783,6 @@
                     mostrarAlerta('Você precisa estar logado para criar inscrições!', 'danger');
                     return;
                 }
-                console.log('Token de usuário obtido:', token ? 'POSITIVO' : 'NEGATIVO');
 
                 let response = await fetch(`${API_BASE_URL}/inscricoes`, {
                     method: 'POST',
@@ -864,7 +816,6 @@
                 }
 
                 const data = await response.json();
-                console.log('Inscrição criada:', data);
                 
                 if (offlineManager && offlineManager.dados) {
                     offlineManager.dados.inscricoes.push(data.data);
@@ -933,7 +884,6 @@
             }, 5000);
         }
 
-        console.log('Todas as funções carregadas com sucesso!');
     </script>
 </body>
 

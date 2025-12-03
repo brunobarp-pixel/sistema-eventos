@@ -37,7 +37,6 @@ function handleLoginSubmit(event) {
         
         if (token) {
             localStorage.setItem('authToken', token);
-            console.log('Login bem-sucedido! Token armazenado.');
             
             window.location.href = 'eventos.html'; 
             

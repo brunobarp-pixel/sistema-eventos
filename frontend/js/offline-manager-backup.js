@@ -54,26 +54,22 @@ class OfflineManager {
 
         if (statusAnterior !== this.isOnline) {
             this.callbacks.onStatusChange(this.isOnline);
-            console.log(`[OfflineManager] Status de conexão: ${this.isOnline ? 'ONLINE' : 'OFFLINE'}`);
         }
 
         return this.isOnline;
     }
 
     async carregarTodosDados() {
-        console.log('[OfflineManager] Carregando dados...');
         
         try {
             await this.verificarConexao();
 
             if (!this.isOnline) {
-                console.log('[OfflineManager] Modo offline - carregando dados do localStorage');
                 this.carregarDadosDoStorage();
                 this.callbacks.onDataLoaded(this.dados);
                 return this.dados;
             }
 
-            console.log('[OfflineManager] Sistema online - carregando eventos...');
             
             const eventos = await this.carregarEventosSemAuth();
             
@@ -93,18 +89,10 @@ class OfflineManager {
             }
             
             if (this.dados.eventos.length === 0) {
-                console.log('[OfflineManager] Nenhum evento encontrado, usando exemplos...');
                 this.dados.eventos = this.getEventosExemplo();
             }
 
             this.salvarDadosNoStorage();
-
-            console.log('[OfflineManager] Dados carregados com sucesso', {
-                usuarios: this.dados.usuarios.length,
-                eventos: this.dados.eventos.length,
-                inscricoes: this.dados.inscricoes.length,
-                presencas: this.dados.presencas.length
-            });
 
             this.callbacks.onDataLoaded(this.dados);
             return this.dados;
@@ -136,44 +124,36 @@ class OfflineManager {
     }
 
     async carregarEventosSemAuth() {
-        console.log('[OfflineManager] Carregando eventos sem autenticação...');
         
         try {
-            console.log('[OfflineManager] Tentando Laravel...');
             const responseLaravel = await fetch('http://localhost:8000/api/eventos');
             
             if (responseLaravel.ok) {
                 const dataLaravel = await responseLaravel.json();
                 
                 if (dataLaravel && dataLaravel.length > 0) {
-                    console.log(`[OfflineManager] ${dataLaravel.length} eventos carregados do Laravel`);
                     localStorage.setItem('eventos_cache', JSON.stringify(dataLaravel));
                     return dataLaravel;
                 }
             }
             
-            console.log('[OfflineManager] Laravel falhou, tentando Python MySQL...');
             const responsePython = await fetch('http://localhost:5000/eventos');
             
             if (responsePython.ok) {
                 const dataPython = await responsePython.json();
                 
                 if (dataPython.success && dataPython.data && dataPython.data.length > 0) {
-                    console.log(`[OfflineManager] ${dataPython.data.length} eventos carregados do Python MySQL`);
                     localStorage.setItem('eventos_cache', JSON.stringify(dataPython.data));
                     return dataPython.data;
                 }
             }
             
-            console.log('[OfflineManager] APIs falharam, usando cache localStorage...');
             const cachedEventos = localStorage.getItem('eventos_cache');
             if (cachedEventos) {
                 const eventos = JSON.parse(cachedEventos);
-                console.log(`[OfflineManager] ✅ ${eventos.length} eventos carregados do localStorage`);
                 return eventos;
             }
             
-            console.log('[OfflineManager] Usando dados de exemplo...');
             return this.getEventosExemplo();
             
         } catch (error) {
@@ -188,14 +168,12 @@ class OfflineManager {
 
 
     async buscarEventos() {
-        console.log('[OfflineManager] Buscando eventos...');
         return await this.carregarEventosSemAuth();
     }
 
 
     async carregarEventosCompletos(token) {
         try {
-            console.log('[OfflineManager] Carregando eventos completos com inscritos...');
             
             const eventos = await this.carregarEventosSemAuth();
             

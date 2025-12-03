@@ -164,10 +164,8 @@ const getHeaders = () => {
 
             try {
         const token = localStorage.getItem('token');
-        console.log('Token encontrado:', token ? 'SIM - ' + token.substring(0, 15) + '...' : 'NÃO');
         
         const url = `${API_URL}/usuarios/${usuario.id}/inscricoes`;
-        console.log('URL da requisição:', url);
         
         const response = await fetch(url, {
             headers: {
@@ -176,7 +174,6 @@ const getHeaders = () => {
             }
         });
         
-        console.log('Status da resposta:', response.status);
                 const data = await response.json();
 
                 if (data.success) {
@@ -197,8 +194,6 @@ const getHeaders = () => {
             loading.style.display = 'none';
             container.style.display = 'block';
             
-            console.log('Quantidade de inscrições:', inscricoes.length);
-            console.log('Dados completos:', inscricoes);
             
             container.innerHTML = '';
 
@@ -271,7 +266,6 @@ const getHeaders = () => {
 
             try {
         const token = localStorage.getItem('token');
-        console.log('Token em carregarCertificados:', token ? 'SIM' : 'NÃO');
         
         const response = await fetch(`${API_URL}/certificados/usuario/${usuario.id}`, {
             headers: {
@@ -448,15 +442,12 @@ const getHeaders = () => {
 
         async function baixarCertificadoPDF(certificadoId, eventoTitulo) {
             try {
-                console.log('Iniciando download do certificado:', { certificadoId, eventoTitulo });
                 mostrarAlerta('Gerando certificado...', 'info');
 
-                console.log('Buscando certificados do usuário:', usuario.id);
         const certResponse = await fetch(`${API_URL}/certificados/usuario/${usuario.id}`, {
             headers: getHeaders()
         });
                 const certData = await certResponse.json();
-                console.log('Resposta dos certificados:', certData);
 
                 if (!certData.success || certData.data.length === 0) {
                     throw new Error('Nenhum certificado encontrado');
@@ -464,18 +455,15 @@ const getHeaders = () => {
 
                 // Encontrar o certificado específico
                 const cert = certData.data.find(c => c.id == certificadoId);
-                console.log('Certificado encontrado:', cert);
 
                 if (!cert) {
                     throw new Error('Certificado não encontrado');
                 }
 
-                console.log('Validando certificado:', cert.codigo_validacao);
                 const validResponse = await fetch(`${API_URL}/certificados/${cert.codigo_validacao}`, {
                     headers: getHeaders()
                 });
                 const validData = await validResponse.json();
-                console.log('Dados de validação:', validData);
 
                 if (!validData.success) {
                     throw new Error('Erro ao validar certificado');
@@ -495,7 +483,6 @@ const getHeaders = () => {
                     data_emissao: certCompleto.data_emissao.replace(/\//g, '-') + ' 00:00:00'
                 };
                 
-                console.log('Dados para gerar PDF:', dadosPDF);
 
                 const pdfResponse = await fetch('http://177.44.248.118:5000/gerar-certificado-pdf', {
                     method: 'POST',
@@ -503,13 +490,10 @@ const getHeaders = () => {
                     body: JSON.stringify(dadosPDF)
                 });
 
-                console.log('Status da resposta Python:', pdfResponse.status);
                 const pdfData = await pdfResponse.json();
-                console.log('Resposta do Python:', pdfData);
 
                 if (pdfData.success && pdfData.pdf_path) {
                     const downloadUrl = `http://177.44.248.118:5000/download-pdf/${encodeURIComponent(pdfData.pdf_path)}`;
-                    console.log('URL de download:', downloadUrl);
                     
                     const downloadResponse = await fetch(downloadUrl);
 
@@ -518,7 +502,6 @@ const getHeaders = () => {
                     }
 
                     const blob = await downloadResponse.blob();//objeto binário 
-                    console.log('blob gerado:', blob.size, 'bytes');
                     
                     const url = window.URL.createObjectURL(blob);
                     const a = document.createElement('a');
@@ -531,7 +514,6 @@ const getHeaders = () => {
                     document.body.removeChild(a);
 
                     mostrarAlerta('Certificado baixado com sucesso!', 'success');
-                    console.log('Download concluído com sucesso!');
                 } else {
                     throw new Error('Erro ao gerar PDF: ' + (pdfData.message || 'Resposta inválida'));
                 }
