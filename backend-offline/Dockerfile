@@ -6,10 +6,11 @@ RUN apk add --no-cache \
     zip \
     unzip \
     git \
-    curl
+    curl \
+    libzip-dev
 
 # Instalar extensões PHP
-RUN docker-php-ext-install pdo pdo_mysql
+RUN docker-php-ext-install pdo pdo_mysql zip
 
 # Instalar Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
@@ -17,26 +18,31 @@ COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 # Definir diretório de trabalho
 WORKDIR /var/www/html
 
-# Copiar composer.json primeiro para melhor cache do Docker
-COPY composer.json ./
+# Copiar arquivos de configuração do Composer primeiro
+COPY composer.json composer.lock* ./
 
-# Instalar dependências
-RUN composer install --no-dev --optimize-autoloader --no-scripts
+# Instalar dependências do Composer
+RUN composer install --no-dev --optimize-autoloader --no-scripts --no-autoloader
 
 # Copiar resto dos arquivos da aplicação
 COPY . .
 
-# Criar diretórios necessários se não existirem
-RUN mkdir -p storage/framework/cache storage/framework/sessions storage/framework/views storage/logs storage/app
+# Criar diretórios necessários
+RUN mkdir -p storage/framework/cache \
+    storage/framework/sessions \
+    storage/framework/views \
+    storage/logs \
+    storage/app \
+    bootstrap/cache
 
-# Executar scripts do composer agora que todos os arquivos estão presentes
+# Finalizar instalação do Composer
 RUN composer dump-autoload --optimize
-
-# Copiar .env se não existir
-RUN if [ ! -f .env ]; then cp .env.example .env; fi
 
 # Tornar artisan executável
 RUN chmod +x artisan
+
+# Copiar .env se não existir
+RUN if [ ! -f .env ]; then cp .env.example .env; fi
 
 # Gerar chave da aplicação
 RUN php artisan key:generate
