@@ -66,6 +66,7 @@ class OfflineController extends Controller
                         'id' => $evento->id,
                         'nome' => $evento->nome,
                         'descricao' => $evento->descricao,
+                        'conteudo' => $evento->conteudo,
                         'data_inicio' => $evento->data_inicio,
                         'data_fim' => $evento->data_fim,
                         'local' => $evento->local,
