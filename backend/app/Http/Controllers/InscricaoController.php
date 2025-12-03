@@ -179,35 +179,40 @@ class InscricaoController extends Controller
                 ], 400);
             }
 
-            $inscricaoAtiva = Inscricao::where('usuario_id', $usuario->id)
+            // Verificar se usuário já está inscrito neste evento (qualquer status)
+            $inscricaoExistente = Inscricao::where('usuario_id', $usuario->id)
                 ->where('evento_id', $request->evento_id)
-                ->where('status', 'ativa')
                 ->first();
 
-            if ($inscricaoAtiva) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Você já está inscrito neste evento'
-                ], 400);
-            }
-
-            $inscricaoCancelada = Inscricao::where('usuario_id', $usuario->id)
-                ->where('evento_id', $request->evento_id)
-                ->where('status', 'cancelada')
-                ->first();
-
-            if ($inscricaoCancelada) {
-                $inscricaoCancelada->status = 'ativa';
-                $inscricaoCancelada->save();
-                $inscricao = $inscricaoCancelada;
-                $mensagem = 'Inscrição reativada com sucesso! Verifique seu e-mail.';
+            if ($inscricaoExistente) {
+                if ($inscricaoExistente->status === 'ativa') {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Você já está inscrito neste evento'
+                    ], 400);
+                } elseif ($inscricaoExistente->status === 'cancelada') {
+                    // Reativar inscrição cancelada
+                    $inscricaoExistente->status = 'ativa';
+                    $inscricaoExistente->data_inscricao = now();
+                    $inscricaoExistente->save();
+                    $inscricao = $inscricaoExistente;
+                    $mensagem = 'Inscrição reativada com sucesso! Verifique seu e-mail.';
+                } else {
+                    // Para outros status, atualizar para ativo
+                    $inscricaoExistente->status = 'ativa';
+                    $inscricaoExistente->data_inscricao = now();
+                    $inscricaoExistente->save();
+                    $inscricao = $inscricaoExistente;
+                    $mensagem = 'Inscrição atualizada com sucesso! Verifique seu e-mail.';
+                }
             } else {
+                // Criar nova inscrição
                 $usuarioId = $request->has('usuario_id') ? $request->usuario_id : $usuario->id;
                 
                 $inscricao = Inscricao::create([
                     'usuario_id' => $usuarioId,
                     'evento_id' => $request->evento_id,
-                    'status' => 'confirmada',
+                    'status' => 'ativa',
                     'data_inscricao' => now()
                 ]);
                 $mensagem = 'Inscrição realizada com sucesso! Verifique seu e-mail.';

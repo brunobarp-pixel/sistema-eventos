@@ -408,10 +408,27 @@
             console.log('🔄 sincronizarPresencas existe?', typeof offlineManager.sincronizarPresencas);
             console.log('✏️ marcarPresencaOffline existe?', typeof offlineManager.marcarPresencaOffline);
 
+            // Configurar event listeners após inicialização completa
+            console.log('🖼️ Configurando event listeners...');
             console.log('cadastrarUsuario existe?', typeof cadastrarUsuario);
             console.log('criarInscricao existe?', typeof criarInscricao);
-            document.getElementById('formCadastro')?.addEventListener('submit', cadastrarUsuario);
-            document.getElementById('formInscricao')?.addEventListener('submit', criarInscricao);
+            
+            const formCadastro = document.getElementById('formCadastro');
+            const formInscricao = document.getElementById('formInscricao');
+            
+            if (formCadastro && typeof cadastrarUsuario === 'function') {
+                formCadastro.addEventListener('submit', cadastrarUsuario);
+                console.log('✓ Event listener para cadastro configurado');
+            } else {
+                console.error('Erro: formCadastro ou cadastrarUsuario não encontrado');
+            }
+            
+            if (formInscricao && typeof criarInscricao === 'function') {
+                formInscricao.addEventListener('submit', criarInscricao);
+                console.log('✓ Event listener para inscrição configurado');
+            } else {
+                console.error('Erro: formInscricao ou criarInscricao não encontrado');
+            }
 
             document.querySelectorAll('button[data-bs-toggle="tab"]').forEach(btn => {
                 btn.addEventListener('shown.bs.tab', () => {
@@ -423,6 +440,11 @@
             setInterval(() => {
                 offlineManager.verificarConexao();
             }, 5000);
+            
+            // Carregar estatísticas inicial após tudo estar configurado
+            console.log('📊 Carregando estatísticas iniciais...');
+            await carregarEstatisticas();
+            console.log('✅ Sistema completamente inicializado!');
         });
 
         function atualizarStatusBar() {
@@ -453,7 +475,25 @@
 
         async function carregarEstatisticas() {
             try {
-                console.log('📊 Carregando estatísticas...', { offlineManager: !!offlineManager });
+                console.log('📊 Carregando estatísticas...', { 
+                    offlineManagerExiste: !!offlineManager,
+                    temDados: !!(offlineManager?.dados)
+                });
+                
+                // Aguardar até que o offlineManager esteja inicializado
+                if (!offlineManager) {
+                    console.warn('⚠️ OfflineManager ainda não existe, aguardando...');
+                    // Tentar novamente em 1 segundo
+                    setTimeout(carregarEstatisticas, 1000);
+                    return;
+                }
+                
+                // Aguardar carregamento dos dados se necessário
+                if (!offlineManager.dados) {
+                    console.warn('⚠️ Dados ainda não carregados, aguardando...');
+                    setTimeout(carregarEstatisticas, 1000);
+                    return;
+                }
                 
                 // Tentar carregar estatísticas do novo backend-offline
                 if (statusOnline) {
@@ -471,16 +511,6 @@
                     } catch (error) {
                         console.warn('Erro ao consultar backend-offline:', error);
                     }
-                }
-                
-                // Verificar se offlineManager existe e tem dados
-                if (!offlineManager || !offlineManager.dados) {
-                    console.warn('OfflineManager ainda não inicializado');
-                    document.getElementById('totalUsuarios').textContent = 0;
-                    document.getElementById('totalInscricoes').textContent = 0;
-                    document.getElementById('totalPresencas').textContent = 0;
-                    document.getElementById('totalPendentes').textContent = 0;
-                    return;
                 }
                 
                 // Usar dados do offlineManager para estatísticas
@@ -825,16 +855,23 @@
                         return;
                     }
                     
+                    if (response.status === 400 && errorData.message && errorData.message.includes('já está inscrito')) {
+                        mostrarAlerta('Este usuário já está inscrito neste evento!', 'warning');
+                        return;
+                    }
+                    
                     throw new Error(`Erro ${response.status}: ${errorData.message || 'Falha na inscrição'}`);
                 }
 
                 const data = await response.json();
                 console.log('Inscrição criada:', data);
                 
-                offlineManager.dados.inscricoes.push(data.data);
-                offlineManager.salvarDadosNoStorage();
+                if (offlineManager && offlineManager.dados) {
+                    offlineManager.dados.inscricoes.push(data.data);
+                    offlineManager.salvarDadosNoStorage();
+                }
                 
-                mostrarAlerta('Inscrição realizada! Agora pode fazer o check-in.', 'success');
+                mostrarAlerta(data.message || 'Inscrição realizada! Agora pode fazer o check-in.', 'success');
                 document.getElementById('formInscricao').reset();
                 
                 setTimeout(async () => {
