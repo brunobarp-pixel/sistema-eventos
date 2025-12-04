@@ -105,15 +105,34 @@ def gerar_certificado_pdf(dados_certificado, output_path):
         y_position = height - 13.5*cm
         
         # Formatação das datas
-        if isinstance(dados_certificado['data_inicio'], str):
-            data_inicio_fmt = datetime.strptime(dados_certificado['data_inicio'], '%Y-%m-%d').strftime('%d/%m/%Y')
-        else:
-            data_inicio_fmt = dados_certificado['data_inicio'].strftime('%d/%m/%Y')
+        def formatar_data(data_str):
+            """Função para formatar datas em múltiplos formatos"""
+            if not isinstance(data_str, str):
+                return data_str.strftime('%d/%m/%Y')
             
-        if isinstance(dados_certificado['data_fim'], str):
-            data_fim_fmt = datetime.strptime(dados_certificado['data_fim'], '%Y-%m-%d').strftime('%d/%m/%Y')
-        else:
-            data_fim_fmt = dados_certificado['data_fim'].strftime('%d/%m/%Y')
+            # Remover microsegundos e timezone se existirem
+            data_limpa = data_str.split('.')[0].split('+')[0].strip()
+            
+            formatos = [
+                '%Y-%m-%d',
+                '%d-%m-%Y',
+                '%Y-%m-%d %H:%M:%S',
+                '%d-%m-%Y %H:%M:%S',
+                '%Y/%m/%d',
+                '%d/%m/%Y'
+            ]
+            
+            for formato in formatos:
+                try:
+                    return datetime.strptime(data_limpa, formato).strftime('%d/%m/%Y')
+                except ValueError:
+                    continue
+            
+            # Se nenhum formato funcionar, retornar como string
+            return str(data_str)
+        
+        data_inicio_fmt = formatar_data(dados_certificado['data_inicio'])
+        data_fim_fmt = formatar_data(dados_certificado['data_fim'])
         
         # Período do evento
         texto_periodo = f"Realizado no período de {data_inicio_fmt} a {data_fim_fmt}"
@@ -131,10 +150,36 @@ def gerar_certificado_pdf(dados_certificado, output_path):
         # Data de emissão
         pdf.setFont("Helvetica", 10)
         pdf.setFillColor(HexColor('#666666'))
-        if isinstance(dados_certificado['data_emissao'], str):
-            data_emissao_fmt = datetime.strptime(dados_certificado['data_emissao'], '%Y-%m-%d %H:%M:%S').strftime('%d/%m/%Y')
-        else:
-            data_emissao_fmt = dados_certificado['data_emissao'].strftime('%d/%m/%Y')
+        
+        def formatar_data_emissao(data_str):
+            """Função específica para formatar data de emissão"""
+            if not isinstance(data_str, str):
+                return data_str.strftime('%d/%m/%Y')
+            
+            # Remover microsegundos e timezone se existirem
+            data_limpa = data_str.split('.')[0].split('+')[0].strip()
+            
+            formatos = [
+                '%Y-%m-%d %H:%M:%S',
+                '%d-%m-%Y %H:%M:%S',
+                '%Y-%m-%d',
+                '%d-%m-%Y',
+                '%Y/%m/%d %H:%M:%S',
+                '%d/%m/%Y %H:%M:%S',
+                '%Y/%m/%d',
+                '%d/%m/%Y'
+            ]
+            
+            for formato in formatos:
+                try:
+                    return datetime.strptime(data_limpa, formato).strftime('%d/%m/%Y')
+                except ValueError:
+                    continue
+            
+            # Se nenhum formato funcionar, retornar como string
+            return str(data_str)
+        
+        data_emissao_fmt = formatar_data_emissao(dados_certificado['data_emissao'])
         pdf.drawCentredString(width/2, 3*cm, f"Emitido em: {data_emissao_fmt}")
         
         # Código de validação
