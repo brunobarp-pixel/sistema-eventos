@@ -234,7 +234,7 @@ def enviar_email_certificado(usuario, evento, certificado):#rever isso aqui
             'data_emissao': certificado['data_emissao']
         }
         
-        pdf_path = gerar_certificado_pdf(dados_pdf)
+        pdf_path = gerar_certificado_pdf(dados_pdf, "certificados_pdf")
         
         if MODO_TESTE:
             print(f"E-mail com PDF anexado seria enviado para {usuario['email']}")

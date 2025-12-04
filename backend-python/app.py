@@ -506,7 +506,7 @@ def presencas():
                         'data_fim': data_fim,
                         'codigo_validacao': f'CERT_{inscricao_id}_{int(time.time())}',
                         'data_emissao': datetime.now().strftime('%Y-%m-%d')
-                    })
+                    }, "certificados_pdf")
                     
                     cursor.execute("""
                         INSERT INTO certificados (inscricao_id, caminho_arquivo)
@@ -695,7 +695,7 @@ def gerar_certificado_endpoint():
                 "message": f"Campos obrigatórios ausentes: {', '.join(missing_fields)}"
             }), 400
         
-        certificado_path = gerar_certificado_pdf(data)
+        certificado_path = gerar_certificado_pdf(data, "certificados_pdf")
         
         nome_arquivo = os.path.basename(certificado_path)
         
