@@ -5,13 +5,13 @@ from dotenv import load_dotenv
 load_dotenv()
 
 
-MODO_TESTE = True  # True = usa MailHog, False = envia e-mails de verdade
+MODO_TESTE = False  # True = usa MailHog, False = envia e-mails de verdade
 
 # Configurações de e-mail
-EMAIL_HOST = os.getenv('EMAIL_HOST', 'mailhog')  # MailHog container
-EMAIL_PORT = int(os.getenv('EMAIL_PORT', 1025))
-EMAIL_USER = os.getenv('EMAIL_USER', '')
-EMAIL_PASSWORD = os.getenv('EMAIL_PASSWORD', '')
+EMAIL_HOST = os.getenv('EMAIL_HOST', 'smtp.gmail.com')  # Gmail SMTP
+EMAIL_PORT = int(os.getenv('EMAIL_PORT', 587))  # Porta TLS do Gmail
+EMAIL_USER = os.getenv('EMAIL_USER', 'bqgames999')  # Seu email do Gmail
+EMAIL_PASSWORD = os.getenv('EMAIL_PASSWORD', 'ghme mpkt ecfs gcmc')  # Senha de app do Gmail
 EMAIL_FROM = os.getenv('EMAIL_FROM', 'Sistema de Eventos <noreply@eventos.com>')
 
 
