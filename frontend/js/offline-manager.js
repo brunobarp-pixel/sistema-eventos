@@ -380,7 +380,7 @@ class OfflineManager {
     async buscarPresencas() {
         try {
             const headers = await this.getAuthHeaders();
-            const response = await fetch(`${this.OFFLINE_API}/presencas`, {
+            const response = await fetch(`${this.OFFLINE_API}/presencas`, { //ISSO AQUI N EXISTE NA OFFLINE API
                 headers: headers
             });
             

@@ -26,6 +26,12 @@ Route::prefix('offline')->group(function () {
     Route::get('/status', [OfflineController::class, 'statusConectividade']);
 });
 
+// Rotas para buscar dados individuais
+Route::get('/presencas', [OfflineController::class, 'buscarPresencas']);
+Route::get('/usuarios', [OfflineController::class, 'buscarUsuarios']);
+Route::get('/inscricoes', [OfflineController::class, 'buscarInscricoes']);
+Route::post('/validar-token', [OfflineController::class, 'validarToken']);
+
 // Health check route
 Route::get('/health', function () {
     return response()->json([

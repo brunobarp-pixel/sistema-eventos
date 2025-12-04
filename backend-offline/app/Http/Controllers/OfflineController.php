@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Evento;
 use App\Models\Inscricao;
 use App\Models\Presenca;
+use App\Models\Usuario;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 
@@ -194,5 +195,101 @@ class OfflineController extends Controller
             'online' => true,
             'timestamp' => now()->toISOString()
         ]);
+    }
+
+    /**
+     * Buscar todas as presenças
+     */
+    public function buscarPresencas(): JsonResponse
+    {
+        try {
+            $presencas = Presenca::with(['inscricao.usuario', 'inscricao.evento'])
+                ->orderBy('created_at', 'desc')
+                ->get();
+
+            return response()->json([
+                'success' => true,
+                'data' => $presencas,
+                'total' => $presencas->count()
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'error' => 'Erro ao buscar presenças: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Buscar todos os usuários
+     */
+    public function buscarUsuarios(): JsonResponse
+    {
+        try {
+            $usuarios = Usuario::orderBy('nome')->get();
+
+            return response()->json([
+                'success' => true,
+                'data' => $usuarios,
+                'total' => $usuarios->count()
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'error' => 'Erro ao buscar usuários: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Buscar todas as inscrições
+     */
+    public function buscarInscricoes(): JsonResponse
+    {
+        try {
+            $inscricoes = Inscricao::with(['usuario', 'evento'])
+                ->orderBy('created_at', 'desc')
+                ->get();
+
+            return response()->json([
+                'success' => true,
+                'data' => $inscricoes,
+                'total' => $inscricoes->count()
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'error' => 'Erro ao buscar inscrições: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Validar token de autenticação
+     */
+    public function validarToken(Request $request): JsonResponse
+    {
+        try {
+            // Por enquanto, aceitar qualquer token para testes
+            $token = $request->bearerToken();
+            
+            if (empty($token)) {
+                return response()->json([
+                    'success' => false,
+                    'error' => 'Token não fornecido'
+                ], 401);
+            }
+
+            return response()->json([
+                'success' => true,
+                'valid' => true,
+                'message' => 'Token válido'
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'error' => 'Erro ao validar token: ' . $e->getMessage()
+            ], 500);
+        }
     }
 }
