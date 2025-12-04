@@ -16,14 +16,7 @@ return [
 
     'allowed_methods' => ['*'],
 
-    'allowed_origins' => [
-        'http://177.44.248.118',
-        'http://177.44.248.118:8080',
-        'http://127.0.0.1',
-        'http://localhost',
-        'http://localhost:8080',
-        'http://localhost:3000',
-    ],
+    'allowed_origins' => ['*'],
 
     'allowed_origins_patterns' => ['*'],
 
