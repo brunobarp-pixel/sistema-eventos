@@ -130,12 +130,7 @@
             </li>
             <li class="nav-item" role="presentation">
                 <button class="nav-link" id="cadastro-tab" data-bs-toggle="tab" data-bs-target="#cadastro">
-                    <i class="bi bi-person-plus"></i> Cadastro Rápido
-                </button>
-            </li>
-            <li class="nav-item" role="presentation">
-                <button class="nav-link" id="inscricao-tab" data-bs-toggle="tab" data-bs-target="#inscricao">
-                    <i class="bi bi-clipboard-plus"></i> Inscrever
+                    <i class="bi bi-person-plus"></i> Inscrição Rápida
                 </button>
             </li>
         </ul>
@@ -184,12 +179,12 @@
             <div class="tab-pane fade" id="cadastro" role="tabpanel">
                 <div class="card">
                     <div class="card-header bg-primary text-white">
-                        <h5 class="mb-0"><i class="bi bi-person-plus"></i> Cadastro Rápido na Portaria</h5>
+                        <h5 class="mb-0"><i class="bi bi-person-plus"></i> Inscrição Rápida na Portaria</h5>
                     </div>
                     <div class="card-body">
                         <div class="alert alert-info">
                             <i class="bi bi-info-circle"></i> Para participantes não cadastrados.
-                            Apenas <strong>nome e email</strong> são obrigatórios.
+                            <strong>Nome, email e evento</strong> são obrigatórios.
                         </div>
 
                         <form id="formCadastro">
@@ -203,39 +198,23 @@
                                     <input type="email" class="form-control" id="cadastroEmail" required>
                                 </div>
                             </div>
-                            <div class="alert alert-info">
-                                <i class="bi bi-info-circle"></i>
-                                <strong>Senha padrão:</strong> senha123 (o usuário pode alterar depois no login)
+                            
+                            <div class="mb-3">
+                                <label class="form-label">Eventos *</label>
+                                <select class="form-select" id="cadastroEventos" multiple required>
+                                    <option value="" disabled>Carregando eventos...</option>
+                                </select>
+                                <div class="form-text">Segure Ctrl para selecionar múltiplos eventos</div>
                             </div>
+                            
+                            <div class="alert alert-warning">
+                                <i class="bi bi-exclamation-triangle"></i>
+                                <strong>O que acontecerá:</strong> O usuário será criado com senha padrão (senha123), 
+                                inscrito nos eventos selecionados, e a presença será marcada automaticamente.
+                            </div>
+                            
                             <button type="submit" class="btn btn-primary">
-                                <i class="bi bi-person-check"></i> Cadastrar e Prosseguir
-                            </button>
-                        </form>
-                    </div>
-                </div>
-            </div>
-
-            <div class="tab-pane fade" id="inscricao" role="tabpanel">
-                <div class="card">
-                    <div class="card-header bg-success text-white">
-                        <h5 class="mb-0"><i class="bi bi-clipboard-plus"></i> Inscrever Participante</h5>
-                    </div>
-                    <div class="card-body">
-                        <form id="formInscricao">
-                            <div class="mb-3">
-                                <label class="form-label">Participante</label>
-                                <select class="form-select" id="inscricaoUsuario" required>
-                                    <option value="">Carregando...</option>
-                                </select>
-                            </div>
-                            <div class="mb-3">
-                                <label class="form-label">Evento</label>
-                                <select class="form-select" id="inscricaoEvento" required>
-                                    <option value="">Carregando...</option>
-                                </select>
-                            </div>
-                            <button type="submit" class="btn btn-success">
-                                <i class="bi bi-check"></i> Confirmar Inscrição
+                                <i class="bi bi-person-check"></i> Cadastrar e Marcar Presença
                             </button>
                         </form>
                     </div>
@@ -268,58 +247,43 @@
         async function cadastrarUsuario(e) {
             e.preventDefault();
 
-            const dados = {
-                nome: document.getElementById('cadastroNome').value,
-                email: document.getElementById('cadastroEmail').value,
-                senha: 'senha123' 
-            };
+            const nome = document.getElementById('cadastroNome').value;
+            const email = document.getElementById('cadastroEmail').value;
+            const eventosSelect = document.getElementById('cadastroEventos');
+            const eventosSelecionados = Array.from(eventosSelect.selectedOptions).map(option => option.value);
+
+            if (!nome || !email || eventosSelecionados.length === 0) {
+                mostrarAlerta('Preencha todos os campos obrigatórios e selecione pelo menos um evento!', 'warning');
+                return;
+            }
 
             try {
-                const token = localStorage.getItem('token');
-                if (!token) {
-                    mostrarAlerta('Você precisa estar logado para cadastrar usuários!', 'danger');
-                    return;
-                }
+                // Salvar dados no localStorage para sincronização posterior
+                const inscricoesRapidas = JSON.parse(localStorage.getItem('inscricoes_rapidas') || '[]');
                 
-                const response = await fetch(`${API_BASE_URL}/usuarios`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${token}`
+                const novaInscricaoRapida = {
+                    id: `temp_${Date.now()}`,
+                    usuario: {
+                        nome: nome.trim(),
+                        email: email.trim(),
+                        senha: 'senha123'
                     },
-                    body: JSON.stringify(dados)
-                });
+                    eventos: eventosSelecionados,
+                    timestamp: new Date().toISOString(),
+                    sincronizado: false
+                };
 
-                if (!response.ok) {
-                    const errorData = await response.json();
-                    console.error('Erro detalhado:', errorData);
-                    
-                    if (response.status === 401) {
-                        mostrarAlerta('Token expirado. Faça login novamente!', 'danger');
-                        setTimeout(() => window.location.href = 'login.html', 2000);
-                        return;
-                    }
-                    
-                    throw new Error(`Erro de validação: ${errorData.message || 'Dados inválidos'}`);
-                }
+                inscricoesRapidas.push(novaInscricaoRapida);
+                localStorage.setItem('inscricoes_rapidas', JSON.stringify(inscricoesRapidas));
 
-                const data = await response.json();
-                
-                if (offlineManager && offlineManager.dados) {
-                    offlineManager.dados.usuarios.push(data.data);
-                    offlineManager.salvarDadosNoStorage();
-                }
-                
-                mostrarAlerta('Usuário cadastrado! Login: email | Senha: senha123', 'success');
+                // Atualizar contador de pendentes
+                atualizarContadorPendentes();
+
+                mostrarAlerta(`Inscrição rápida salva! O usuário será criado e inscrito em ${eventosSelecionados.length} evento(s) na próxima sincronização.`, 'success');
                 document.getElementById('formCadastro').reset();
-                
-                setTimeout(() => {
-                    atualizarSelectUsuarios();
-                    carregarEstatisticas();
-                }, 1000);
-                
+
             } catch (error) {
-                mostrarAlerta('Erro ao cadastrar: ' + error.message, 'danger');
+                mostrarAlerta('Erro ao salvar inscrição rápida: ' + error.message, 'danger');
                 console.error('Erro:', error);
             }
         }
@@ -391,18 +355,11 @@
             await offlineManager.carregarTodosDados();
             
             const formCadastro = document.getElementById('formCadastro');
-            const formInscricao = document.getElementById('formInscricao');
             
             if (formCadastro && typeof cadastrarUsuario === 'function') {
                 formCadastro.addEventListener('submit', cadastrarUsuario);
             } else {
                 console.error('Erro: formCadastro ou cadastrarUsuario não encontrado');
-            }
-            
-            if (formInscricao && typeof criarInscricao === 'function') {
-                formInscricao.addEventListener('submit', criarInscricao)
-            } else {
-                console.error('Erro: formInscricao ou criarInscricao não encontrado');
             }
 
             document.querySelectorAll('button[data-bs-toggle="tab"]').forEach(btn => {
@@ -419,6 +376,34 @@
             // Carregar estatísticas inicial após tudo estar configurado
             await carregarEstatisticas();
         });
+
+        function atualizarContadorPendentes() {
+            const inscricoesRapidas = JSON.parse(localStorage.getItem('inscricoes_rapidas') || '[]');
+            const presencasOffline = JSON.parse(localStorage.getItem('presencas_offline') || '[]');
+            
+            const pendentesInscricoes = inscricoesRapidas.filter(i => !i.sincronizado).length;
+            const pendentesPresencas = presencasOffline.filter(p => !p.sincronizado).length;
+            
+            const total = pendentesInscricoes + pendentesPresencas;
+            document.getElementById('totalPendentes').textContent = total;
+            
+            console.log(`📊 Pendentes: ${pendentesInscricoes} inscrições + ${pendentesPresencas} presenças = ${total} total`);
+        }
+
+        function atualizarSelectEventos() {
+            const selectEventos = document.getElementById('cadastroEventos');
+            if (!selectEventos || !offlineManager || !offlineManager.dados) return;
+
+            selectEventos.innerHTML = '<option value="" disabled>Selecione os eventos...</option>';
+            
+            const eventos = offlineManager.dados.eventos || [];
+            eventos.forEach(evento => {
+                const option = document.createElement('option');
+                option.value = evento.id;
+                option.textContent = `${evento.nome || evento.titulo} - ${evento.local}`;
+                selectEventos.appendChild(option);
+            });
+        }
 
         function atualizarStatusBar() {
             const statusBar = document.getElementById('statusBar');
@@ -439,6 +424,7 @@
         function atualizarUIs() {
             atualizarSelectUsuarios();
             atualizarSelectEventos();
+            atualizarContadorPendentes();
             carregarEstatisticas();
         }
 
@@ -765,25 +751,109 @@
             }
         }
 
-        async function criarInscricao(e) {
-            e.preventDefault();
-
-            const usuarioId = parseInt(document.getElementById('inscricaoUsuario').value);
-            const eventoId = parseInt(document.getElementById('inscricaoEvento').value);
-
-            if (!usuarioId || !eventoId) {
-                mostrarAlerta('Selecione um participante e um evento!', 'warning');
+        async function sincronizar() {
+            if (!statusOnline) {
+                mostrarAlerta('Sistema offline! Conecte-se à internet primeiro.', 'warning');
                 return;
             }
 
             try {
-                let token = localStorage.getItem('token');
-                if (!token) {
-                    mostrarAlerta('Você precisa estar logado para criar inscrições!', 'danger');
-                    return;
+                const btnSincronizar = document.getElementById('btnSincronizar');
+                btnSincronizar.disabled = true;
+                btnSincronizar.innerHTML = '<i class="bi bi-arrow-repeat"></i> Sincronizando...';
+
+                // 1. Sincronizar inscrições rápidas primeiro
+                await sincronizarInscricoesRapidas();
+
+                // 2. Sincronizar presenças normais
+                const resultado = await offlineManager.sincronizarPresencas();
+                
+                if (resultado.sucesso) {
+                    mostrarAlerta(
+                        `Sincronização completa!\\n${resultado.sincronizadas} presença(s) sincronizada(s)`,
+                        'success'
+                    );
+                } else {
+                    mostrarAlerta(
+                        `Sincronização parcial!\\n${resultado.sincronizadas} sucesso, ${resultado.erros?.length || 0} erro(s)`,
+                        'warning'
+                    );
                 }
 
-                let response = await fetch(`${API_BASE_URL}/inscricoes`, {
+                await carregarEstatisticas();
+                atualizarContadorPendentes();
+                
+            } catch (error) {
+                console.error('Erro ao sincronizar:', error);
+                mostrarAlerta('Erro ao sincronizar: ' + error.message, 'danger');
+            } finally {
+                const btnSincronizar = document.getElementById('btnSincronizar');
+                btnSincronizar.disabled = false;
+                btnSincronizar.innerHTML = '<i class="bi bi-cloud-arrow-up"></i> Sincronizar';
+            }
+        }
+
+        async function sincronizarInscricoesRapidas() {
+            const inscricoesRapidas = JSON.parse(localStorage.getItem('inscricoes_rapidas') || '[]');
+            const pendentes = inscricoesRapidas.filter(i => !i.sincronizado);
+            
+            if (pendentes.length === 0) {
+                console.log('Nenhuma inscrição rápida pendente');
+                return;
+            }
+
+            console.log(`🚀 Sincronizando ${pendentes.length} inscrições rápidas...`);
+
+            for (const inscricao of pendentes) {
+                try {
+                    // 1. Criar usuário
+                    const usuario = await criarUsuarioCompleto(inscricao.usuario);
+                    
+                    // 2. Para cada evento, criar inscrição e marcar presença
+                    for (const eventoId of inscricao.eventos) {
+                        await processarInscricaoEvento(usuario.id, eventoId);
+                    }
+                    
+                    // 3. Marcar como sincronizado
+                    inscricao.sincronizado = true;
+                    
+                } catch (error) {
+                    console.error(`Erro ao sincronizar inscrição rápida:`, error);
+                    // Continuar com as próximas inscrições mesmo se uma falhar
+                }
+            }
+            
+            // Salvar progresso
+            localStorage.setItem('inscricoes_rapidas', JSON.stringify(inscricoesRapidas));
+            console.log('✅ Inscrições rápidas sincronizadas');
+        }
+
+        async function criarUsuarioCompleto(dadosUsuario) {
+            const token = localStorage.getItem('token');
+            const response = await fetch(`${API_BASE_URL}/usuarios`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify(dadosUsuario)
+            });
+
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(`Erro ao criar usuário: ${error.message || response.statusText}`);
+            }
+
+            const data = await response.json();
+            return data.data;
+        }
+
+        async function processarInscricaoEvento(usuarioId, eventoId) {
+            const token = localStorage.getItem('token');
+            
+            try {
+                // 1. Criar inscrição
+                const inscricaoResponse = await fetch(`${API_BASE_URL}/inscricoes`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -796,71 +866,44 @@
                     })
                 });
 
-                if (!response.ok) {
-                    const errorData = await response.json().catch(() => ({}));
-                    console.error('[INSCRICAO] Erro HTTP:', response.status, errorData);
-                    
-                    if (response.status === 401) {
-                        mostrarAlerta('Token expirado. Faça login novamente!', 'danger');
-                        setTimeout(() => window.location.href = 'login.html', 2000);
-                        return;
-                    }
-                    
-                    if (response.status === 400 && errorData.message && errorData.message.includes('já está inscrito')) {
-                        mostrarAlerta('Este usuário já está inscrito neste evento!', 'warning');
-                        return;
-                    }
-                    
-                    throw new Error(`Erro ${response.status}: ${errorData.message || 'Falha na inscrição'}`);
+                if (!inscricaoResponse.ok) {
+                    throw new Error(`Erro ao criar inscrição: ${inscricaoResponse.statusText}`);
                 }
 
-                const data = await response.json();
-                
-                if (offlineManager && offlineManager.dados) {
-                    offlineManager.dados.inscricoes.push(data.data);
-                    offlineManager.salvarDadosNoStorage();
+                const inscricaoData = await inscricaoResponse.json();
+                const inscricaoId = inscricaoData.data.id;
+
+                // 2. Marcar presença
+                const presencaResponse = await fetch(`${API_BASE_URL}/presencas`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({
+                        inscricao_id: inscricaoId,
+                        evento_id: eventoId,
+                        usuario_id: usuarioId,
+                        data_checkin: new Date().toISOString()
+                    })
+                });
+
+                if (!presencaResponse.ok) {
+                    console.warn(`Erro ao marcar presença, mas inscrição foi criada`);
                 }
-                
-                mostrarAlerta(data.message || 'Inscrição realizada! Agora pode fazer o check-in.', 'success');
-                document.getElementById('formInscricao').reset();
-                
-                setTimeout(async () => {
-                    await carregarDados();
-                    document.getElementById('checkin-tab').click();
-                    carregarEstatisticas();
-                }, 1000);
-                
+
+                // 3. Gerar certificado
+                try {
+                    await fetch(`http://177.44.248.118:5000/gerar-certificado/${inscricaoId}`, {
+                        method: 'POST'
+                    });
+                } catch (certError) {
+                    console.warn('Erro ao gerar certificado:', certError);
+                }
+
             } catch (error) {
-                mostrarAlerta('Erro ao criar inscrição: ' + error.message, 'danger');
-                console.error('Erro:', error);
-            }
-        }
-
-        async function sincronizar() {
-            if (!statusOnline) {
-                mostrarAlerta('Esta Offiline conecte-se à internet primeiro.', 'warning');
-                return;
-            }
-
-            try {
-                const resultado = await offlineManager.sincronizarPresencas();
-                
-                if (resultado.sucesso) {
-                    mostrarAlerta(
-                        `Sincronização completa!\n${resultado.sincronizadas} presença(s) sincronizada(s)\n${resultado.sincronizadas} certificado(s) gerado(s)`,
-                        'success'
-                    );
-                } else {
-                    mostrarAlerta(
-                        `Sincronização parcial!\n${resultado.sincronizadas} sucesso, ${resultado.erros} erro(s)`,
-                        'warning'
-                    );
-                }
-
-                await carregarDados();
-                
-            } catch (error) {
-                mostrarAlerta('Erro ao sincronizar: ' + error.message, 'danger');
+                console.error(`Erro ao processar evento ${eventoId}:`, error);
+                throw error;
             }
         }
 
