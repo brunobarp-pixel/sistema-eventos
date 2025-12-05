@@ -683,55 +683,6 @@
             }
         }
 
-        async function cadastrarUsuario(e) {
-            e.preventDefault();
-
-            const dados = {
-                nome: document.getElementById('cadastroNome').value,
-                email: document.getElementById('cadastroEmail').value,
-                senha: 'senha123' 
-            };
-
-            try {
-                const token = localStorage.getItem('token') || LARAVEL_TOKEN;
-                
-                const response = await fetch(`${LARAVEL_API}/usuarios`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${token}`
-                    },
-                    body: JSON.stringify(dados)
-                });
-
-                if (!response.ok) {
-                    const errorData = await response.json();
-                    console.error('Erro detalhado:', errorData);
-                    
-                    if (response.status === 401) {
-                        mostrarAlerta('Token expirado. Faça login novamente!', 'danger');
-                        return;
-                    }
-                    
-                    throw new Error(`Erro de validação: ${errorData.message || 'Dados inválidos'}`);
-                }
-
-                const data = await response.json();
-                
-                mostrarAlerta('Usuário cadastrado! Login: email | Senha: senha123', 'success');
-                document.getElementById('formCadastro').reset();
-                
-                setTimeout(() => {
-                    carregarDados();
-                    document.getElementById('inscricao-tab').click();
-                }, 1000);
-                
-            } catch (error) {
-                mostrarAlerta('Erro ao cadastrar: ' + error.message, 'danger');
-                console.error('Erro:', error);
-            }
-        }
-
         async function sincronizar() {
             if (!statusOnline) {
                 mostrarAlerta('Sistema offline! Conecte-se à internet primeiro.', 'warning');
