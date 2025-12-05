@@ -738,6 +738,8 @@
             }
 
             console.log(`🚀 Sincronizando ${pendentes.length} cadastros completos...`);
+            const token = localStorage.getItem('token');
+            console.log(`🔑 Token para sincronização: ${token ? token.substring(0, 20) + '...' : 'NÃO ENCONTRADO'}`);
 
             for (const cadastro of pendentes) {
                 try {
@@ -775,51 +777,93 @@
             
             try {
                 // 1. Criar inscrição
-                console.log(`1️⃣ Criando inscrição...`);
+                console.log(`1️⃣ Criando inscrição para usuário ${usuarioId} no evento ${eventoId}...`);
+                console.log(`📡 URL: ${API_BASE_URL}/inscricoes`);
+                console.log(`🔑 Token: ${token ? 'Presente' : 'Ausente'}`);
+                
+                const inscricaoPayload = {
+                    usuario_id: usuarioId,
+                    evento_id: eventoId,
+                    status: 'confirmada'
+                };
+                console.log(`📦 Payload da inscrição:`, inscricaoPayload);
+                
                 const inscricaoResponse = await fetch(`${API_BASE_URL}/inscricoes`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
                         'Authorization': `Bearer ${token}`
                     },
-                    body: JSON.stringify({
-                        usuario_id: usuarioId,
-                        evento_id: eventoId,
-                        status: 'confirmada'
-                    })
+                    body: JSON.stringify(inscricaoPayload)
                 });
+
+                console.log(`📊 Status da resposta de inscrição: ${inscricaoResponse.status} ${inscricaoResponse.statusText}`);
 
                 if (!inscricaoResponse.ok) {
                     const errorData = await inscricaoResponse.json().catch(() => ({}));
                     console.error(`❌ Erro ao criar inscrição:`, errorData);
+                    console.error(`🔍 Detalhes do erro:`);
+                    console.error(`   - Status: ${inscricaoResponse.status}`);
+                    console.error(`   - Status Text: ${inscricaoResponse.statusText}`);
+                    console.error(`   - Error Data:`, errorData);
+                    
+                    if (errorData.errors) {
+                        console.error(`   - Erros de validação:`, errorData.errors);
+                        Object.keys(errorData.errors).forEach(campo => {
+                            console.error(`     * ${campo}: ${errorData.errors[campo].join(', ')}`);
+                        });
+                    }
+                    
                     throw new Error(`Erro ao criar inscrição: ${inscricaoResponse.status} - ${errorData.message || inscricaoResponse.statusText}`);
                 }
 
                 const inscricaoData = await inscricaoResponse.json();
                 const inscricaoId = inscricaoData.data.id;
-                console.log(`✅ Inscrição criada com ID: ${inscricaoId}`);
+                console.log(`✅ Inscrição criada com sucesso!`);
+                console.log(`   - ID da inscrição: ${inscricaoId}`);
+                console.log(`   - Dados completos:`, inscricaoData);
 
                 // 2. Marcar presença
-                console.log(`2️⃣ Marcando presença...`);
+                console.log(`2️⃣ Marcando presença para inscrição ${inscricaoId}...`);
+                console.log(`📡 URL: ${API_BASE_URL}/presencas`);
+                
+                const presencaPayload = {
+                    inscricao_id: inscricaoId
+                };
+                console.log(`📦 Payload da presença:`, presencaPayload);
+                
                 const presencaResponse = await fetch(`${API_BASE_URL}/presencas`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
                         'Authorization': `Bearer ${token}`
                     },
-                    body: JSON.stringify({
-                        inscricao_id: inscricaoId
-                    })
+                    body: JSON.stringify(presencaPayload)
                 });
+
+                console.log(`📊 Status da resposta de presença: ${presencaResponse.status} ${presencaResponse.statusText}`);
 
                 if (!presencaResponse.ok) {
                     const errorData = await presencaResponse.json().catch(() => ({}));
                     console.error(`❌ Erro ao marcar presença:`, errorData);
+                    console.error(`🔍 Detalhes do erro:`);
+                    console.error(`   - Status: ${presencaResponse.status}`);
+                    console.error(`   - Status Text: ${presencaResponse.statusText}`);
+                    console.error(`   - Error Data:`, errorData);
+                    
+                    if (errorData.errors) {
+                        console.error(`   - Erros de validação:`, errorData.errors);
+                        Object.keys(errorData.errors).forEach(campo => {
+                            console.error(`     * ${campo}: ${errorData.errors[campo].join(', ')}`);
+                        });
+                    }
+                    
                     throw new Error(`Erro ao marcar presença: ${presencaResponse.status} - ${errorData.message || presencaResponse.statusText}`);
                 }
 
                 const presencaData = await presencaResponse.json();
-                console.log(`✅ Presença marcada:`, presencaData);
+                console.log(`✅ Presença marcada com sucesso!`);
+                console.log(`   - Dados da presença:`, presencaData);
 
                 // 3. Gerar e enviar certificado por email
                 console.log(`3️⃣ Gerando certificado...`);
@@ -892,18 +936,40 @@
             
             console.log(`👤 Criando usuário:`, dadosUsuario);
             
+            // Adicionar campos obrigatórios caso não existam
+            const usuarioCompleto = {
+                nome: dadosUsuario.nome,
+                email: dadosUsuario.email,
+                senha: dadosUsuario.senha || 'senha123',
+                cpf: dadosUsuario.cpf || '000.000.000-00', // CPF padrão se não informado
+                telefone: dadosUsuario.telefone || '(00) 00000-0000' // Telefone padrão se não informado
+            };
+            
+            console.log(`📦 Dados do usuário completos:`, usuarioCompleto);
+            
             const response = await fetch(`${API_BASE_URL}/usuarios`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${token}`
                 },
-                body: JSON.stringify(dadosUsuario)
+                body: JSON.stringify(usuarioCompleto)
             });
+
+            console.log(`📊 Status da resposta de criação de usuário: ${response.status} ${response.statusText}`);
 
             if (!response.ok) {
                 const error = await response.json().catch(() => ({}));
                 console.error(`❌ Erro ao criar usuário:`, error);
+                
+                // Log detalhado dos erros de validação
+                if (error.errors) {
+                    console.error(`🔍 Erros de validação específicos:`, error.errors);
+                    Object.keys(error.errors).forEach(campo => {
+                        console.error(`   - ${campo}: ${error.errors[campo].join(', ')}`);
+                    });
+                }
+                
                 throw new Error(`Erro ao criar usuário: ${response.status} - ${error.message || response.statusText}`);
             }
 

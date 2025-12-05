@@ -131,7 +131,8 @@ class InscricaoController extends Controller
     {
         try {
             $validator = Validator::make($request->all(), [
-                'evento_id' => 'required|integer'
+                'evento_id' => 'required|integer',
+                'usuario_id' => 'sometimes|integer|exists:usuarios,id'
             ]);
 
             if ($validator->fails()) {
@@ -142,13 +143,24 @@ class InscricaoController extends Controller
                 ], 422);
             }
 
-            // Pegar usuário autenticado
-            $usuario = $request->user();
-            if (!$usuario) {
+            // Determinar qual usuário usar
+            $usuarioAutenticado = $request->user();
+            if (!$usuarioAutenticado) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Usuário não autenticado'
                 ], 401);
+            }
+
+            // Se usuario_id foi enviado, usar esse usuário, senão usar o autenticado
+            $usuarioId = $request->has('usuario_id') ? $request->usuario_id : $usuarioAutenticado->id;
+            $usuario = Usuario::find($usuarioId);
+            
+            if (!$usuario) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Usuário não encontrado'
+                ], 404);
             }
 
             // Verificar se evento existe e está ativo
@@ -180,7 +192,7 @@ class InscricaoController extends Controller
             }
 
             // Verificar se usuário já está inscrito neste evento (qualquer status)
-            $inscricaoExistente = Inscricao::where('usuario_id', $usuario->id)
+            $inscricaoExistente = Inscricao::where('usuario_id', $usuarioId)
                 ->where('evento_id', $request->evento_id)
                 ->first();
 
@@ -188,7 +200,7 @@ class InscricaoController extends Controller
                 if ($inscricaoExistente->status === 'confirmada') {
                     return response()->json([
                         'success' => false,
-                        'message' => 'Você já está inscrito neste evento'
+                        'message' => 'Usuário já está inscrito neste evento'
                     ], 400);
                 } elseif ($inscricaoExistente->status === 'cancelada') {
                     // Reativar inscrição cancelada
@@ -207,8 +219,6 @@ class InscricaoController extends Controller
                 }
             } else {
                 // Criar nova inscrição
-                $usuarioId = $request->has('usuario_id') ? $request->usuario_id : $usuario->id;
-                
                 $inscricao = Inscricao::create([
                     'usuario_id' => $usuarioId,
                     'evento_id' => $request->evento_id,
@@ -227,7 +237,7 @@ class InscricaoController extends Controller
                 Log::error('Erro ao enviar email de inscrição: ' . $e->getMessage());
             }
 
-            $this->registrarLog($request, 'POST', '/api/inscricoes', 201, $usuario->id);
+            $this->registrarLog($request, 'POST', '/api/inscricoes', 201, $usuarioAutenticado->id);
 
             return response()->json([
                 'success' => true,
