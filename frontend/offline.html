@@ -200,17 +200,16 @@
                             </div>
                             
                             <div class="mb-3">
-                                <label class="form-label">Eventos *</label>
-                                <select class="form-select" id="cadastroEventos" multiple required>
-                                    <option value="" disabled>Carregando eventos...</option>
+                                <label class="form-label">Evento *</label>
+                                <select class="form-select" id="cadastroEvento" required>
+                                    <option value="">Selecione um evento</option>
                                 </select>
-                                <div class="form-text">Segure Ctrl para selecionar múltiplos eventos</div>
                             </div>
                             
                             <div class="alert alert-warning">
                                 <i class="bi bi-exclamation-triangle"></i>
                                 <strong>O que acontecerá:</strong> O usuário será criado com senha padrão (senha123), 
-                                inscrito nos eventos selecionados, e a presença será marcada automaticamente.
+                                inscrito no evento selecionado, e a presença será marcada automaticamente.
                             </div>
                             
                             <button type="submit" class="btn btn-primary">
@@ -249,11 +248,11 @@
 
             const nome = document.getElementById('cadastroNome').value;
             const email = document.getElementById('cadastroEmail').value;
-            const eventosSelect = document.getElementById('cadastroEventos');
-            const eventosSelecionados = Array.from(eventosSelect.selectedOptions).map(option => option.value);
+            const eventoSelect = document.getElementById('cadastroEvento');
+            const eventoSelecionado = eventoSelect.value;
 
-            if (!nome || !email || eventosSelecionados.length === 0) {
-                mostrarAlerta('Preencha todos os campos obrigatórios e selecione pelo menos um evento!', 'warning');
+            if (!nome || !email || !eventoSelecionado) {
+                mostrarAlerta('Preencha todos os campos obrigatórios e selecione um evento!', 'warning');
                 return;
             }
 
@@ -268,7 +267,7 @@
                         email: email.trim(),
                         senha: 'senha123'
                     },
-                    eventos: eventosSelecionados,
+                    eventos: [eventoSelecionado], // Array com um único evento
                     timestamp: new Date().toISOString(),
                     sincronizado: false
                 };
@@ -279,7 +278,7 @@
                 // Atualizar contador de pendentes
                 atualizarContadorPendentes();
 
-                mostrarAlerta(`Inscrição rápida salva! O usuário será criado e inscrito em ${eventosSelecionados.length} evento(s) na próxima sincronização.`, 'success');
+                mostrarAlerta(`Inscrição rápida salva! O usuário será criado e inscrito no evento na próxima sincronização.`, 'success');
                 document.getElementById('formCadastro').reset();
 
             } catch (error) {
@@ -390,21 +389,6 @@
             console.log(`📊 Pendentes: ${pendentesInscricoes} inscrições + ${pendentesPresencas} presenças = ${total} total`);
         }
 
-        function atualizarSelectEventos() {
-            const selectEventos = document.getElementById('cadastroEventos');
-            if (!selectEventos || !offlineManager || !offlineManager.dados) return;
-
-            selectEventos.innerHTML = '<option value="" disabled>Selecione os eventos...</option>';
-            
-            const eventos = offlineManager.dados.eventos || [];
-            eventos.forEach(evento => {
-                const option = document.createElement('option');
-                option.value = evento.id;
-                option.textContent = `${evento.nome || evento.titulo} - ${evento.local}`;
-                selectEventos.appendChild(option);
-            });
-        }
-
         function atualizarStatusBar() {
             const statusBar = document.getElementById('statusBar');
             const statusText = document.getElementById('statusText');
@@ -492,7 +476,8 @@
 
         function atualizarSelectEventos() {
             const selects = [
-                document.getElementById('eventoCheckin')
+                document.getElementById('eventoCheckin'),
+                document.getElementById('cadastroEvento')
             ];
 
             selects.forEach(s => {

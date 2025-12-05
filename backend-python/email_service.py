@@ -7,12 +7,12 @@ load_dotenv()
 
 MODO_TESTE = False  # True = usa MailHog, False = envia e-mails de verdade
 
-# Configurações de e-mail
-EMAIL_HOST = os.getenv('EMAIL_HOST', 'smtp.gmail.com')  # Gmail SMTP
-EMAIL_PORT = int(os.getenv('EMAIL_PORT', 587))  # Porta TLS do Gmail
-EMAIL_USER = os.getenv('EMAIL_USER', 'bqgames999')  # Seu email do Gmail
-EMAIL_PASSWORD = os.getenv('EMAIL_PASSWORD', 'ghme mpkt ecfs gcmc')  # Senha de app do Gmail
-EMAIL_FROM = os.getenv('EMAIL_FROM', 'Sistema de Eventos <noreply@eventos.com>')
+# Configurações de e-mail (valores fixos)
+EMAIL_HOST = 'smtp.gmail.com'  # Gmail SMTP
+EMAIL_PORT = 587  # Porta TLS do Gmail  
+EMAIL_USER = 'bqgames999'  # Seu email do Gmail
+EMAIL_PASSWORD = 'ghme mpkt ecfs gcmc'  # Senha de app do Gmail
+EMAIL_FROM = 'Sistema de Eventos <noreply@eventos.com>'
 
 
 def enviar_email(destinatario, assunto, corpo_html):
