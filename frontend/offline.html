@@ -741,31 +741,41 @@
 
             for (const cadastro of pendentes) {
                 try {
+                    console.log(`📝 Processando cadastro:`, cadastro);
+                    
                     // 1. Criar usuário
+                    console.log(`👤 Criando usuário: ${cadastro.usuario.nome} (${cadastro.usuario.email})`);
                     const usuario = await criarUsuarioCompleto(cadastro.usuario);
+                    console.log(`✅ Usuário criado com ID: ${usuario.id}`);
                     
                     // 2. Processar evento completo (inscrição + presença + certificado + email)
+                    console.log(`🎯 Processando evento ${cadastro.evento_id}...`);
                     await processarEventoCompleto(usuario.id, cadastro.evento_id);
                     
                     // 3. Marcar como sincronizado
                     cadastro.sincronizado = true;
+                    console.log(`✅ Cadastro completo sincronizado com sucesso!`);
                     
                 } catch (error) {
-                    console.error(`Erro ao sincronizar cadastro completo:`, error);
+                    console.error(`💥 Erro ao sincronizar cadastro completo:`, error);
+                    console.error(`📄 Dados do cadastro que falhou:`, cadastro);
                     // Continuar com os próximos cadastros mesmo se um falhar
                 }
             }
             
             // Salvar progresso
             localStorage.setItem('cadastros_completos', JSON.stringify(cadastrosCompletos));
-            console.log('✅ Cadastros completos sincronizados');
+            console.log('🎉 Processo de sincronização de cadastros completos finalizado');
         }
 
         async function processarEventoCompleto(usuarioId, eventoId) {
             const token = localStorage.getItem('token');
             
+            console.log(`🔄 Iniciando processamento completo para usuário ${usuarioId} no evento ${eventoId}`);
+            
             try {
                 // 1. Criar inscrição
+                console.log(`1️⃣ Criando inscrição...`);
                 const inscricaoResponse = await fetch(`${API_BASE_URL}/inscricoes`, {
                     method: 'POST',
                     headers: {
@@ -780,13 +790,17 @@
                 });
 
                 if (!inscricaoResponse.ok) {
-                    throw new Error(`Erro ao criar inscrição: ${inscricaoResponse.statusText}`);
+                    const errorData = await inscricaoResponse.json().catch(() => ({}));
+                    console.error(`❌ Erro ao criar inscrição:`, errorData);
+                    throw new Error(`Erro ao criar inscrição: ${inscricaoResponse.status} - ${errorData.message || inscricaoResponse.statusText}`);
                 }
 
                 const inscricaoData = await inscricaoResponse.json();
                 const inscricaoId = inscricaoData.data.id;
+                console.log(`✅ Inscrição criada com ID: ${inscricaoId}`);
 
                 // 2. Marcar presença
+                console.log(`2️⃣ Marcando presença...`);
                 const presencaResponse = await fetch(`${API_BASE_URL}/presencas`, {
                     method: 'POST',
                     headers: {
@@ -799,10 +813,16 @@
                 });
 
                 if (!presencaResponse.ok) {
-                    throw new Error(`Erro ao marcar presença: ${presencaResponse.statusText}`);
+                    const errorData = await presencaResponse.json().catch(() => ({}));
+                    console.error(`❌ Erro ao marcar presença:`, errorData);
+                    throw new Error(`Erro ao marcar presença: ${presencaResponse.status} - ${errorData.message || presencaResponse.statusText}`);
                 }
 
+                const presencaData = await presencaResponse.json();
+                console.log(`✅ Presença marcada:`, presencaData);
+
                 // 3. Gerar e enviar certificado por email
+                console.log(`3️⃣ Gerando certificado...`);
                 const certificadoResponse = await fetch(`${API_BASE_URL}/certificados`, {
                     method: 'POST',
                     headers: {
@@ -816,14 +836,18 @@
                 });
 
                 if (!certificadoResponse.ok) {
-                    console.warn(`Aviso: Erro ao gerar certificado: ${certificadoResponse.statusText}`);
+                    const errorData = await certificadoResponse.json().catch(() => ({}));
+                    console.warn(`⚠️ Aviso - Erro ao gerar certificado:`, errorData);
                     // Não lança erro para não interromper o fluxo principal
+                } else {
+                    const certificadoData = await certificadoResponse.json();
+                    console.log(`✅ Certificado gerado e enviado:`, certificadoData);
                 }
 
-                console.log(`✅ Processamento completo finalizado para usuário ${usuarioId} no evento ${eventoId}`);
+                console.log(`🎉 Processamento completo finalizado para usuário ${usuarioId} no evento ${eventoId}`);
 
             } catch (error) {
-                console.error(`Erro ao processar evento completo:`, error);
+                console.error(`💥 Erro ao processar evento completo:`, error);
                 throw error;
             }
         }
@@ -865,6 +889,9 @@
 
         async function criarUsuarioCompleto(dadosUsuario) {
             const token = localStorage.getItem('token');
+            
+            console.log(`👤 Criando usuário:`, dadosUsuario);
+            
             const response = await fetch(`${API_BASE_URL}/usuarios`, {
                 method: 'POST',
                 headers: {
@@ -875,11 +902,13 @@
             });
 
             if (!response.ok) {
-                const error = await response.json();
-                throw new Error(`Erro ao criar usuário: ${error.message || response.statusText}`);
+                const error = await response.json().catch(() => ({}));
+                console.error(`❌ Erro ao criar usuário:`, error);
+                throw new Error(`Erro ao criar usuário: ${response.status} - ${error.message || response.statusText}`);
             }
 
             const data = await response.json();
+            console.log(`✅ Usuário criado com sucesso:`, data.data);
             return data.data;
         }
 
