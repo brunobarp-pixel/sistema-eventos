@@ -422,7 +422,6 @@
         }
 
         function atualizarUIs() {
-            atualizarSelectUsuarios();
             atualizarSelectEventos();
             atualizarContadorPendentes();
             carregarEstatisticas();
@@ -491,34 +490,29 @@
             }
         }
 
-        function atualizarSelectUsuarios() {
-            const select = document.getElementById('inscricaoUsuario');
-            select.innerHTML = '<option value="">Selecione um participante</option>';
-
-            offlineManager.dados.usuarios.forEach(u => {
-                select.innerHTML += `<option value="${u.id}">${u.nome} - ${u.email}</option>`;
-            });
-        }
-
         function atualizarSelectEventos() {
             const selects = [
-                document.getElementById('eventoCheckin'),
-                document.getElementById('inscricaoEvento')
+                document.getElementById('eventoCheckin')
             ];
 
             selects.forEach(s => {
-                s.innerHTML = '<option value="">Selecione um evento</option>';
-                if (offlineManager && offlineManager.dados && offlineManager.dados.eventos) {
-                    offlineManager.dados.eventos.forEach(e => {
-                        const nomeEvento = e.nome || e.titulo || e.name || 'Evento sem nome';
-                        s.innerHTML += `<option value="${e.id}">${nomeEvento}</option>`;
-                    });
+                if (s) {
+                    s.innerHTML = '<option value="">Selecione um evento</option>';
+                    if (offlineManager && offlineManager.dados && offlineManager.dados.eventos) {
+                        offlineManager.dados.eventos.forEach(e => {
+                            const nomeEvento = e.nome || e.titulo || e.name || 'Evento sem nome';
+                            s.innerHTML += `<option value="${e.id}">${nomeEvento}</option>`;
+                        });
+                    }
                 }
             });
             
             // Adicionar listener para mostrar inscrições quando evento for selecionado
             const eventoCheckin = document.getElementById('eventoCheckin');
-            eventoCheckin.addEventListener('change', mostrarInscricoesDoEvento);
+            if (eventoCheckin) {
+                eventoCheckin.removeEventListener('change', mostrarInscricoesDoEvento);
+                eventoCheckin.addEventListener('change', mostrarInscricoesDoEvento);
+            }
         }
         
         function mostrarInscricoesDoEvento() {
@@ -862,7 +856,7 @@
                     body: JSON.stringify({
                         usuario_id: usuarioId,
                         evento_id: eventoId,
-                        status: 'ativa'
+                        status: 'confirmada'
                     })
                 });
 

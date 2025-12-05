@@ -473,7 +473,7 @@ class OfflineManager {
 
     obterInscricoesPorEvento(eventoId, ativo = true) {
         return this.dados.inscricoes.filter(i => 
-            i.evento_id === eventoId && (!ativo || i.status === 'ativa')
+            i.evento_id === eventoId && (!ativo || i.status === 'confirmada')
         );
     }
 

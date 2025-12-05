@@ -97,7 +97,7 @@ class CertificadoController extends Controller
 
             $inscricao = Inscricao::where('usuario_id', $request->usuario_id)
                 ->where('evento_id', $request->evento_id)
-                ->whereIn('status', ['ativa', 'confirmada'])
+                ->where('status', 'confirmada')
                 ->first();
 
             if (!$inscricao) {

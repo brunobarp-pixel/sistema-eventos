@@ -42,7 +42,7 @@ class EventoController extends Controller
                         'local' => $evento->local,
                         'vagas' => $evento->vagas,
                         'status' => $evento->status,
-                        'total_inscritos' => $evento->inscricoes()->where('status', 'ativa')->count()
+                        'total_inscritos' => $evento->inscricoes()->where('status', 'confirmada')->count()
                     ];
                 })
             ], 200);
@@ -67,7 +67,7 @@ class EventoController extends Controller
             $evento = Evento::findOrFail($id);
 
             // Contar inscrições ativas
-            $totalInscritos = $evento->inscricoes()->where('status', 'ativa')->count();
+            $totalInscritos = $evento->inscricoes()->where('status', 'confirmada')->count();
 
             $this->registrarLog($request, 'GET', '/api/eventos/' . $id, 200);
 
@@ -109,7 +109,7 @@ class EventoController extends Controller
             $evento = Evento::findOrFail($id);
 
             $inscritos = $evento->inscricoes()
-                ->where('status', 'ativa')
+                ->where('status', 'confirmada')
                 ->with(['usuario'])
                 ->orderBy('data_inscricao', 'desc')
                 ->get();

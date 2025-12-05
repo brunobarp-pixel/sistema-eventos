@@ -363,7 +363,7 @@ def eventos():
             SELECT e.*, 
                    COUNT(i.id) as total_inscritos
             FROM eventos e
-            LEFT JOIN inscricoes i ON e.id = i.evento_id AND i.status = 'ativa'
+            LEFT JOIN inscricoes i ON e.id = i.evento_id AND i.status = 'confirmada'
             GROUP BY e.id
             ORDER BY e.data_inicio
         """)

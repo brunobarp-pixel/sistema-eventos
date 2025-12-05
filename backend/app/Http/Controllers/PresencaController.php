@@ -24,8 +24,8 @@ class PresencaController extends Controller
 
             $inscricao = Inscricao::findOrFail($request->inscricao_id);
 
-            if ($inscricao->status !== 'ativa') {
-                return response()->json(['success' => false, 'message' => 'Inscrição não ativa'], 400);
+            if ($inscricao->status !== 'confirmada') {
+                return response()->json(['success' => false, 'message' => 'Inscrição não confirmada'], 400);
             }
 
             $presencaExistente = Presenca::where('inscricao_id', $inscricao->id)->first();

@@ -169,7 +169,7 @@ class InscricaoController extends Controller
 
             // Verificar vagas
             $totalInscritos = Inscricao::where('evento_id', $evento->id)
-                ->where('status', 'ativa')
+                ->where('status', 'confirmada')
                 ->count();
 
             if ($totalInscritos >= $evento->vagas) {
@@ -185,21 +185,21 @@ class InscricaoController extends Controller
                 ->first();
 
             if ($inscricaoExistente) {
-                if ($inscricaoExistente->status === 'ativa') {
+                if ($inscricaoExistente->status === 'confirmada') {
                     return response()->json([
                         'success' => false,
                         'message' => 'Você já está inscrito neste evento'
                     ], 400);
                 } elseif ($inscricaoExistente->status === 'cancelada') {
                     // Reativar inscrição cancelada
-                    $inscricaoExistente->status = 'ativa';
+                    $inscricaoExistente->status = 'confirmada';
                     $inscricaoExistente->data_inscricao = now();
                     $inscricaoExistente->save();
                     $inscricao = $inscricaoExistente;
                     $mensagem = 'Inscrição reativada com sucesso! Verifique seu e-mail.';
                 } else {
-                    // Para outros status, atualizar para ativo
-                    $inscricaoExistente->status = 'ativa';
+                    // Para outros status, atualizar para confirmada
+                    $inscricaoExistente->status = 'confirmada';
                     $inscricaoExistente->data_inscricao = now();
                     $inscricaoExistente->save();
                     $inscricao = $inscricaoExistente;
@@ -212,7 +212,7 @@ class InscricaoController extends Controller
                 $inscricao = Inscricao::create([
                     'usuario_id' => $usuarioId,
                     'evento_id' => $request->evento_id,
-                    'status' => 'ativa',
+                    'status' => 'confirmada',
                     'data_inscricao' => now()
                 ]);
                 $mensagem = 'Inscrição realizada com sucesso! Verifique seu e-mail.';
