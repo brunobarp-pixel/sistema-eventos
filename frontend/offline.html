@@ -257,28 +257,28 @@
             }
 
             try {
-                // Salvar dados no localStorage para sincronização posterior
-                const inscricoesRapidas = JSON.parse(localStorage.getItem('inscricoes_rapidas') || '[]');
+                // Salvar dados em chave separada para cadastro completo (usuário + inscrição + presença + certificado)
+                const cadastrosCompletos = JSON.parse(localStorage.getItem('cadastros_completos') || '[]');
                 
-                const novaInscricaoRapida = {
+                const novoCadastroCompleto = {
                     id: `temp_${Date.now()}`,
                     usuario: {
                         nome: nome.trim(),
                         email: email.trim(),
                         senha: 'senha123'
                     },
-                    eventos: [eventoSelecionado], // Array com um único evento
+                    evento_id: eventoSelecionado,
                     timestamp: new Date().toISOString(),
                     sincronizado: false
                 };
 
-                inscricoesRapidas.push(novaInscricaoRapida);
-                localStorage.setItem('inscricoes_rapidas', JSON.stringify(inscricoesRapidas));
+                cadastrosCompletos.push(novoCadastroCompleto);
+                localStorage.setItem('cadastros_completos', JSON.stringify(cadastrosCompletos));
 
                 // Atualizar contador de pendentes
                 atualizarContadorPendentes();
 
-                mostrarAlerta(`Inscrição rápida salva! O usuário será criado e inscrito no evento na próxima sincronização.`, 'success');
+                mostrarAlerta(`Cadastro completo salvo! O usuário será criado, inscrito, terá presença marcada e receberá certificado por email na próxima sincronização.`, 'success');
                 document.getElementById('formCadastro').reset();
 
             } catch (error) {
@@ -379,14 +379,16 @@
         function atualizarContadorPendentes() {
             const inscricoesRapidas = JSON.parse(localStorage.getItem('inscricoes_rapidas') || '[]');
             const presencasOffline = JSON.parse(localStorage.getItem('presencas_offline') || '[]');
+            const cadastrosCompletos = JSON.parse(localStorage.getItem('cadastros_completos') || '[]');
             
             const pendentesInscricoes = inscricoesRapidas.filter(i => !i.sincronizado).length;
             const pendentesPresencas = presencasOffline.filter(p => !p.sincronizado).length;
+            const pendentesCadastros = cadastrosCompletos.filter(c => !c.sincronizado).length;
             
-            const total = pendentesInscricoes + pendentesPresencas;
+            const total = pendentesInscricoes + pendentesPresencas + pendentesCadastros;
             document.getElementById('totalPendentes').textContent = total;
             
-            console.log(`📊 Pendentes: ${pendentesInscricoes} inscrições + ${pendentesPresencas} presenças = ${total} total`);
+            console.log(`📊 Pendentes: ${pendentesInscricoes} inscrições + ${pendentesPresencas} presenças + ${pendentesCadastros} cadastros completos = ${total} total`);
         }
 
         function atualizarStatusBar() {
@@ -741,10 +743,13 @@
                 btnSincronizar.disabled = true;
                 btnSincronizar.innerHTML = '<i class="bi bi-arrow-repeat"></i> Sincronizando...';
 
-                // 1. Sincronizar inscrições rápidas primeiro
+                // 1. Sincronizar cadastros completos primeiro
+                await sincronizarCadastrosCompletos();
+
+                // 2. Sincronizar inscrições rápidas
                 await sincronizarInscricoesRapidas();
 
-                // 2. Sincronizar presenças normais
+                // 3. Sincronizar presenças normais
                 const resultado = await offlineManager.sincronizarPresencas();
                 
                 if (resultado.sucesso) {
@@ -769,6 +774,106 @@
                 const btnSincronizar = document.getElementById('btnSincronizar');
                 btnSincronizar.disabled = false;
                 btnSincronizar.innerHTML = '<i class="bi bi-cloud-arrow-up"></i> Sincronizar';
+            }
+        }
+
+        async function sincronizarCadastrosCompletos() {
+            const cadastrosCompletos = JSON.parse(localStorage.getItem('cadastros_completos') || '[]');
+            const pendentes = cadastrosCompletos.filter(c => !c.sincronizado);
+            
+            if (pendentes.length === 0) {
+                console.log('Nenhum cadastro completo pendente');
+                return;
+            }
+
+            console.log(`🚀 Sincronizando ${pendentes.length} cadastros completos...`);
+
+            for (const cadastro of pendentes) {
+                try {
+                    // 1. Criar usuário
+                    const usuario = await criarUsuarioCompleto(cadastro.usuario);
+                    
+                    // 2. Processar evento completo (inscrição + presença + certificado + email)
+                    await processarEventoCompleto(usuario.id, cadastro.evento_id);
+                    
+                    // 3. Marcar como sincronizado
+                    cadastro.sincronizado = true;
+                    
+                } catch (error) {
+                    console.error(`Erro ao sincronizar cadastro completo:`, error);
+                    // Continuar com os próximos cadastros mesmo se um falhar
+                }
+            }
+            
+            // Salvar progresso
+            localStorage.setItem('cadastros_completos', JSON.stringify(cadastrosCompletos));
+            console.log('✅ Cadastros completos sincronizados');
+        }
+
+        async function processarEventoCompleto(usuarioId, eventoId) {
+            const token = localStorage.getItem('token');
+            
+            try {
+                // 1. Criar inscrição
+                const inscricaoResponse = await fetch(`${API_BASE_URL}/inscricoes`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({
+                        usuario_id: usuarioId,
+                        evento_id: eventoId,
+                        status: 'confirmada'
+                    })
+                });
+
+                if (!inscricaoResponse.ok) {
+                    throw new Error(`Erro ao criar inscrição: ${inscricaoResponse.statusText}`);
+                }
+
+                const inscricaoData = await inscricaoResponse.json();
+                const inscricaoId = inscricaoData.data.id;
+
+                // 2. Marcar presença
+                const presencaResponse = await fetch(`${API_BASE_URL}/presencas`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({
+                        inscricao_id: inscricaoId
+                    })
+                });
+
+                if (!presencaResponse.ok) {
+                    throw new Error(`Erro ao marcar presença: ${presencaResponse.statusText}`);
+                }
+
+                // 3. Gerar e enviar certificado por email
+                const certificadoResponse = await fetch(`${API_BASE_URL}/certificados`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({
+                        usuario_id: usuarioId,
+                        evento_id: eventoId
+                    })
+                });
+
+                if (!certificadoResponse.ok) {
+                    console.warn(`Aviso: Erro ao gerar certificado: ${certificadoResponse.statusText}`);
+                    // Não lança erro para não interromper o fluxo principal
+                }
+
+                console.log(`✅ Processamento completo finalizado para usuário ${usuarioId} no evento ${eventoId}`);
+
+            } catch (error) {
+                console.error(`Erro ao processar evento completo:`, error);
+                throw error;
             }
         }
 
