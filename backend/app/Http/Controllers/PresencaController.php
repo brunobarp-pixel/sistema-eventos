@@ -48,13 +48,28 @@ class PresencaController extends Controller
             $inscricao = Inscricao::with('usuario', 'evento')->find($inscricao->id);
 
             try {
+                \Illuminate\Support\Facades\Log::info('🚀 Iniciando envio de email de check-in', [
+                    'usuario_id' => $inscricao->usuario->id,
+                    'usuario_nome' => $inscricao->usuario->nome,
+                    'usuario_email' => $inscricao->usuario->email,
+                    'evento_id' => $inscricao->evento->id,
+                    'evento_nome' => $inscricao->evento->nome
+                ]);
+                
                 $emailService = new EmailService();
-                $emailService->enviarEmailCheckin($inscricao->usuario, $inscricao->evento);
+                $resultado = $emailService->enviarEmailCheckin($inscricao->usuario, $inscricao->evento);
+                
+                if ($resultado) {
+                    \Illuminate\Support\Facades\Log::info('✅ Email de check-in enviado com sucesso');
+                } else {
+                    \Illuminate\Support\Facades\Log::warning('⚠️ Email de check-in retornou false');
+                }
             } catch (\Exception $e) {
-                \Illuminate\Support\Facades\Log::error('Erro ao enviar email de check-in', [
+                \Illuminate\Support\Facades\Log::error('❌ Erro ao enviar email de check-in', [
                     'usuario_id' => $inscricao->usuario->id ?? 'N/A',
                     'evento_id' => $inscricao->evento->id ?? 'N/A',
-                    'error' => $e->getMessage()
+                    'error' => $e->getMessage(),
+                    'trace' => $e->getTraceAsString()
                 ]);
             }
 

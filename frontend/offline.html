@@ -705,12 +705,15 @@
                 
                 if (resultado.sucesso) {
                     mostrarAlerta(
-                        `Sincronização completa!\\n${resultado.sincronizadas} presença(s) sincronizada(s)`,
+                        `Sincronização completa!\n${resultado.sincronizadas} presença(s) sincronizada(s)`,
                         'success'
                     );
+                    
+                    // 4. Limpar localStorage após sincronização bem-sucedida
+                    limparDadosSincronizados();
                 } else {
                     mostrarAlerta(
-                        `Sincronização parcial!\\n${resultado.sincronizadas} sucesso, ${resultado.erros?.length || 0} erro(s)`,
+                        `Sincronização parcial!\n${resultado.sincronizadas} sucesso, ${resultado.erros?.length || 0} erro(s)`,
                         'warning'
                     );
                 }
@@ -725,6 +728,47 @@
                 const btnSincronizar = document.getElementById('btnSincronizar');
                 btnSincronizar.disabled = false;
                 btnSincronizar.innerHTML = '<i class="bi bi-cloud-arrow-up"></i> Sincronizar';
+            }
+        }
+
+        function limparDadosSincronizados() {
+            try {
+                // Limpar cadastros completos sincronizados
+                const cadastrosCompletos = JSON.parse(localStorage.getItem('cadastros_completos') || '[]');
+                const cadastrosNaoSincronizados = cadastrosCompletos.filter(c => !c.sincronizado);
+                if (cadastrosNaoSincronizados.length === 0) {
+                    localStorage.removeItem('cadastros_completos');
+                    console.log('🧹 Cadastros completos limpos do localStorage');
+                } else {
+                    localStorage.setItem('cadastros_completos', JSON.stringify(cadastrosNaoSincronizados));
+                    console.log(`🧹 ${cadastrosCompletos.length - cadastrosNaoSincronizados.length} cadastros sincronizados removidos`);
+                }
+
+                // Limpar inscrições rápidas sincronizadas
+                const inscricoesRapidas = JSON.parse(localStorage.getItem('inscricoes_rapidas') || '[]');
+                const inscricoesNaoSincronizadas = inscricoesRapidas.filter(i => !i.sincronizado);
+                if (inscricoesNaoSincronizadas.length === 0) {
+                    localStorage.removeItem('inscricoes_rapidas');
+                    console.log('🧹 Inscrições rápidas limpas do localStorage');
+                } else {
+                    localStorage.setItem('inscricoes_rapidas', JSON.stringify(inscricoesNaoSincronizadas));
+                    console.log(`🧹 ${inscricoesRapidas.length - inscricoesNaoSincronizadas.length} inscrições sincronizadas removidas`);
+                }
+
+                // Limpar presenças sincronizadas
+                const presencasOffline = JSON.parse(localStorage.getItem('presencas_offline') || '[]');
+                const presencasNaoSincronizadas = presencasOffline.filter(p => !p.sincronizado);
+                if (presencasNaoSincronizadas.length === 0) {
+                    localStorage.removeItem('presencas_offline');
+                    console.log('🧹 Presenças limpas do localStorage');
+                } else {
+                    localStorage.setItem('presencas_offline', JSON.stringify(presencasNaoSincronizadas));
+                    console.log(`🧹 ${presencasOffline.length - presencasNaoSincronizadas.length} presenças sincronizadas removidas`);
+                }
+
+                console.log('✅ Limpeza de dados sincronizados concluída');
+            } catch (error) {
+                console.error('❌ Erro ao limpar dados sincronizados:', error);
             }
         }
 

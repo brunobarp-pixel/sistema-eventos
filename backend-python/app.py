@@ -2,6 +2,7 @@ import os
 import sys
 import threading
 import time
+import traceback
 import mysql.connector
 from datetime import datetime, timedelta
 from flask import Flask, request, jsonify, send_file
@@ -586,18 +587,29 @@ def endpoint_enviar_email_checkin():
     data = request.get_json()
     
     try:
+        print("=" * 80)
+        print("🚀 Requisição recebida em /enviar-email-checkin")
+        print(f"📦 Dados recebidos: {data}")
+        
         # Garantir compatibilidade, torcer para nao dar pau
         evento = data["evento"].copy()
         if "titulo" in evento and "nome" not in evento:
             evento["nome"] = evento["titulo"]
+            print(f"🔄 Convertido 'titulo' para 'nome': {evento['nome']}")
         
-        enviar_email_checkin(
-            {
-                "nome": data["usuario"]["nome"],
-                "email": data["usuario"]["email"]
-            },
-            evento
-        )
+        usuario_data = {
+            "nome": data["usuario"]["nome"],
+            "email": data["usuario"]["email"]
+        }
+        
+        print(f"👤 Usuario: {usuario_data}")
+        print(f"🎯 Evento: {evento}")
+        print("📧 Chamando enviar_email_checkin...")
+        
+        resultado = enviar_email_checkin(usuario_data, evento)
+        
+        print(f"{'✅' if resultado else '❌'} Resultado do envio: {resultado}")
+        print("=" * 80)
         
         return jsonify({
             "success": True,
@@ -605,6 +617,9 @@ def endpoint_enviar_email_checkin():
         })
         
     except Exception as e:
+        print(f"❌ ERRO no endpoint: {str(e)}")
+        print(f"📄 Traceback: {traceback.format_exc()}")
+        print("=" * 80)
         return jsonify({
             "success": False,
             "message": f"Erro ao enviar email de check-in: {str(e)}"
