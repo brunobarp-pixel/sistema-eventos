@@ -278,11 +278,11 @@
                 // Atualizar contador de pendentes
                 atualizarContadorPendentes();
 
-                mostrarAlerta(`Cadastro completo salvo! O usuário será criado, inscrito, terá presença marcada e receberá certificado por email na próxima sincronização.`, 'success');
+                mostrarAlerta(`✅ Cadastro salvo! O usuário será criado, inscrito, terá presença marcada e receberá certificado por email.`, 'success');
                 document.getElementById('formCadastro').reset();
 
             } catch (error) {
-                mostrarAlerta('Erro ao salvar inscrição rápida: ' + error.message, 'danger');
+                mostrarAlerta('❌ Erro ao salvar inscrição rápida: ' + error.message, 'danger');
                 console.error('Erro:', error);
             }
         }
@@ -936,13 +936,26 @@
             
             console.log(`👤 Criando usuário:`, dadosUsuario);
             
+            // Gerar CPF único (formato: XXX.XXX.XXX-XX)
+            const gerarCPFUnico = () => {
+                const numeros = Array.from({length: 11}, () => Math.floor(Math.random() * 10)).join('');
+                return `${numeros.substring(0, 3)}.${numeros.substring(3, 6)}.${numeros.substring(6, 9)}-${numeros.substring(9)}`;
+            };
+            
+            // Gerar telefone único (formato: (XX) XXXXX-XXXX)
+            const gerarTelefoneUnico = () => {
+                const area = Math.floor(Math.random() * 90) + 10;
+                const numero = Math.floor(Math.random() * 900000000) + 100000000;
+                return `(${area}) ${Math.floor(numero / 10000)}-${numero % 10000}`;
+            };
+            
             // Adicionar campos obrigatórios caso não existam
             const usuarioCompleto = {
                 nome: dadosUsuario.nome,
                 email: dadosUsuario.email,
                 senha: dadosUsuario.senha || 'senha123',
-                cpf: dadosUsuario.cpf || '000.000.000-00', // CPF padrão se não informado
-                telefone: dadosUsuario.telefone || '(00) 00000-0000' // Telefone padrão se não informado
+                cpf: dadosUsuario.cpf || gerarCPFUnico(), // CPF único se não informado
+                telefone: dadosUsuario.telefone || gerarTelefoneUnico() // Telefone único se não informado
             };
             
             console.log(`📦 Dados do usuário completos:`, usuarioCompleto);
