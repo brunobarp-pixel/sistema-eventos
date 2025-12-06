@@ -51,8 +51,11 @@ class PresencaController extends Controller
                 $emailService = new EmailService();
                 $emailService->enviarEmailCheckin($inscricao->usuario, $inscricao->evento);
             } catch (\Exception $e) {
-                $this->registrarLog($request, 'POST', '/api/presencas', 500);
-                return response()->json(['success' => false, 'message' => 'Erro', 'error' => $e->getMessage()], 500);
+                \Illuminate\Support\Facades\Log::error('Erro ao enviar email de check-in', [
+                    'usuario_id' => $inscricao->usuario->id ?? 'N/A',
+                    'evento_id' => $inscricao->evento->id ?? 'N/A',
+                    'error' => $e->getMessage()
+                ]);
             }
 
             $this->registrarLog($request, 'POST', '/api/presencas', 201, $inscricao->usuario_id);
