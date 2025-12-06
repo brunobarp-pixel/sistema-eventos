@@ -127,6 +127,8 @@ class AuthController extends Controller
                         'id' => $usuario->id,
                         'nome' => $usuario->nome,
                         'email' => $usuario->email,
+                        'cpf' => $usuario->cpf,
+                        'telefone' => $usuario->telefone,
                         'dados_completos' => $usuario->dados_completos
                     ],
                     'token' => $token
