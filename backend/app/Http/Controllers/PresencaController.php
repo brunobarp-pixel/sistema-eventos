@@ -39,7 +39,10 @@ class PresencaController extends Controller
 
             $presenca = Presenca::create([
                 'inscricao_id' => $inscricao->id,
-                'sincronizado' => true
+                'evento_id' => $inscricao->evento_id,
+                'usuario_id' => $inscricao->usuario_id,
+                'data_checkin' => now(),
+                'tipo_marcacao' => 'presencial'
             ]);
 
             $inscricao = Inscricao::with('usuario', 'evento')->find($inscricao->id);
