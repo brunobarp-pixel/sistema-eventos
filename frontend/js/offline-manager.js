@@ -484,19 +484,17 @@ class OfflineManager {
         console.log(`Marcando presença: inscricao=${inscricaoId}, evento=${eventoId}, usuario=${usuarioId}`);
         
         try {
-            console.log(`Tentando conectar com: ${this.OFFLINE_API}/presencas`);
+            console.log(`Tentando conectar com: ${this.API_BASE}/presencas`);
             
             const requestBody = {
-                inscricao_id: inscricaoId,
-                evento_id: eventoId,
-                usuario_id: usuarioId
+                inscricao_id: inscricaoId
             };
             console.log(`Enviando dados:`, requestBody);
             
             const headers = await this.getAuthHeaders();
             headers['Content-Type'] = 'application/json';
             
-            const response = await fetch(`${this.OFFLINE_API}/presencas`, {
+            const response = await fetch(`${this.API_BASE}/presencas`, {
                 method: 'POST',
                 headers: headers,
                 body: JSON.stringify(requestBody)
@@ -506,7 +504,7 @@ class OfflineManager {
             
             if (response.ok) {
                 const data = await response.json();
-                console.log('Presença registrada no servidor:', data);
+                console.log('✅ Presença registrada no servidor:', data);
                 
                 // Também salvar localmente
                 this.adicionarPresencaLocal(inscricaoId, eventoId, usuarioId);
@@ -519,11 +517,11 @@ class OfflineManager {
                 };
             } else {
                 const errorText = await response.text();
-                console.error(`Erro HTTP ${response.status}:`, errorText);
+                console.error(`❌ Erro HTTP ${response.status}:`, errorText);
                 throw new Error(`HTTP ${response.status}: ${errorText}`);
             }
         } catch (error) {
-            console.warn('Servidor indisponível, salvando localmente:', error);
+            console.warn('📴 Servidor indisponível, salvando localmente:', error);
         }
         
         this.adicionarPresencaLocal(inscricaoId, eventoId, usuarioId);
