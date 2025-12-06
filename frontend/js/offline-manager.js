@@ -149,6 +149,14 @@ class OfflineManager {
             'Content-Type': 'application/json'
         };
         
+        // Primeiro tentar token do usuário logado (para API principal)
+        const userToken = localStorage.getItem('token');
+        if (userToken) {
+            headers['Authorization'] = `Bearer ${userToken}`;
+            return headers;
+        }
+        
+        // Fallback para token do sistema (para backend-offline)
         if (!this.SISTEMA_TOKEN && !this.inicializandoToken) {
             await this.obterTokenSistema();
         }
