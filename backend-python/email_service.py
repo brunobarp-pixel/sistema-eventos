@@ -7,11 +7,11 @@ load_dotenv()
 
 MODO_TESTE = False  # True = usa MailHog, False = envia e-mails de verdade
 
-# Configurações de e-mail (valores fixos)
+# Configurações de e-mail
 EMAIL_HOST = 'smtp.gmail.com'  # Gmail SMTP
-EMAIL_PORT = 587  # Porta TLS do Gmail  
-EMAIL_USER = 'bqgames999'  # Seu email do Gmail
-EMAIL_PASSWORD = 'ghme mpkt ecfs gcmc'  # Senha de app do Gmail
+EMAIL_PORT = 587  # Porta TLS 
+EMAIL_USER = 'bqgames999'  # Meu e-mail
+EMAIL_PASSWORD = 'ghme mpkt ecfs gcmc'  # Senha de app 
 EMAIL_FROM = 'Sistema de Eventos <noreply@eventos.com>'
 
 
@@ -265,7 +265,7 @@ def enviar_email_certificado(usuario, evento, certificado):#rever isso aqui
         return True
         
     except Exception as e:
-        print(f"❌ Erro ao enviar e-mail com anexo: {str(e)}")
+        print(f"Erro ao enviar e-mail com anexo: {str(e)}")
         return enviar_email(usuario['email'], assunto, corpo_html)
 
 

@@ -52,7 +52,6 @@ class LaravelAuth:
             print(f"Erro ao salvar token: {str(e)}")
     
     def login(self, email, senha):
-        """Faz login no Laravel e obtém token"""
         try:
             response = requests.post(f'{LARAVEL_API}/auth', json={
                 'email': email,
@@ -80,7 +79,6 @@ class LaravelAuth:
             return False
     
     def logout(self):
-        """Faz logout e revoga token"""
         try:
             if self.token:
                 response = requests.post(
@@ -113,7 +111,6 @@ class LaravelAuth:
         }
     
     def is_authenticated(self):
-        """Verifica se está autenticado"""
         if not self.token:
             return False
         
@@ -131,10 +128,10 @@ class LaravelAuth:
         
         print("Não autenticado. Tentando login automático...")
         
-        # OPÇÃO 1: Login com usuário padrão do sistema
+        # Login com usuário padrão do sistema
         return self.login('sistema@eventos.com', 'senha_sistema_2025')
         
-        # OPÇÃO 2: Pedir credenciais (descomente se preferir)
+        # Pedir credenciais 
         # email = input("Email: ")
         # senha = input("Senha: ")
         # return self.login(email, senha)

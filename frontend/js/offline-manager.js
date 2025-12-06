@@ -149,14 +149,14 @@ class OfflineManager {
             'Content-Type': 'application/json'
         };
         
-        // Primeiro tentar token do usuário logado (para API principal)
+        // Primeiro tentar token do usuário logado 
         const userToken = localStorage.getItem('token');
         if (userToken) {
             headers['Authorization'] = `Bearer ${userToken}`;
             return headers;
         }
         
-        // Fallback para token do sistema (para backend-offline)
+        // Fallback para token do sistema 
         if (!this.SISTEMA_TOKEN && !this.inicializandoToken) {
             await this.obterTokenSistema();
         }
@@ -204,7 +204,6 @@ class OfflineManager {
             await this.verificarConexao();
             
             if (this.isOnline) {
-                // Tentar carregar dados do novo backend-offline
                 try {
                     const response = await fetch(`${this.OFFLINE_API}/offline/dados`, {
                         method: 'GET',
@@ -217,7 +216,6 @@ class OfflineManager {
                         const data = await response.json();
                         
                         if (data.success && data.data) {
-                            // Processar dados estruturados do backend-offline
                             this.processarDadosOffline(data.data);
                             this.salvarDadosNoStorage();
                             
@@ -243,7 +241,6 @@ class OfflineManager {
             let inscricoes = dadosLocal.inscricoes || [];
             let presencas = dadosLocal.presencas || [];
             
-            // Tentar carregar dados frescos se estivermos online
             if (this.SISTEMA_TOKEN && this.isOnline) {
                 try {
                     console.log('Tentando carregar dados das APIs principais...');
@@ -336,7 +333,6 @@ class OfflineManager {
             });
         });
         
-        // Converter mapa de usuários para array
         this.dados.usuarios = Array.from(usuariosMap.values());
         
         console.log('Dados processados do backend-offline:', {
@@ -408,14 +404,14 @@ class OfflineManager {
      */
     async carregarEventos() {
         try {
-            console.log('🎤 Carregando eventos do Laravel API...');
+            console.log('Carregando eventos do Laravel API...');
             
             // Tentar Laravel primeiro
             const responseLaravel = await fetch(`${this.API_BASE}/eventos`);
             if (responseLaravel.ok) {
                 const dataLaravel = await responseLaravel.json();
                 if (dataLaravel && dataLaravel.data && dataLaravel.data.length > 0) {
-                    console.log(`✅ ${dataLaravel.data.length} eventos do Laravel`);
+                    console.log(`${dataLaravel.data.length} eventos do Laravel`);
                     localStorage.setItem('eventos_cache', JSON.stringify(dataLaravel.data));
                     return dataLaravel.data;
                 }
@@ -428,11 +424,11 @@ class OfflineManager {
         const cached = localStorage.getItem('eventos_cache');
         if (cached) {
             const eventos = JSON.parse(cached);
-            console.log(`📱 ${eventos.length} eventos do cache`);
+            console.log(`${eventos.length} eventos do cache`);
             return eventos;
         }
         
-        console.log('📋 Usando eventos de exemplo');
+        console.log('Usando eventos de exemplo');
         return this.getEventosExemplo();
     }
     
@@ -512,7 +508,7 @@ class OfflineManager {
             
             if (response.ok) {
                 const data = await response.json();
-                console.log('✅ Presença registrada no servidor:', data);
+                console.log('Presença registrada no servidor:', data);
                 
                 // Também salvar localmente
                 this.adicionarPresencaLocal(inscricaoId, eventoId, usuarioId);
@@ -525,11 +521,11 @@ class OfflineManager {
                 };
             } else {
                 const errorText = await response.text();
-                console.error(`❌ Erro HTTP ${response.status}:`, errorText);
+                console.error(`Erro HTTP ${response.status}:`, errorText);
                 throw new Error(`HTTP ${response.status}: ${errorText}`);
             }
         } catch (error) {
-            console.warn('📴 Servidor indisponível, salvando localmente:', error);
+            console.warn('Servidor indisponível, salvando localmente:', error);
         }
         
         this.adicionarPresencaLocal(inscricaoId, eventoId, usuarioId);

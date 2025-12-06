@@ -20,7 +20,7 @@ class EventoController extends Controller
             if ($request->has('status')) {
                 $query->where('status', $request->status);
             } else {
-                // TEMPORÁRIO: Mostrar todos os eventos para debug
+                // Mostrar todos os eventos para debug
                 // $query->where('status', 'aberto');
             }
 

@@ -69,7 +69,7 @@ class EmailService
     public function enviarEmailCheckin(Usuario $usuario, Evento $evento)
     {
         try {
-            Log::info('📧 EmailService: Preparando email de check-in', [
+            Log::info('EmailService: Preparando email de check-in', [
                 'usuario_email' => $usuario->email,
                 'evento_nome' => $evento->nome,
                 'python_api_url' => $this->pythonApiUrl
@@ -87,11 +87,11 @@ class EmailService
                 ]
             ];
             
-            Log::info('📦 EmailService: Payload preparado', ['payload' => $payload]);
+            Log::info('EmailService: Payload preparado', ['payload' => $payload]);
             
             $response = Http::timeout(5)->post($this->pythonApiUrl . '/enviar-email-checkin', $payload);
             
-            Log::info('📡 EmailService: Resposta do backend-python', [
+            Log::info('EmailService: Resposta do backend-python', [
                 'status' => $response->status(),
                 'successful' => $response->successful(),
                 'body' => $response->body()
@@ -99,7 +99,7 @@ class EmailService
 
             return $response->successful();
         } catch (\Exception $e) {
-            Log::error('❌ EmailService: Erro ao enviar e-mail de check-in', [
+            Log::error('EmailService: Erro ao enviar e-mail de check-in', [
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString()
             ]);

@@ -31,9 +31,6 @@ print_error() {
     echo -e "${RED}❌ $1${NC}"
 }
 
-# =====================================================
-# INÍCIO
-# =====================================================
 
 echo ""
 echo -e "${BLUE}╔════════════════════════════════════════════════════╗${NC}"
@@ -42,9 +39,7 @@ echo -e "${BLUE}║  VM: 177.44.248.118                               ║${NC}"
 echo -e "${BLUE}╚════════════════════════════════════════════════════╝${NC}"
 echo ""
 
-# =====================================================
-# PASSO 1: Verificar privilégios
-# =====================================================
+
 
 print_step "Verificando privilégios..."
 
@@ -55,18 +50,13 @@ else
    print_success "Executando como usuário comum"
 fi
 
-# =====================================================
-# PASSO 2: Atualizar sistema
-# =====================================================
+
 
 print_step "Atualizando sistema..."
 sudo apt update
 sudo apt upgrade -y
 print_success "Sistema atualizado"
 
-# =====================================================
-# PASSO 3: Instalar dependências
-# =====================================================
 
 print_step "Instalando dependências..."
 sudo apt install -y \
@@ -80,10 +70,6 @@ sudo apt install -y \
     python3-pip
 
 print_success "Dependências instaladas"
-
-# =====================================================
-# PASSO 4: Instalar Docker
-# =====================================================
 
 print_step "Verificando Docker..."
 
@@ -106,9 +92,7 @@ else
     print_success "Docker já está instalado"
 fi
 
-# =====================================================
-# PASSO 5: Instalar Docker Compose
-# =====================================================
+
 
 print_step "Verificando Docker Compose..."
 
@@ -123,9 +107,6 @@ else
     print_success "Docker Compose já está instalado"
 fi
 
-# =====================================================
-# PASSO 6: Verificar versões
-# =====================================================
 
 print_step "Verificando versões..."
 echo ""
@@ -134,9 +115,6 @@ docker-compose --version
 echo ""
 print_success "Versões verificadas"
 
-# =====================================================
-# PASSO 7: Preparar diretórios
-# =====================================================
 
 print_step "Preparando diretórios..."
 
@@ -145,9 +123,6 @@ cd ~/projetos
 
 print_success "Diretórios preparados"
 
-# =====================================================
-# PASSO 8: Clonar repositório
-# =====================================================
 
 if [ -d "sistema-eventos" ]; then
     print_warning "Repositório já existe em ~/projetos/sistema-eventos"
@@ -161,9 +136,7 @@ else
     print_success "Repositório clonado"
 fi
 
-# =====================================================
-# PASSO 9: Preparar ambiente
-# =====================================================
+
 
 print_step "Preparando arquivo .env..."
 
@@ -211,33 +184,24 @@ else
     print_success "Arquivo .env já existe"
 fi
 
-# =====================================================
-# PASSO 10: Copiar .env para backend
-# =====================================================
 
 print_step "Copiando .env para backend..."
 cp .env backend/.env.production
 print_success ".env copiado"
 
-# =====================================================
-# PASSO 11: Preparar script deploy
-# =====================================================
+
 
 print_step "Preparando script de deploy..."
 chmod +x deploy.sh
 print_success "Script de deploy preparado"
 
-# =====================================================
-# PASSO 12: Testar Docker
-# =====================================================
+
 
 print_step "Testando Docker..."
 docker run --rm hello-world > /dev/null
 print_success "Docker funcionando corretamente"
 
-# =====================================================
-# CONCLUSÃO
-# =====================================================
+
 
 echo ""
 echo -e "${GREEN}╔════════════════════════════════════════════════════╗${NC}"

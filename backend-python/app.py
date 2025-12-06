@@ -588,27 +588,27 @@ def endpoint_enviar_email_checkin():
     
     try:
         print("=" * 80)
-        print("🚀 Requisição recebida em /enviar-email-checkin")
-        print(f"📦 Dados recebidos: {data}")
+        print("Requisição recebida em /enviar-email-checkin")
+        print(f"Dados recebidos: {data}")
         
         # Garantir compatibilidade, torcer para nao dar pau
         evento = data["evento"].copy()
         if "titulo" in evento and "nome" not in evento:
             evento["nome"] = evento["titulo"]
-            print(f"🔄 Convertido 'titulo' para 'nome': {evento['nome']}")
+            print(f"Convertido 'titulo' para 'nome': {evento['nome']}")
         
         usuario_data = {
             "nome": data["usuario"]["nome"],
             "email": data["usuario"]["email"]
         }
         
-        print(f"👤 Usuario: {usuario_data}")
-        print(f"🎯 Evento: {evento}")
-        print("📧 Chamando enviar_email_checkin...")
+        print(f"Usuario: {usuario_data}")
+        print(f"Evento: {evento}")
+        print("Chamando enviar_email_checkin...")
         
         resultado = enviar_email_checkin(usuario_data, evento)
         
-        print(f"{'✅' if resultado else '❌'} Resultado do envio: {resultado}")
+        print(f"{'Positivo' if resultado else 'Negativo'} Resultado do envio: {resultado}")
         print("=" * 80)
         
         return jsonify({
@@ -617,8 +617,8 @@ def endpoint_enviar_email_checkin():
         })
         
     except Exception as e:
-        print(f"❌ ERRO no endpoint: {str(e)}")
-        print(f"📄 Traceback: {traceback.format_exc()}")
+        print(f"ERRO no endpoint: {str(e)}")
+        print(f"Traceback: {traceback.format_exc()}")
         print("=" * 80)
         return jsonify({
             "success": False,

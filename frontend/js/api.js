@@ -61,8 +61,8 @@ function getAuthToken() {
 
 /**
  * Exemplo de como fazer uma requisição (GET) autenticada
- * @param {string} endpoint - O endpoint da API (ex: '/eventos').
- * @returns {Promise<Object>} A Promise com os dados da resposta.
+ * @param {string} endpoint - O endpoint da API
+ * @returns {Promise<Object>} A Promise com dados da resposta
  */
 async function fetchAuthenticated(endpoint) {
     const token = getAuthToken();

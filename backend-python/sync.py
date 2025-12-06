@@ -7,7 +7,6 @@ DATABASE = 'data/eventos.db'
 LARAVEL_API = 'http://127.0.0.1:8000/api'
 
 def get_db():#legado
-    """Conecta ao banco SQLite"""
     conn = sqlite3.connect(DATABASE)
     conn.row_factory = sqlite3.Row
     cursor = conn.cursor()
@@ -77,7 +76,6 @@ def baixar_usuarios():
         return 0
 
 def sincronizar_usuarios():
-    """Sincroniza usuários offline com o servidor Laravel"""
     print("\nSincronizando usuários...")
     
     conn = get_db()
@@ -159,7 +157,6 @@ def sincronizar_inscricoes():
     return sincronizados, erros
 
 def sincronizar_presencas():
-    """Sincroniza presenças offline com o servidor Laravel"""
     print("\nSincronizando presenças...")
     
     conn = get_db()
@@ -243,7 +240,6 @@ def baixar_eventos():
         return 0
 
 def sincronizar_tudo():
-    """Executa sincronização completa"""
     print("\n" + "="*50)
     print("INICIANDO SINCRONIZAÇÃO COMPLETA")
     print("="*50)

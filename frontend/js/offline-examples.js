@@ -113,8 +113,6 @@ console.log('Inscrições sem presença:', inscricoesSemPresenca);
 (async () => {
     const stats = manager.obterEstatisticas();
     console.log(`
-        RELATÓRIO OFFLINE
-        =================
         Usuários: ${stats.totalUsuarios}
         Eventos: ${stats.totalEventos}
         Inscrições: ${stats.totalInscricoes}

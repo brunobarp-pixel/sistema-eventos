@@ -242,6 +242,83 @@ class AuthController extends Controller
     }
 
     /**
+     * PUT /api/perfil
+     * Atualizar perfil completo do usuário (nome, email, senha, cpf, telefone)
+     */
+    public function atualizarPerfil(Request $request)
+    {
+        try {
+            $usuario = $request->user();
+            
+            if (!$usuario) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Usuário não autenticado'
+                ], 401);
+            }
+
+            // Validação
+            $validator = Validator::make($request->all(), [
+                'nome' => 'sometimes|required|string|max:255',
+                'email' => 'sometimes|required|email|unique:usuarios,email,' . $usuario->id,
+                'senha' => 'sometimes|nullable|string|min:6',
+                'cpf' => 'sometimes|nullable|string|size:14|unique:usuarios,cpf,' . $usuario->id,
+                'telefone' => 'sometimes|nullable|string|max:20'
+            ], [
+                'nome.required' => 'O nome é obrigatório',
+                'email.required' => 'O email é obrigatório',
+                'email.email' => 'Email inválido',
+                'email.unique' => 'Este email já está em uso',
+                'senha.min' => 'A senha deve ter no mínimo 6 caracteres',
+                'cpf.size' => 'CPF deve ter 14 caracteres (com pontuação)',
+                'cpf.unique' => 'Este CPF já está cadastrado'
+            ]);
+
+            if ($validator->fails()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Erro de validação',
+                    'errors' => $validator->errors()
+                ], 422);
+            }
+
+            // Atualizar dados apenas se fornecidos
+            if ($request->filled('nome')) $usuario->nome = $request->nome;
+            if ($request->filled('email')) $usuario->email = $request->email;
+            if ($request->filled('senha')) $usuario->senha = Hash::make($request->senha);
+            if ($request->has('cpf')) $usuario->cpf = $request->cpf ?: null;
+            if ($request->has('telefone')) $usuario->telefone = $request->telefone ?: null;
+
+            // Verificar se dados estão completos
+            $usuario->dados_completos = $usuario->verificarDadosCompletos();
+            $usuario->save();
+
+            $this->registrarLog($request, 'PUT', '/api/perfil', 200, $usuario->id);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Perfil atualizado com sucesso',
+                'data' => [
+                    'id' => $usuario->id,
+                    'nome' => $usuario->nome,
+                    'email' => $usuario->email,
+                    'cpf' => $usuario->cpf,
+                    'telefone' => $usuario->telefone,
+                    'dados_completos' => $usuario->dados_completos
+                ]
+            ], 200);
+        } catch (\Exception $e) {
+            $this->registrarLog($request, 'PUT', '/api/perfil', 500, $request->user()->id ?? null);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Erro ao atualizar perfil',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
      * Registrar log de acesso
      */
     /**
@@ -290,7 +367,7 @@ class AuthController extends Controller
                 'response_status' => $status
             ]);
         } catch (\Exception $e) {
-            // Silenciar erro de log para não afetar a requisição principal
+            // Silenciar erro de log
         }
     }
 }

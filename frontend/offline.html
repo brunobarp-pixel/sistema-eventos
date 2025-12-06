@@ -223,6 +223,7 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="js/perfil.js"></script>
     <script src="js/offline-manager.js"></script>
     <script>
         const API_BASE_URL = 'http://177.44.248.118:8000/api'; // Laravel API principal
@@ -257,7 +258,6 @@
             }
 
             try {
-                // Salvar dados em chave separada para cadastro completo (usuário + inscrição + presença + certificado)
                 const cadastrosCompletos = JSON.parse(localStorage.getItem('cadastros_completos') || '[]');
                 
                 const novoCadastroCompleto = {
@@ -275,14 +275,13 @@
                 cadastrosCompletos.push(novoCadastroCompleto);
                 localStorage.setItem('cadastros_completos', JSON.stringify(cadastrosCompletos));
 
-                // Atualizar contador de pendentes
                 atualizarContadorPendentes();
 
-                mostrarAlerta(`✅ Cadastro salvo! O usuário será criado, inscrito, terá presença marcada e receberá certificado por email.`, 'success');
+                mostrarAlerta(`Cadastro salvo! O usuário será criado, inscrito, terá presença marcada e receberá certificado por email.`, 'success');
                 document.getElementById('formCadastro').reset();
 
             } catch (error) {
-                mostrarAlerta('❌ Erro ao salvar inscrição rápida: ' + error.message, 'danger');
+                mostrarAlerta('Erro ao salvar inscrição rápida: ' + error.message, 'danger');
                 console.error('Erro:', error);
             }
         }
@@ -347,7 +346,7 @@
             const inicializacao = await offlineManager.inicializar();
             if (inicializacao) {
             } else {
-                console.warn('⚠️ Sistema inicializado com limitações');
+                console.warn('Sistema inicializado com limitações');
                 mostrarAlerta('Sistema funcionando em modo limitado - algumas funcionalidades podem não estar disponíveis', 'warning');
             }
             
@@ -372,7 +371,6 @@
                 offlineManager.verificarConexao();
             }, 5000);
             
-            // Carregar estatísticas inicial após tudo estar configurado
             await carregarEstatisticas();
         });
 
@@ -388,7 +386,7 @@
             const total = pendentesInscricoes + pendentesPresencas + pendentesCadastros;
             document.getElementById('totalPendentes').textContent = total;
             
-            console.log(`📊 Pendentes: ${pendentesInscricoes} inscrições + ${pendentesPresencas} presenças + ${pendentesCadastros} cadastros completos = ${total} total`);
+            console.log(`Pendentes: ${pendentesInscricoes} inscrições + ${pendentesPresencas} presenças + ${pendentesCadastros} cadastros completos = ${total} total`);
         }
 
         function atualizarStatusBar() {
@@ -419,22 +417,18 @@
 
         async function carregarEstatisticas() {
             try {
-                // Aguardar até que o offlineManager esteja inicializado
                 if (!offlineManager) {
-                    console.warn('⚠️ OfflineManager ainda não existe, aguardando...');
-                    // Tentar novamente em 1 segundo
+                    console.warn('OfflineManager ainda não existe, aguardando...');
                     setTimeout(carregarEstatisticas, 1000);
                     return;
                 }
                 
-                // Aguardar carregamento dos dados se necessário
                 if (!offlineManager.dados) {
-                    console.warn('⚠️ Dados ainda não carregados, aguardando...');
+                    console.warn('Dados ainda não carregados, aguardando...');
                     setTimeout(carregarEstatisticas, 1000);
                     return;
                 }
                 
-                // Tentar carregar estatísticas do novo backend-offline
                 if (statusOnline) {
                     try {
                         const resp = await fetch(`${OFFLINE_API}/offline/status`, {
@@ -451,12 +445,10 @@
                     }
                 }
                 
-                // Usar dados do offlineManager para estatísticas
                 const usuarios = offlineManager.dados.usuarios || [];
                 const inscricoes = offlineManager.dados.inscricoes || [];
                 const presencas = offlineManager.dados.presencas || [];
                 
-                // Calcular presenças pendentes
                 const presencasOffline = JSON.parse(localStorage.getItem('presencas_offline') || '[]');
                 const totalPendentes = presencasOffline.filter(p => !p.sincronizado).length;
                 
@@ -468,7 +460,6 @@
                 
             } catch (error) {
                 console.error('Erro ao carregar estatísticas:', error);
-                // Fallback para valores padrão
                 document.getElementById('totalUsuarios').textContent = 0;
                 document.getElementById('totalInscricoes').textContent = 0;
                 document.getElementById('totalPresencas').textContent = 0;
@@ -494,7 +485,6 @@
                 }
             });
             
-            // Adicionar listener para mostrar inscrições quando evento for selecionado
             const eventoCheckin = document.getElementById('eventoCheckin');
             if (eventoCheckin) {
                 eventoCheckin.removeEventListener('change', mostrarInscricoesDoEvento);
@@ -560,7 +550,6 @@
             const eventoId = document.getElementById('eventoCheckin').value;
 
             if (termo.length < 2) {
-                // Se não há termo de busca, mostrar todos do evento se um evento estiver selecionado
                 if (eventoId) {
                     mostrarInscricoesDoEvento();
                 } else {
@@ -694,13 +683,10 @@
                 btnSincronizar.disabled = true;
                 btnSincronizar.innerHTML = '<i class="bi bi-arrow-repeat"></i> Sincronizando...';
 
-                // 1. Sincronizar cadastros completos primeiro
                 await sincronizarCadastrosCompletos();
 
-                // 2. Sincronizar inscrições rápidas
                 await sincronizarInscricoesRapidas();
 
-                // 3. Sincronizar presenças normais
                 const resultado = await offlineManager.sincronizarPresencas();
                 
                 if (resultado.sucesso) {
@@ -709,7 +695,6 @@
                         'success'
                     );
                     
-                    // 4. Limpar localStorage após sincronização bem-sucedida
                     limparDadosSincronizados();
                 } else {
                     mostrarAlerta(
@@ -733,42 +718,39 @@
 
         function limparDadosSincronizados() {
             try {
-                // Limpar cadastros completos sincronizados
                 const cadastrosCompletos = JSON.parse(localStorage.getItem('cadastros_completos') || '[]');
                 const cadastrosNaoSincronizados = cadastrosCompletos.filter(c => !c.sincronizado);
                 if (cadastrosNaoSincronizados.length === 0) {
                     localStorage.removeItem('cadastros_completos');
-                    console.log('🧹 Cadastros completos limpos do localStorage');
+                    console.log('Cadastros completos limpos do localStorage');
                 } else {
                     localStorage.setItem('cadastros_completos', JSON.stringify(cadastrosNaoSincronizados));
-                    console.log(`🧹 ${cadastrosCompletos.length - cadastrosNaoSincronizados.length} cadastros sincronizados removidos`);
+                    console.log(`${cadastrosCompletos.length - cadastrosNaoSincronizados.length} cadastros sincronizados removidos`);
                 }
 
-                // Limpar inscrições rápidas sincronizadas
                 const inscricoesRapidas = JSON.parse(localStorage.getItem('inscricoes_rapidas') || '[]');
                 const inscricoesNaoSincronizadas = inscricoesRapidas.filter(i => !i.sincronizado);
                 if (inscricoesNaoSincronizadas.length === 0) {
                     localStorage.removeItem('inscricoes_rapidas');
-                    console.log('🧹 Inscrições rápidas limpas do localStorage');
+                    console.log('Inscrições rápidas limpas do localStorage');
                 } else {
                     localStorage.setItem('inscricoes_rapidas', JSON.stringify(inscricoesNaoSincronizadas));
-                    console.log(`🧹 ${inscricoesRapidas.length - inscricoesNaoSincronizadas.length} inscrições sincronizadas removidas`);
+                    console.log(`${inscricoesRapidas.length - inscricoesNaoSincronizadas.length} inscrições sincronizadas removidas`);
                 }
 
-                // Limpar presenças sincronizadas
                 const presencasOffline = JSON.parse(localStorage.getItem('presencas_offline') || '[]');
                 const presencasNaoSincronizadas = presencasOffline.filter(p => !p.sincronizado);
                 if (presencasNaoSincronizadas.length === 0) {
                     localStorage.removeItem('presencas_offline');
-                    console.log('🧹 Presenças limpas do localStorage');
+                    console.log('Presenças limpas do localStorage');
                 } else {
                     localStorage.setItem('presencas_offline', JSON.stringify(presencasNaoSincronizadas));
-                    console.log(`🧹 ${presencasOffline.length - presencasNaoSincronizadas.length} presenças sincronizadas removidas`);
+                    console.log(`${presencasOffline.length - presencasNaoSincronizadas.length} presenças sincronizadas removidas`);
                 }
 
-                console.log('✅ Limpeza de dados sincronizados concluída');
+                console.log('Limpeza de dados sincronizados concluída');
             } catch (error) {
-                console.error('❌ Erro ao limpar dados sincronizados:', error);
+                console.error('Erro ao limpar dados sincronizados:', error);
             }
         }
 
@@ -781,56 +763,50 @@
                 return;
             }
 
-            console.log(`🚀 Sincronizando ${pendentes.length} cadastros completos...`);
+            console.log(`Sincronizando ${pendentes.length} cadastros completos...`);
             const token = localStorage.getItem('token');
-            console.log(`🔑 Token para sincronização: ${token ? token.substring(0, 20) + '...' : 'NÃO ENCONTRADO'}`);
+            console.log(`Token para sincronização: ${token ? token.substring(0, 20) + '...' : 'NÃO ENCONTRADO'}`);
 
             for (const cadastro of pendentes) {
                 try {
-                    console.log(`📝 Processando cadastro:`, cadastro);
+                    console.log(`Processando cadastro:`, cadastro);
                     
-                    // 1. Criar usuário
-                    console.log(`👤 Criando usuário: ${cadastro.usuario.nome} (${cadastro.usuario.email})`);
+                    console.log(`Criando usuário: ${cadastro.usuario.nome} (${cadastro.usuario.email})`);
                     const usuario = await criarUsuarioCompleto(cadastro.usuario);
-                    console.log(`✅ Usuário criado com ID: ${usuario.id}`);
+                    console.log(`Usuário criado com ID: ${usuario.id}`);
                     
-                    // 2. Processar evento completo (inscrição + presença + certificado + email)
-                    console.log(`🎯 Processando evento ${cadastro.evento_id}...`);
+                    console.log(`Processando evento ${cadastro.evento_id}...`);
                     await processarEventoCompleto(usuario.id, cadastro.evento_id);
                     
-                    // 3. Marcar como sincronizado
                     cadastro.sincronizado = true;
-                    console.log(`✅ Cadastro completo sincronizado com sucesso!`);
+                    console.log(`Cadastro completo sincronizado com sucesso!`);
                     
                 } catch (error) {
-                    console.error(`💥 Erro ao sincronizar cadastro completo:`, error);
-                    console.error(`📄 Dados do cadastro que falhou:`, cadastro);
-                    // Continuar com os próximos cadastros mesmo se um falhar
+                    console.error(`Erro ao sincronizar cadastro completo:`, error);
+                    console.error(`Dados do cadastro que falhou:`, cadastro);
                 }
             }
             
-            // Salvar progresso
             localStorage.setItem('cadastros_completos', JSON.stringify(cadastrosCompletos));
-            console.log('🎉 Processo de sincronização de cadastros completos finalizado');
+            console.log('Processo de sincronização de cadastros completos finalizado');
         }
 
         async function processarEventoCompleto(usuarioId, eventoId) {
             const token = localStorage.getItem('token');
             
-            console.log(`🔄 Iniciando processamento completo para usuário ${usuarioId} no evento ${eventoId}`);
+            console.log(`Iniciando processamento completo para usuário ${usuarioId} no evento ${eventoId}`);
             
             try {
-                // 1. Criar inscrição
-                console.log(`1️⃣ Criando inscrição para usuário ${usuarioId} no evento ${eventoId}...`);
-                console.log(`📡 URL: ${API_BASE_URL}/inscricoes`);
-                console.log(`🔑 Token: ${token ? 'Presente' : 'Ausente'}`);
+                console.log(`Criando inscrição para usuário ${usuarioId} no evento ${eventoId}...`);
+                console.log(`URL: ${API_BASE_URL}/inscricoes`);
+                console.log(`Token: ${token ? 'Presente' : 'Ausente'}`);
                 
                 const inscricaoPayload = {
                     usuario_id: usuarioId,
                     evento_id: eventoId,
                     status: 'confirmada'
                 };
-                console.log(`📦 Payload da inscrição:`, inscricaoPayload);
+                console.log(`Payload da inscrição:`, inscricaoPayload);
                 
                 const inscricaoResponse = await fetch(`${API_BASE_URL}/inscricoes`, {
                     method: 'POST',
@@ -841,12 +817,12 @@
                     body: JSON.stringify(inscricaoPayload)
                 });
 
-                console.log(`📊 Status da resposta de inscrição: ${inscricaoResponse.status} ${inscricaoResponse.statusText}`);
+                console.log(`Status da resposta de inscrição: ${inscricaoResponse.status} ${inscricaoResponse.statusText}`);
 
                 if (!inscricaoResponse.ok) {
                     const errorData = await inscricaoResponse.json().catch(() => ({}));
-                    console.error(`❌ Erro ao criar inscrição:`, errorData);
-                    console.error(`🔍 Detalhes do erro:`);
+                    console.error(`Erro ao criar inscrição:`, errorData);
+                    console.error(`Detalhes do erro:`);
                     console.error(`   - Status: ${inscricaoResponse.status}`);
                     console.error(`   - Status Text: ${inscricaoResponse.statusText}`);
                     console.error(`   - Error Data:`, errorData);
@@ -863,18 +839,17 @@
 
                 const inscricaoData = await inscricaoResponse.json();
                 const inscricaoId = inscricaoData.data.id;
-                console.log(`✅ Inscrição criada com sucesso!`);
+                console.log(`Inscrição criada com sucesso!`);
                 console.log(`   - ID da inscrição: ${inscricaoId}`);
                 console.log(`   - Dados completos:`, inscricaoData);
 
-                // 2. Marcar presença
-                console.log(`2️⃣ Marcando presença para inscrição ${inscricaoId}...`);
-                console.log(`📡 URL: ${API_BASE_URL}/presencas`);
+                console.log(`Marcando presença para inscrição ${inscricaoId}...`);
+                console.log(`URL: ${API_BASE_URL}/presencas`);
                 
                 const presencaPayload = {
                     inscricao_id: inscricaoId
                 };
-                console.log(`📦 Payload da presença:`, presencaPayload);
+                console.log(`Payload da presença:`, presencaPayload);
                 
                 const presencaResponse = await fetch(`${API_BASE_URL}/presencas`, {
                     method: 'POST',
@@ -885,12 +860,11 @@
                     body: JSON.stringify(presencaPayload)
                 });
 
-                console.log(`📊 Status da resposta de presença: ${presencaResponse.status} ${presencaResponse.statusText}`);
+                console.log(`Status da resposta de presença: ${presencaResponse.status} ${presencaResponse.statusText}`);
 
                 if (!presencaResponse.ok) {
                     const errorData = await presencaResponse.json().catch(() => ({}));
-                    console.error(`❌ Erro ao marcar presença:`, errorData);
-                    console.error(`🔍 Detalhes do erro:`);
+                    console.error(`Erro ao marcar presença:`, errorData);
                     console.error(`   - Status: ${presencaResponse.status}`);
                     console.error(`   - Status Text: ${presencaResponse.statusText}`);
                     console.error(`   - Error Data:`, errorData);
@@ -906,11 +880,10 @@
                 }
 
                 const presencaData = await presencaResponse.json();
-                console.log(`✅ Presença marcada com sucesso!`);
+                console.log(`Presença marcada com sucesso!`);
                 console.log(`   - Dados da presença:`, presencaData);
 
-                // 3. Gerar e enviar certificado por email
-                console.log(`3️⃣ Gerando certificado...`);
+                console.log(`Gerando certificado...`);
                 const certificadoResponse = await fetch(`${API_BASE_URL}/certificados`, {
                     method: 'POST',
                     headers: {
@@ -925,17 +898,16 @@
 
                 if (!certificadoResponse.ok) {
                     const errorData = await certificadoResponse.json().catch(() => ({}));
-                    console.warn(`⚠️ Aviso - Erro ao gerar certificado:`, errorData);
-                    // Não lança erro para não interromper o fluxo principal
+                    console.warn(`Aviso - Erro ao gerar certificado:`, errorData);
                 } else {
                     const certificadoData = await certificadoResponse.json();
-                    console.log(`✅ Certificado gerado e enviado:`, certificadoData);
+                    console.log(`Certificado gerado e enviado:`, certificadoData);
                 }
 
-                console.log(`🎉 Processamento completo finalizado para usuário ${usuarioId} no evento ${eventoId}`);
+                console.log(`Processamento completo finalizado para usuário ${usuarioId} no evento ${eventoId}`);
 
             } catch (error) {
-                console.error(`💥 Erro ao processar evento completo:`, error);
+                console.error(`Erro ao processar evento completo:`, error);
                 throw error;
             }
         }
@@ -949,60 +921,51 @@
                 return;
             }
 
-            console.log(`🚀 Sincronizando ${pendentes.length} inscrições rápidas...`);
+            console.log(`Sincronizando ${pendentes.length} inscrições rápidas...`);
 
             for (const inscricao of pendentes) {
                 try {
-                    // 1. Criar usuário
                     const usuario = await criarUsuarioCompleto(inscricao.usuario);
                     
-                    // 2. Para cada evento, criar inscrição e marcar presença
                     for (const eventoId of inscricao.eventos) {
                         await processarInscricaoEvento(usuario.id, eventoId);
                     }
                     
-                    // 3. Marcar como sincronizado
                     inscricao.sincronizado = true;
                     
                 } catch (error) {
                     console.error(`Erro ao sincronizar inscrição rápida:`, error);
-                    // Continuar com as próximas inscrições mesmo se uma falhar
                 }
             }
             
-            // Salvar progresso
             localStorage.setItem('inscricoes_rapidas', JSON.stringify(inscricoesRapidas));
-            console.log('✅ Inscrições rápidas sincronizadas');
         }
 
         async function criarUsuarioCompleto(dadosUsuario) {
             const token = localStorage.getItem('token');
             
-            console.log(`👤 Criando usuário:`, dadosUsuario);
+            console.log(`Criando usuário:`, dadosUsuario);
             
-            // Gerar CPF único (formato: XXX.XXX.XXX-XX)
             const gerarCPFUnico = () => {
                 const numeros = Array.from({length: 11}, () => Math.floor(Math.random() * 10)).join('');
                 return `${numeros.substring(0, 3)}.${numeros.substring(3, 6)}.${numeros.substring(6, 9)}-${numeros.substring(9)}`;
             };
             
-            // Gerar telefone único (formato: (XX) XXXXX-XXXX)
             const gerarTelefoneUnico = () => {
                 const area = Math.floor(Math.random() * 90) + 10;
                 const numero = Math.floor(Math.random() * 900000000) + 100000000;
                 return `(${area}) ${Math.floor(numero / 10000)}-${numero % 10000}`;
             };
             
-            // Adicionar campos obrigatórios caso não existam
             const usuarioCompleto = {
                 nome: dadosUsuario.nome,
                 email: dadosUsuario.email,
                 senha: dadosUsuario.senha || 'senha123',
-                cpf: dadosUsuario.cpf || gerarCPFUnico(), // CPF único se não informado
-                telefone: dadosUsuario.telefone || gerarTelefoneUnico() // Telefone único se não informado
+                cpf: dadosUsuario.cpf || gerarCPFUnico(),
+                telefone: dadosUsuario.telefone || gerarTelefoneUnico()
             };
             
-            console.log(`📦 Dados do usuário completos:`, usuarioCompleto);
+            console.log(`Dados do usuário completos:`, usuarioCompleto);
             
             const response = await fetch(`${API_BASE_URL}/usuarios`, {
                 method: 'POST',
@@ -1013,15 +976,14 @@
                 body: JSON.stringify(usuarioCompleto)
             });
 
-            console.log(`📊 Status da resposta de criação de usuário: ${response.status} ${response.statusText}`);
+            console.log(`Status da resposta de criação de usuário: ${response.status} ${response.statusText}`);
 
             if (!response.ok) {
                 const error = await response.json().catch(() => ({}));
-                console.error(`❌ Erro ao criar usuário:`, error);
+                console.error(`Erro ao criar usuário:`, error);
                 
-                // Log detalhado dos erros de validação
                 if (error.errors) {
-                    console.error(`🔍 Erros de validação específicos:`, error.errors);
+                    console.error(`Erros de validação`, error.errors);
                     Object.keys(error.errors).forEach(campo => {
                         console.error(`   - ${campo}: ${error.errors[campo].join(', ')}`);
                     });
@@ -1031,7 +993,7 @@
             }
 
             const data = await response.json();
-            console.log(`✅ Usuário criado com sucesso:`, data.data);
+            console.log(`usuário criado com sucesso:`, data.data);
             return data.data;
         }
 
@@ -1039,7 +1001,6 @@
             const token = localStorage.getItem('token');
             
             try {
-                // 1. Criar inscrição
                 const inscricaoResponse = await fetch(`${API_BASE_URL}/inscricoes`, {
                     method: 'POST',
                     headers: {
@@ -1060,7 +1021,6 @@
                 const inscricaoData = await inscricaoResponse.json();
                 const inscricaoId = inscricaoData.data.id;
 
-                // 2. Marcar presença
                 const presencaResponse = await fetch(`${API_BASE_URL}/presencas`, {
                     method: 'POST',
                     headers: {
@@ -1079,7 +1039,6 @@
                     console.warn(`Erro ao marcar presença, mas inscrição foi criada`);
                 }
 
-                // 3. Gerar certificado
                 try {
                     await fetch(`http://177.44.248.118:5000/gerar-certificado/${inscricaoId}`, {
                         method: 'POST'
