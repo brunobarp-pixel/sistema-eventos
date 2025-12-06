@@ -194,10 +194,17 @@ async function salvarPerfil() {
                 ...usuario,
                 nome: result.data.nome,
                 email: result.data.email,
-                cpf: result.data.cpf,
-                telefone: result.data.telefone
+                cpf: result.data.cpf || '',
+                telefone: result.data.telefone || ''
             };
             localStorage.setItem('usuario', JSON.stringify(usuarioAtualizado));
+            
+            // Atualizar campos do modal
+            document.getElementById('editNome').value = result.data.nome;
+            document.getElementById('editEmail').value = result.data.email;
+            document.getElementById('editCpf').value = result.data.cpf || '';
+            document.getElementById('editTelefone').value = result.data.telefone || '';
+            document.getElementById('editSenha').value = '';
             
             alertDiv.innerHTML = '<div class="alert alert-success">Perfil atualizado com sucesso!</div>';
             
