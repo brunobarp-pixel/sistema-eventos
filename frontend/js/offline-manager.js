@@ -484,7 +484,7 @@ class OfflineManager {
         console.log(`Marcando presença: inscricao=${inscricaoId}, evento=${eventoId}, usuario=${usuarioId}`);
         
         try {
-            console.log(`Tentando conectar com: ${this.OFFLINE_API}/presencas`);
+            console.log(`Tentando conectar com: ${this.API_BASE}/presencas`);
             
             const requestBody = {
                 inscricao_id: inscricaoId
@@ -494,7 +494,7 @@ class OfflineManager {
             const headers = await this.getAuthHeaders();
             headers['Content-Type'] = 'application/json';
             
-            const response = await fetch(`${this.OFFLINE_API}/presencas`, {
+            const response = await fetch(`${this.API_BASE}/presencas`, {
                 method: 'POST',
                 headers: headers,
                 body: JSON.stringify(requestBody)
